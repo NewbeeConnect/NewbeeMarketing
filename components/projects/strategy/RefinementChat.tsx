@@ -16,7 +16,7 @@ interface ChatMessage {
 interface RefinementChatProps {
   projectId: string;
   currentContent: unknown;
-  contentType: "strategy" | "scenes";
+  contentType: "strategy" | "scenes" | "prompts";
   onRefined: (updatedContent: unknown, explanation: string) => void;
 }
 

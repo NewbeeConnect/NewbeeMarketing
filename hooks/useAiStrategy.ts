@@ -41,7 +41,7 @@ export function useRefineContent() {
       projectId: string;
       currentContent: unknown;
       refinementRequest: string;
-      contentType: "strategy" | "scenes";
+      contentType: "strategy" | "scenes" | "prompts";
     }) => {
       const res = await fetch("/api/ai/refine", {
         method: "POST",

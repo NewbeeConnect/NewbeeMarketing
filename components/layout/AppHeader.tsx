@@ -1,16 +1,8 @@
 "use client";
 
-import { Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+import { NotificationBell } from "./NotificationBell";
 
 interface AppHeaderProps {
   title?: string;
@@ -27,22 +19,7 @@ export function AppHeader({ title }: AppHeaderProps) {
       )}
 
       <div className="ml-auto flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuItem>
-              <div className="flex flex-col gap-1">
-                <p className="text-sm text-muted-foreground">
-                  No new notifications
-                </p>
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationBell />
       </div>
     </header>
   );
