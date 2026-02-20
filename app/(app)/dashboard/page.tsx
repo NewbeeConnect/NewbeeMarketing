@@ -1,6 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { useProjects } from "@/hooks/useProjects";
+import { useCampaigns } from "@/hooks/useCampaigns";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Film,
   Megaphone,
@@ -9,14 +18,9 @@ import {
   Plus,
   ArrowRight,
   DollarSign,
-  Clock,
 } from "lucide-react";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { TOTAL_CREDIT_USD } from "@/lib/constants";
+import { TOTAL_CREDIT_USD, WORKFLOW_STEPS } from "@/lib/constants";
+import { formatDistanceToNow } from "date-fns";
 
 function StatCard({
   title,
@@ -46,48 +50,54 @@ function StatCard({
 }
 
 export default function DashboardPage() {
-  // TODO: Replace with actual data from hooks
-  const stats = {
-    totalProjects: 0,
-    activeCampaigns: 0,
-    videosGenerated: 0,
-    imagesGenerated: 0,
-    totalSpent: 0,
-  };
+  const { data: analytics, isLoading: analyticsLoading } = useAnalytics();
+  const { data: campaigns } = useCampaigns();
+  const { data: recentProjects, isLoading: projectsLoading } = useProjects();
 
-  const budgetPercentage = (stats.totalSpent / TOTAL_CREDIT_USD) * 100;
+  const totalSpent = analytics?.totalSpent ?? 0;
+  const budgetPercentage = (totalSpent / TOTAL_CREDIT_USD) * 100;
+  const activeCampaigns = campaigns?.filter((c) => c.status === "active").length ?? 0;
+  const genStats = analytics?.generationStats;
 
   return (
     <>
       <AppHeader title="Dashboard" />
       <div className="flex-1 p-4 lg:p-6 space-y-6">
         {/* Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Total Projects"
-            value={String(stats.totalProjects)}
-            description="Across all campaigns"
-            icon={Film}
-          />
-          <StatCard
-            title="Active Campaigns"
-            value={String(stats.activeCampaigns)}
-            description="Currently running"
-            icon={Megaphone}
-          />
-          <StatCard
-            title="Videos Generated"
-            value={String(stats.videosGenerated)}
-            description="Using Veo 3.1"
-            icon={Video}
-          />
-          <StatCard
-            title="Images Generated"
-            value={String(stats.imagesGenerated)}
-            description="Using Imagen 4"
-            icon={ImageIcon}
-          />
-        </div>
+        {analyticsLoading ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-28" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              title="Total Projects"
+              value={String(analytics?.projectCount ?? 0)}
+              description="Across all campaigns"
+              icon={Film}
+            />
+            <StatCard
+              title="Active Campaigns"
+              value={String(activeCampaigns)}
+              description="Currently running"
+              icon={Megaphone}
+            />
+            <StatCard
+              title="Videos Generated"
+              value={String(genStats?.videoCount ?? 0)}
+              description="Using Veo 3.1"
+              icon={Video}
+            />
+            <StatCard
+              title="Images Generated"
+              value={String(genStats?.imageCount ?? 0)}
+              description="Using Imagen 4"
+              icon={ImageIcon}
+            />
+          </div>
+        )}
 
         {/* Budget + Quick Actions Row */}
         <div className="grid gap-4 md:grid-cols-2">
@@ -103,13 +113,16 @@ export default function DashboardPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Used</span>
                 <span className="font-medium">
-                  ${stats.totalSpent.toFixed(2)} / $
+                  ${totalSpent.toFixed(2)} / $
                   {TOTAL_CREDIT_USD.toLocaleString()}
                 </span>
               </div>
-              <Progress value={budgetPercentage} className="h-2" />
+              <Progress
+                value={budgetPercentage}
+                className={`h-2 ${budgetPercentage > 90 ? "[&>div]:bg-red-500" : budgetPercentage > 75 ? "[&>div]:bg-yellow-500" : ""}`}
+              />
               <p className="text-xs text-muted-foreground">
-                ${(TOTAL_CREDIT_USD - stats.totalSpent).toLocaleString()}{" "}
+                ${(TOTAL_CREDIT_USD - totalSpent).toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
                 remaining
               </p>
             </CardContent>
@@ -154,18 +167,61 @@ export default function DashboardPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Film className="h-10 w-10 text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground mb-3">
-                No projects yet. Create your first marketing video!
-              </p>
-              <Button asChild size="sm">
-                <Link href="/projects/new">
-                  <Plus className="h-4 w-4 mr-1" />
-                  Create Project
-                </Link>
-              </Button>
-            </div>
+            {projectsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-16" />
+                ))}
+              </div>
+            ) : recentProjects && recentProjects.length > 0 ? (
+              <div className="space-y-2">
+                {recentProjects.slice(0, 5).map((project) => {
+                  const stepLabel =
+                    WORKFLOW_STEPS.find((s) => s.number === project.current_step)
+                      ?.label ?? "Brief";
+                  return (
+                    <Link
+                      key={project.id}
+                      href={`/projects/${project.id}`}
+                      className="flex items-center justify-between p-3 rounded-lg border hover:border-primary/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Film className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">
+                            {project.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(project.updated_at), {
+                              addSuffix: true,
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          Step {project.current_step}: {stepLabel}
+                        </Badge>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Film className="h-10 w-10 text-muted-foreground mb-3" />
+                <p className="text-sm text-muted-foreground mb-3">
+                  No projects yet. Create your first marketing video!
+                </p>
+                <Button asChild size="sm">
+                  <Link href="/projects/new">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Create Project
+                  </Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
