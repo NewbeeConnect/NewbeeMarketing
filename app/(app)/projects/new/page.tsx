@@ -9,6 +9,7 @@ import {
   Sparkles,
   Globe,
   Palette as PaletteIcon,
+  Loader2,
 } from "lucide-react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,9 +20,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PLATFORMS, LANGUAGES, STYLES, TONES } from "@/lib/constants";
 import { toast } from "sonner";
+import { useCreateProject } from "@/hooks/useProjects";
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const createProject = useCreateProject();
   const [form, setForm] = useState({
     title: "",
     product_name: "",
@@ -57,9 +60,25 @@ export default function NewProjectPage() {
       toast.error("Please fill in required fields");
       return;
     }
-    // TODO: Save to Supabase and navigate to strategy step
-    toast.success("Project created! Redirecting to strategy...");
-    // router.push(`/projects/${newProjectId}/strategy`);
+    try {
+      const project = await createProject.mutateAsync({
+        title: form.title,
+        product_name: form.product_name,
+        product_description: form.product_description || null,
+        target_platforms: form.target_platforms,
+        target_audience: form.target_audience || null,
+        languages: form.languages,
+        style: form.style,
+        tone: form.tone,
+        additional_notes: form.additional_notes || null,
+      });
+      toast.success("Project created! Redirecting to strategy...");
+      router.push(`/projects/${project.id}/strategy`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create project"
+      );
+    }
   };
 
   return (
@@ -274,8 +293,12 @@ export default function NewProjectPage() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>
-            <Sparkles className="h-4 w-4 mr-2" />
+          <Button onClick={handleSubmit} disabled={createProject.isPending}>
+            {createProject.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
             Create & Generate Strategy
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>

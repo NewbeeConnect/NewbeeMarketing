@@ -3,9 +3,8 @@ import { GoogleGenAI } from "@google/genai";
 // Server-only - never import from client components
 const apiKey = process.env.GOOGLE_API_KEY;
 
-if (!apiKey && process.env.NODE_ENV === "production") {
-  throw new Error("Missing GOOGLE_API_KEY environment variable");
-}
+// API key is optional in dev, required at runtime in production
+// Don't throw at module level - it breaks build. Routes check for `ai` being null.
 
 export const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
