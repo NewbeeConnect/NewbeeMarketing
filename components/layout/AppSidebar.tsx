@@ -1,0 +1,120 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Palette,
+  Megaphone,
+  Film,
+  Images,
+  FileStack,
+  CalendarDays,
+  BarChart3,
+  Settings,
+  LogOut,
+} from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+
+const navItems = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Brand Kit", url: "/brand", icon: Palette },
+  { title: "Campaigns", url: "/campaigns", icon: Megaphone },
+  { title: "Projects", url: "/projects", icon: Film },
+  { title: "Gallery", url: "/gallery", icon: Images },
+  { title: "Templates", url: "/templates", icon: FileStack },
+  { title: "Calendar", url: "/calendar", icon: CalendarDays },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
+];
+
+const bottomItems = [
+  { title: "Settings", url: "/settings", icon: Settings },
+];
+
+export function AppSidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  return (
+    <Sidebar>
+      <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
+            N
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Newbee Marketing</p>
+            <p className="text-xs text-muted-foreground">Hub</p>
+          </div>
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => {
+                const isActive =
+                  pathname === item.url ||
+                  (item.url !== "/dashboard" &&
+                    pathname.startsWith(item.url));
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive}>
+                      <Link href={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border">
+        <SidebarMenu>
+          {bottomItems.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton asChild isActive={pathname === item.url}>
+                <Link href={item.url}>
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.title}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
