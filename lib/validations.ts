@@ -41,7 +41,7 @@ export const campaignSchema = z.object({
   budget_limit_usd: z.number().min(0).nullable().optional(),
   status: z
     .enum(["draft", "active", "paused", "completed", "archived"])
-    .default("draft"),
+    .optional(),
 });
 
 export const projectBriefSchema = z.object({
@@ -65,14 +65,14 @@ export const sceneSchema = z.object({
   title: z.string().min(1, "Scene title is required").max(200),
   description: z.string().min(1, "Scene description is required").max(2000),
   duration_seconds: z.number().min(4).max(8),
-  aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).default("9:16"),
-  resolution: z.enum(["720p", "1080p", "4k"]).default("1080p"),
+  aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional(),
+  resolution: z.enum(["720p", "1080p", "4k"]).optional(),
   camera_movement: z.string().max(200).nullable().optional(),
   lighting: z.string().max(200).nullable().optional(),
   text_overlay: z.string().max(500).nullable().optional(),
   audio_type: z
     .enum(["native_veo", "tts_voiceover", "silent"])
-    .default("native_veo"),
+    .optional(),
   voiceover_text: z.string().max(1000).nullable().optional(),
   voiceover_language: z.string().nullable().optional(),
   voiceover_voice: z.string().nullable().optional(),
@@ -90,7 +90,7 @@ export const templateSchema = z.object({
       "brand_awareness",
       "general",
     ])
-    .default("general"),
+    .optional(),
   platform: z.string().nullable().optional(),
   style: z.string().nullable().optional(),
   tone: z.string().nullable().optional(),
@@ -102,7 +102,7 @@ export const calendarEventSchema = z.object({
   campaign_id: z.string().uuid().nullable().optional(),
   platform: z.string().nullable().optional(),
   scheduled_date: z.string().min(1, "Date is required"),
-  status: z.enum(["planned", "ready", "published"]).default("planned"),
+  status: z.enum(["planned", "ready", "published"]).optional(),
   notes: z.string().max(1000).nullable().optional(),
 });
 
