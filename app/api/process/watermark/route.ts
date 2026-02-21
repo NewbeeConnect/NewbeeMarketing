@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import type { BrandKit } from "@/types/database";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  projectId: z.string().uuid(),
+  generationId: z.string().uuid(),
+});
 
 /**
  * Watermark overlay route.
@@ -21,14 +27,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { projectId, generationId } = body;
-
-    if (!projectId || !generationId) {
-      return NextResponse.json(
-        { error: "projectId and generationId are required" },
-        { status: 400 }
-      );
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
     }
+    const { projectId, generationId } = parsed.data;
 
     const serviceClient = createServiceClient();
 
@@ -82,8 +85,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Watermark error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to apply watermark";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to apply watermark" }, { status: 500 });
   }
 }

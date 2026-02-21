@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, MODELS, COST_ESTIMATES } from "@/lib/google-ai";
 import type { Project, Scene } from "@/types/database";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { checkBudget } from "@/lib/budget-guard";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  projectId: z.string().uuid(),
+  sceneId: z.string().uuid(),
+  language: z.string().optional(),
+  platform: z.string().optional(),
+  aspectRatio: z.string().optional(),
+  useFastModel: z.boolean().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,17 +30,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Google AI not configured" }, { status: 503 });
     }
 
-    const body = await request.json();
-    const { projectId, sceneId, language, platform, aspectRatio, useFastModel } = body;
-
-    if (!projectId || !sceneId) {
-      return NextResponse.json(
-        { error: "projectId and sceneId are required" },
-        { status: 400 }
-      );
+    // Rate limit (media = stricter)
+    const rl = checkRateLimit(user.id, "ai-media");
+    if (!rl.allowed) {
+      return NextResponse.json({ error: rl.error }, { status: 429 });
     }
 
     const serviceClient = createServiceClient();
+
+    // Budget guard
+    const budget = await checkBudget(serviceClient, user.id);
+    if (!budget.allowed) {
+      return NextResponse.json({ error: budget.error }, { status: 429 });
+    }
+
+    // Input validation
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    }
+    const { projectId, sceneId, language, platform, aspectRatio, useFastModel } = parsed.data;
 
     // Verify project ownership
     const { data: projectData, error: projectError } = await serviceClient
@@ -152,8 +174,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Video generation error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to start video generation";
+    const message = "Failed to start video generation";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

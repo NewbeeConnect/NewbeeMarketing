@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import type { Generation } from "@/types/database";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  projectId: z.string().uuid(),
+  language: z.string().max(5).optional(),
+  platform: z.string().max(50).optional(),
+});
 
 /**
  * Video stitching route.
@@ -24,14 +31,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { projectId, language, platform } = body;
-
-    if (!projectId) {
-      return NextResponse.json(
-        { error: "projectId is required" },
-        { status: 400 }
-      );
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
     }
+    const { projectId, language, platform } = parsed.data;
 
     const serviceClient = createServiceClient();
 
@@ -178,8 +182,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Stitch error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to stitch videos";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to stitch videos" }, { status: 500 });
   }
 }

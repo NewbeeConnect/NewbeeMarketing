@@ -7,6 +7,15 @@ import {
 } from "@/lib/ai/prompts/caption-generator";
 import { captionResponseSchema, parseAiJson } from "@/lib/ai/response-schemas";
 import type { Project, Scene } from "@/types/database";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { checkBudget } from "@/lib/budget-guard";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  projectId: z.string().uuid(),
+  language: z.string().min(2).max(5),
+  generationId: z.string().uuid().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,17 +35,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { projectId, language, generationId } = body;
-
-    if (!projectId || !language) {
-      return NextResponse.json(
-        { error: "projectId and language are required" },
-        { status: 400 }
-      );
+    // Rate limit
+    const rl = checkRateLimit(user.id, "ai-gemini");
+    if (!rl.allowed) {
+      return NextResponse.json({ error: rl.error }, { status: 429 });
     }
 
     const serviceClient = createServiceClient();
+
+    // Budget guard
+    const budget = await checkBudget(serviceClient, user.id);
+    if (!budget.allowed) {
+      return NextResponse.json({ error: budget.error }, { status: 429 });
+    }
+
+    // Input validation
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    }
+    const { projectId, language, generationId } = parsed.data;
 
     // Fetch project
     const { data: projectData, error: projectError } = await serviceClient
@@ -93,15 +112,15 @@ export async function POST(request: NextRequest) {
     });
 
     const text = response.text ?? "";
-    const parsed = parseAiJson(text, captionResponseSchema);
+    const captionResult = parseAiJson(text, captionResponseSchema);
 
     // Save caption to database
     const { data: captionData, error: captionError } = await serviceClient
       .from("mkt_captions")
       .insert({
-        generation_id: generationId || null,
+        generation_id: generationId ?? null,
         language,
-        srt_content: parsed.srt_content,
+        srt_content: captionResult.srt_content,
         is_embedded: false,
       })
       .select()
@@ -116,7 +135,7 @@ export async function POST(request: NextRequest) {
     const srtFileName = `${projectId}/captions/${language}.srt`;
     await serviceClient.storage
       .from("mkt-assets")
-      .upload(srtFileName, parsed.srt_content, {
+      .upload(srtFileName, captionResult.srt_content, {
         contentType: "text/plain",
         upsert: true,
       });
@@ -142,14 +161,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       captionId: (captionData as { id: string } | null)?.id,
-      srtContent: parsed.srt_content,
+      srtContent: captionResult.srt_content,
       srtUrl: srtUrl.publicUrl,
       language,
     });
   } catch (error) {
     console.error("Caption generation error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to generate captions";
+    const message = "Failed to generate captions";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

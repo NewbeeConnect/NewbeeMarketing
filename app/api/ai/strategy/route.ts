@@ -8,6 +8,14 @@ import { fetchNewbeeInsights } from "@/lib/newbee/insights";
 import { scrapeUrl, scrapeGithubRepo, isGithubUrl } from "@/lib/scraping/url-scraper";
 import { summarizeContext } from "@/lib/scraping/context-summarizer";
 import type { Project, BrandKit, CampaignPerformance } from "@/types/database";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { checkBudget } from "@/lib/budget-guard";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  projectId: z.string().uuid(),
+  ab_mode: z.boolean().optional().default(false),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,15 +30,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Google AI not configured" }, { status: 503 });
     }
 
-    const body = await request.json();
-    const { projectId, ab_mode = false } = body;
-
-    if (!projectId) {
-      return NextResponse.json({ error: "projectId is required" }, { status: 400 });
+    // Rate limit
+    const rl = checkRateLimit(user.id, "ai-gemini");
+    if (!rl.allowed) {
+      return NextResponse.json({ error: rl.error }, { status: 429 });
     }
 
-    // Fetch project
     const serviceClient = createServiceClient();
+
+    // Budget guard
+    const budget = await checkBudget(serviceClient, user.id);
+    if (!budget.allowed) {
+      return NextResponse.json({ error: budget.error }, { status: 429 });
+    }
+
+    // Input validation
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    }
+    const { projectId, ab_mode } = parsed.data;
+
+    // Fetch project
     const { data: projectData, error: projectError } = await serviceClient
       .from("mkt_projects")
       .select("*")
@@ -233,7 +255,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Strategy generation error:", error);
-    const message = error instanceof Error ? error.message : "Failed to generate strategy";
+    const message = "Failed to generate strategy";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

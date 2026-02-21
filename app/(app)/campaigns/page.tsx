@@ -251,12 +251,12 @@ function CampaignGridCard({ campaign }: { campaign: Campaign }) {
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarDays className="h-3 w-3" />
               {campaign.start_date
-                ? new Date(campaign.start_date).toLocaleDateString()
+                ? new Date(campaign.start_date).toLocaleDateString("en-US")
                 : "No start date"}
               {campaign.end_date && (
                 <>
                   {" - "}
-                  {new Date(campaign.end_date).toLocaleDateString()}
+                  {new Date(campaign.end_date).toLocaleDateString("en-US")}
                 </>
               )}
             </div>

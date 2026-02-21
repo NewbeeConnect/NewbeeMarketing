@@ -30,6 +30,7 @@ import {
   Download,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import { PLATFORMS, LANGUAGES } from "@/lib/constants";
 import type { Generation } from "@/types/database";
 
@@ -308,16 +309,20 @@ function GalleryCard({
     >
       <div className="relative aspect-video bg-muted">
         {item.thumbnail_url ? (
-          <img
+          <Image
             src={item.thumbnail_url}
             alt=""
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : item.type === "image" && item.output_url ? (
-          <img
+          <Image
             src={item.output_url}
             alt=""
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">

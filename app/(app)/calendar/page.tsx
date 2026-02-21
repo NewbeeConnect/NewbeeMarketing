@@ -347,7 +347,7 @@ export default function CalendarPage() {
                 </div>
                 <div className="text-sm">
                   <span className="text-muted-foreground">Date: </span>
-                  {new Date(selectedEvent.scheduled_date + "T00:00:00").toLocaleDateString()}
+                  {new Date(selectedEvent.scheduled_date + "T00:00:00").toLocaleDateString("en-US")}
                 </div>
                 {selectedEvent.notes && (
                   <p className="text-sm text-muted-foreground">

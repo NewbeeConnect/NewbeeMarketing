@@ -1,5 +1,56 @@
 import * as cheerio from "cheerio";
 
+// SSRF protection: block private/internal IPs and dangerous protocols
+function validateUrl(rawUrl: string): URL {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error("Invalid URL format");
+  }
+
+  // Only allow http/https
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error("Only HTTP and HTTPS protocols are allowed");
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  // Block localhost variants
+  if (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "0.0.0.0" ||
+    hostname === "[::1]" ||
+    hostname === "::1"
+  ) {
+    throw new Error("Access to localhost is not allowed");
+  }
+
+  // Block private IP ranges
+  const ipMatch = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (ipMatch) {
+    const [, a, b] = ipMatch.map(Number);
+    if (
+      a === 10 || // 10.0.0.0/8
+      (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
+      (a === 192 && b === 168) || // 192.168.0.0/16
+      (a === 169 && b === 254) || // link-local / cloud metadata
+      a === 0 || // 0.0.0.0/8
+      a === 127 // 127.0.0.0/8
+    ) {
+      throw new Error("Access to private/internal IP addresses is not allowed");
+    }
+  }
+
+  // Block cloud metadata endpoints
+  if (hostname === "metadata.google.internal" || hostname === "metadata.google.com") {
+    throw new Error("Access to cloud metadata endpoints is not allowed");
+  }
+
+  return parsed;
+}
+
 export type ScrapedContext = {
   title: string;
   description: string;
@@ -18,7 +69,8 @@ const USP_KEYWORDS = ["why", "unique", "advantage", "benefit", "different", "ned
  * Scrape a generic website URL and extract marketing-relevant content.
  */
 export async function scrapeUrl(url: string): Promise<ScrapedContext> {
-  const response = await fetch(url, {
+  const validatedUrl = validateUrl(url);
+  const response = await fetch(validatedUrl.toString(), {
     headers: {
       "User-Agent": "NewbeeMarketing-Bot/1.0 (Context Fetcher)",
       Accept: "text/html,application/xhtml+xml",

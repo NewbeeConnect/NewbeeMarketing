@@ -5,6 +5,13 @@ import { SCENES_SYSTEM_PROMPT, buildScenesUserPrompt } from "@/lib/ai/prompts/sc
 import { buildBrandContext } from "@/lib/ai/prompts/brand-context";
 import { scenesResponseSchema, parseAiJson } from "@/lib/ai/response-schemas";
 import type { Project, ProjectStrategy, BrandKit } from "@/types/database";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { checkBudget } from "@/lib/budget-guard";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  projectId: z.string().uuid(),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,14 +25,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Google AI not configured" }, { status: 503 });
     }
 
-    const body = await request.json();
-    const { projectId } = body;
-
-    if (!projectId) {
-      return NextResponse.json({ error: "projectId is required" }, { status: 400 });
+    // Rate limit
+    const rl = checkRateLimit(user.id, "ai-gemini");
+    if (!rl.allowed) {
+      return NextResponse.json({ error: rl.error }, { status: 429 });
     }
 
     const serviceClient = createServiceClient();
+
+    // Budget guard
+    const budget = await checkBudget(serviceClient, user.id);
+    if (!budget.allowed) {
+      return NextResponse.json({ error: budget.error }, { status: 429 });
+    }
+
+    // Input validation
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    }
+    const { projectId } = parsed.data;
     const { data: projectData, error: projectError } = await serviceClient
       .from("mkt_projects")
       .select("*")
@@ -157,7 +177,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ scenes: insertedScenes });
   } catch (error) {
     console.error("Scene generation error:", error);
-    const message = error instanceof Error ? error.message : "Failed to generate scenes";
+    const message = "Failed to generate scenes";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

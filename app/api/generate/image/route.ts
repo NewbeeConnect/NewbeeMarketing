@@ -3,6 +3,17 @@ import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server
 import { ai, MODELS, COST_ESTIMATES } from "@/lib/google-ai";
 import { PersonGeneration } from "@google/genai";
 import type { Project } from "@/types/database";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { checkBudget } from "@/lib/budget-guard";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  projectId: z.string().uuid(),
+  prompt: z.string().min(1).max(5000),
+  aspectRatio: z.string().optional(),
+  useFastModel: z.boolean().optional(),
+  purpose: z.string().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,17 +30,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Google AI not configured" }, { status: 503 });
     }
 
-    const body = await request.json();
-    const { projectId, prompt, aspectRatio, useFastModel, purpose } = body;
-
-    if (!projectId || !prompt) {
-      return NextResponse.json(
-        { error: "projectId and prompt are required" },
-        { status: 400 }
-      );
+    // Rate limit (media = stricter)
+    const rl = checkRateLimit(user.id, "ai-media");
+    if (!rl.allowed) {
+      return NextResponse.json({ error: rl.error }, { status: 429 });
     }
 
     const serviceClient = createServiceClient();
+
+    // Budget guard
+    const budget = await checkBudget(serviceClient, user.id);
+    if (!budget.allowed) {
+      return NextResponse.json({ error: budget.error }, { status: 429 });
+    }
+
+    // Input validation
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    }
+    const { projectId, prompt, aspectRatio, useFastModel, purpose } = parsed.data;
 
     // Verify project ownership
     const { data: projectData, error: projectError } = await serviceClient
@@ -184,8 +205,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Image generation error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to generate image";
+    const message = "Failed to generate image";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

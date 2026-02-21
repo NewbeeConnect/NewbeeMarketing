@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { checkBudget } from "@/lib/budget-guard";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  projectId: z.string().uuid(),
+  sceneId: z.string().uuid().optional(),
+  text: z.string().min(1).max(5000),
+  language: z.string().min(2).max(5),
+  voiceName: z.string().optional(),
+});
 
 // Google Cloud TTS voice mapping per language
 const VOICE_MAP: Record<string, { name: string; languageCode: string }> = {
@@ -27,17 +38,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { projectId, sceneId, text, language, voiceName } = body;
-
-    if (!projectId || !text || !language) {
-      return NextResponse.json(
-        { error: "projectId, text, and language are required" },
-        { status: 400 }
-      );
+    // Rate limit (media = stricter)
+    const rl = checkRateLimit(user.id, "ai-media");
+    if (!rl.allowed) {
+      return NextResponse.json({ error: rl.error }, { status: 429 });
     }
 
     const serviceClient = createServiceClient();
+
+    // Budget guard
+    const budget = await checkBudget(serviceClient, user.id);
+    if (!budget.allowed) {
+      return NextResponse.json({ error: budget.error }, { status: 429 });
+    }
+
+    // Input validation
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    }
+    const { projectId, sceneId, text, language, voiceName } = parsed.data;
 
     // Verify project ownership
     const { data: projectData, error: projectError } = await serviceClient
@@ -57,10 +78,10 @@ export async function POST(request: NextRequest) {
 
     // Call Google Cloud TTS API
     const ttsResponse = await fetch(
-      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+      "https://texttospeech.googleapis.com/v1/text:synthesize",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Goog-Api-Key": apiKey },
         body: JSON.stringify({
           input: { text },
           voice: {
@@ -153,8 +174,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Voiceover generation error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to generate voiceover";
+    const message = "Failed to generate voiceover";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

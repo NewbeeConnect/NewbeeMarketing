@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, MODELS } from "@/lib/google-ai";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { checkBudget } from "@/lib/budget-guard";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  projectId: z.string().uuid(),
+  currentContent: z.unknown(),
+  refinementRequest: z.string().min(1).max(2000),
+  contentType: z.enum(["strategy", "scenes", "prompts"]),
+});
 
 const REFINE_SYSTEM_PROMPT = `You are a marketing strategy refinement assistant. The user has an existing strategy or scene breakdown and wants to modify specific aspects.
 
@@ -31,22 +41,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Google AI not configured" }, { status: 503 });
     }
 
+    // Rate limit
+    const rl = checkRateLimit(user.id, "ai-gemini");
+    if (!rl.allowed) {
+      return NextResponse.json({ error: rl.error }, { status: 429 });
+    }
+
+    const serviceClient = createServiceClient();
+
+    // Budget guard
+    const budget = await checkBudget(serviceClient, user.id);
+    if (!budget.allowed) {
+      return NextResponse.json({ error: budget.error }, { status: 429 });
+    }
+
+    // Input validation
     const body = await request.json();
-    const { projectId, currentContent, refinementRequest, contentType } = body;
-
-    if (!projectId || !currentContent || !refinementRequest || !contentType) {
-      return NextResponse.json(
-        { error: "projectId, currentContent, refinementRequest, and contentType are required" },
-        { status: 400 }
-      );
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
     }
-
-    if (!["strategy", "scenes"].includes(contentType)) {
-      return NextResponse.json({ error: "contentType must be 'strategy' or 'scenes'" }, { status: 400 });
-    }
+    const { projectId, currentContent, refinementRequest, contentType } = parsed.data;
 
     // Verify project ownership
-    const serviceClient = createServiceClient();
     const { data: project, error: projectError } = await serviceClient
       .from("mkt_projects")
       .select("id")
@@ -104,7 +121,7 @@ Apply the requested changes and return the updated ${contentType} as JSON with t
     return NextResponse.json(result);
   } catch (error) {
     console.error("Refinement error:", error);
-    const message = error instanceof Error ? error.message : "Failed to refine content";
+    const message = "Failed to refine content";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

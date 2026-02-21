@@ -30,10 +30,15 @@ export function useAnalytics() {
   return useQuery({
     queryKey: ["analytics"],
     queryFn: async (): Promise<AnalyticsData> => {
-      // Fetch usage logs for cost breakdown
+      // Fetch usage logs for cost breakdown (last 12 months, max 5000 rows)
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
       const { data: usageLogs } = await supabase
         .from("mkt_usage_logs")
-        .select("api_service, estimated_cost_usd, created_at");
+        .select("api_service, estimated_cost_usd, created_at")
+        .gte("created_at", twelveMonthsAgo.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(5000);
 
       const logs = usageLogs ?? [];
 
@@ -60,10 +65,12 @@ export function useAnalytics() {
         .map(([month, amount]) => ({ month, amount }))
         .sort((a, b) => a.month.localeCompare(b.month));
 
-      // Generation stats
+      // Generation stats (last 12 months, max 5000 rows)
       const { data: generations } = await supabase
         .from("mkt_generations")
-        .select("type, status");
+        .select("type, status")
+        .gte("created_at", twelveMonthsAgo.toISOString())
+        .limit(5000);
 
       const gens = generations ?? [];
       const generationStats = {

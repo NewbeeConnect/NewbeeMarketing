@@ -57,14 +57,19 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
+    let mounted = true;
     const supabase = createClient();
     supabase.auth
       .getUser()
       .then(({ data }) => {
+        if (!mounted) return;
         setSupabaseOk(!!data.user);
         setUserEmail(data.user?.email ?? null);
       })
-      .catch(() => setSupabaseOk(false));
+      .catch(() => {
+        if (mounted) setSupabaseOk(false);
+      });
+    return () => { mounted = false; };
   }, []);
 
   useEffect(() => {

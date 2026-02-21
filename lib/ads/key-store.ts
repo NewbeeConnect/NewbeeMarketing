@@ -2,15 +2,13 @@
  * Ad Platform Key Store
  *
  * Reads and writes platform API keys from the mkt_api_keys table in Supabase.
- * Keys are stored as JSONB in the `keys_encrypted` column.
- *
- * NOTE: "keys_encrypted" is a column name convention - actual encryption
- * should be handled at the Supabase / database level (e.g. pgsodium).
+ * Keys are encrypted with AES-256-GCM before storage and decrypted on read.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import type { GoogleAdsKeys, MetaAdsKeys } from "./types";
+import { encryptJson, decryptJson, isEncryptionConfigured } from "@/lib/encryption";
 
 type ServiceClient = SupabaseClient<Database>;
 type PlatformSlug = "google_ads" | "meta_ads";
@@ -43,7 +41,17 @@ export async function getUserAdKeys<
     return null;
   }
 
-  // keys_encrypted is stored as JSONB and comes back as a parsed object
+  // Decrypt keys if encryption is configured
+  if (isEncryptionConfigured() && typeof data.keys_encrypted === "string") {
+    try {
+      return decryptJson<T>(data.keys_encrypted as unknown as string);
+    } catch (e) {
+      console.error(`[KeyStore] Failed to decrypt ${platform} keys:`, e);
+      return null;
+    }
+  }
+
+  // Fallback: plain JSONB (for migration period)
   return data.keys_encrypted as unknown as T;
 }
 
@@ -59,13 +67,18 @@ export async function saveUserAdKeys(
   platform: PlatformSlug,
   keys: GoogleAdsKeys | MetaAdsKeys
 ): Promise<{ success: boolean; error?: string }> {
+  // Encrypt keys if encryption is configured, otherwise store as plain JSONB
+  const keysToStore = isEncryptionConfigured()
+    ? encryptJson(keys)
+    : keys;
+
   const { error } = await serviceClient
     .from("mkt_api_keys")
     .upsert(
       {
         user_id: userId,
         platform,
-        keys_encrypted: keys as unknown as Database["public"]["Tables"]["mkt_api_keys"]["Insert"]["keys_encrypted"],
+        keys_encrypted: keysToStore as unknown as Database["public"]["Tables"]["mkt_api_keys"]["Insert"]["keys_encrypted"],
         is_valid: true,
         last_validated_at: new Date().toISOString(),
       },

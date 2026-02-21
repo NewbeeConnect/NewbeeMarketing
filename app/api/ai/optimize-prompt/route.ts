@@ -9,6 +9,15 @@ import { buildBrandContext } from "@/lib/ai/prompts/brand-context";
 import { promptOptimizeResponseSchema, parseAiJson } from "@/lib/ai/response-schemas";
 import { VEO_PROMPT_EXAMPLES } from "@/lib/ai/few-shot-examples";
 import type { Project, BrandKit, Scene } from "@/types/database";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { checkBudget } from "@/lib/budget-guard";
+import { aiCache } from "@/lib/ai-cache";
+import { z } from "zod";
+
+const inputSchema = z.object({
+  projectId: z.string().uuid(),
+  sceneId: z.string().uuid().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,14 +34,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Google AI not configured" }, { status: 503 });
     }
 
-    const body = await request.json();
-    const { projectId, sceneId } = body;
-
-    if (!projectId) {
-      return NextResponse.json({ error: "projectId is required" }, { status: 400 });
+    // Rate limit
+    const rl = checkRateLimit(user.id, "ai-gemini");
+    if (!rl.allowed) {
+      return NextResponse.json({ error: rl.error }, { status: 429 });
     }
 
     const serviceClient = createServiceClient();
+
+    // Budget guard
+    const budget = await checkBudget(serviceClient, user.id);
+    if (!budget.allowed) {
+      return NextResponse.json({ error: budget.error }, { status: 429 });
+    }
+
+    // Input validation
+    const body = await request.json();
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
+    }
+    const { projectId, sceneId } = parsed.data;
 
     // Fetch project
     const { data: projectData, error: projectError } = await serviceClient
@@ -109,6 +131,29 @@ export async function POST(request: NextRequest) {
 
       const fullPrompt = `## Few-shot Examples\n${fewShotContext}\n\n## Your Task\n${userPrompt}`;
 
+      // Check cache
+      const cacheKey = `prompt-opt:${scene.description}:${project.style}:${project.tone}`;
+      const cached = aiCache.get(cacheKey);
+      if (cached) {
+        const cachedResult = cached as { optimized_prompt: string; negative_prompt: string };
+        await serviceClient
+          .from("mkt_scenes")
+          .update({
+            user_prompt: scene.description,
+            optimized_prompt: cachedResult.optimized_prompt,
+            negative_prompt: cachedResult.negative_prompt,
+            prompt_approved: false,
+          })
+          .eq("id", scene.id);
+
+        results.push({
+          sceneId: scene.id,
+          optimized_prompt: cachedResult.optimized_prompt,
+          negative_prompt: cachedResult.negative_prompt,
+        });
+        continue;
+      }
+
       let text: string;
       let inputTokens = 0;
       let outputTokens = 0;
@@ -143,6 +188,9 @@ export async function POST(request: NextRequest) {
           { status: 502 }
         );
       }
+
+      // Cache the result
+      aiCache.set(cacheKey, { optimized_prompt: parsed.optimized_prompt, negative_prompt: parsed.negative_prompt });
 
       // Update scene with optimized prompt
       await serviceClient
@@ -206,8 +254,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ results });
   } catch (error) {
     console.error("Prompt optimization error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to optimize prompts";
+    const message = "Failed to optimize prompts";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
