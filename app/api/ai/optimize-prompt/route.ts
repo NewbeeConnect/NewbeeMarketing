@@ -109,18 +109,40 @@ export async function POST(request: NextRequest) {
 
       const fullPrompt = `## Few-shot Examples\n${fewShotContext}\n\n## Your Task\n${userPrompt}`;
 
-      const response = await ai.models.generateContent({
-        model: MODELS.GEMINI_FLASH,
-        contents: fullPrompt,
-        config: {
-          systemInstruction: VEO_OPTIMIZER_SYSTEM_PROMPT,
-          temperature: 0.5,
-          maxOutputTokens: 1024,
-        },
-      });
+      let text: string;
+      let inputTokens = 0;
+      let outputTokens = 0;
+      try {
+        const response = await ai.models.generateContent({
+          model: MODELS.GEMINI_FLASH,
+          contents: fullPrompt,
+          config: {
+            systemInstruction: VEO_OPTIMIZER_SYSTEM_PROMPT,
+            temperature: 0.5,
+            maxOutputTokens: 1024,
+          },
+        });
+        text = response.text ?? "";
+        inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
+        outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
+      } catch (aiError) {
+        console.error(`Gemini API error for scene ${scene.id}:`, aiError);
+        return NextResponse.json(
+          { error: `AI generation failed: ${aiError instanceof Error ? aiError.message : "Unknown AI error"}` },
+          { status: 502 }
+        );
+      }
 
-      const text = response.text ?? "";
-      const parsed = parseAiJson(text, promptOptimizeResponseSchema);
+      let parsed;
+      try {
+        parsed = parseAiJson(text, promptOptimizeResponseSchema);
+      } catch (parseError) {
+        console.error(`Parse error for scene ${scene.id}. Raw response:`, text);
+        return NextResponse.json(
+          { error: `Failed to parse AI response for scene "${scene.title}"` },
+          { status: 502 }
+        );
+      }
 
       // Update scene with optimized prompt
       await serviceClient
@@ -139,8 +161,8 @@ export async function POST(request: NextRequest) {
         negative_prompt: parsed.negative_prompt,
       });
 
-      totalInputTokens += response.usageMetadata?.promptTokenCount ?? 0;
-      totalOutputTokens += response.usageMetadata?.candidatesTokenCount ?? 0;
+      totalInputTokens += inputTokens;
+      totalOutputTokens += outputTokens;
     }
 
     // Update project status

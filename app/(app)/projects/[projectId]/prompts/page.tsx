@@ -250,14 +250,22 @@ export default function PromptsPage() {
                 isOptimizing={optimizePrompts.isPending}
               />
 
-              {allApproved && (
-                <div className="flex justify-end">
-                  <Button size="lg" onClick={handleContinue}>
-                    Approve & Continue to Generation
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </div>
-              )}
+              <div className="flex items-center justify-between pt-2">
+                {!allApproved && (
+                  <p className="text-sm text-muted-foreground">
+                    {scenes.filter(s => s.prompt_approved).length}/{scenes.length} prompts approved — approve all to continue
+                  </p>
+                )}
+                <Button
+                  size="lg"
+                  onClick={handleContinue}
+                  disabled={!allApproved}
+                  className="ml-auto"
+                >
+                  Continue to Generation
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-4">

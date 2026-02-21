@@ -209,7 +209,7 @@ export default function DashboardPage() {
                           <p className="text-sm font-medium">
                             {project.title}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground" suppressHydrationWarning>
                             {formatDistanceToNow(new Date(project.updated_at), {
                               addSuffix: true,
                             })}
