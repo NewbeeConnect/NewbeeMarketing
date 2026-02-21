@@ -3,12 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCampaigns, useDeleteCampaign } from "@/hooks/useCampaigns";
-import { CampaignCard } from "@/components/campaigns/CampaignCard";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
@@ -20,9 +19,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Megaphone, Search } from "lucide-react";
+import {
+  Plus,
+  Megaphone,
+  Search,
+  CalendarDays,
+  DollarSign,
+  ArrowRight,
+} from "lucide-react";
 import { toast } from "sonner";
-import type { CampaignStatus } from "@/types/database";
+import { formatDistanceToNow } from "date-fns";
+import type { Campaign, CampaignStatus } from "@/types/database";
 
 const STATUS_TABS: { value: CampaignStatus | "all"; label: string }[] = [
   { value: "all", label: "All" },
@@ -32,6 +39,14 @@ const STATUS_TABS: { value: CampaignStatus | "all"; label: string }[] = [
   { value: "completed", label: "Completed" },
   { value: "archived", label: "Archived" },
 ];
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: "bg-gray-500/10 text-gray-600 border-gray-500/30",
+  active: "bg-green-500/10 text-green-600 border-green-500/30",
+  paused: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30",
+  completed: "bg-blue-500/10 text-blue-600 border-blue-500/30",
+  archived: "bg-muted text-muted-foreground",
+};
 
 export default function CampaignsPage() {
   const { data: campaigns, isLoading } = useCampaigns();
@@ -90,9 +105,9 @@ export default function CampaignsPage() {
         </div>
 
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-40 w-full" />
+              <Skeleton key={i} className="h-48" />
             ))}
           </div>
         ) : campaigns && campaigns.length > 0 ? (
@@ -130,11 +145,11 @@ export default function CampaignsPage() {
               </div>
             </div>
 
-            {/* Campaign List */}
+            {/* Campaign Grid */}
             {filtered && filtered.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((campaign) => (
-                  <CampaignCard key={campaign.id} campaign={campaign} />
+                  <CampaignGridCard key={campaign.id} campaign={campaign} />
                 ))}
               </div>
             ) : (
@@ -190,5 +205,69 @@ export default function CampaignsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+function CampaignGridCard({ campaign }: { campaign: Campaign }) {
+  const budgetPercentage =
+    campaign.budget_limit_usd && campaign.budget_limit_usd > 0
+      ? Math.min(
+          100,
+          (campaign.current_spend_usd / campaign.budget_limit_usd) * 100
+        )
+      : 0;
+
+  return (
+    <Link href={`/campaigns/${campaign.id}`} className="block">
+      <Card className="h-full hover:border-primary/50 transition-colors">
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between">
+            <CardTitle className="text-base line-clamp-1">
+              {campaign.name}
+            </CardTitle>
+            <Badge className={STATUS_COLORS[campaign.status] || ""}>
+              {campaign.status}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {campaign.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {campaign.description}
+            </p>
+          )}
+
+          {campaign.budget_limit_usd && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <DollarSign className="h-3 w-3" />
+              <span>
+                ${campaign.current_spend_usd.toFixed(2)} / $
+                {campaign.budget_limit_usd.toFixed(0)}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <CalendarDays className="h-3 w-3" />
+              {campaign.start_date
+                ? new Date(campaign.start_date).toLocaleDateString()
+                : "No start date"}
+              {campaign.end_date && (
+                <>
+                  {" - "}
+                  {new Date(campaign.end_date).toLocaleDateString()}
+                </>
+              )}
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {formatDistanceToNow(new Date(campaign.updated_at), {
+                addSuffix: true,
+              })}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

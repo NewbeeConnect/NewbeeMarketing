@@ -52,6 +52,7 @@ export function useCreateProject() {
           style: brief.style,
           tone: brief.tone,
           additional_notes: brief.additional_notes ?? null,
+          source_url: (brief as Record<string, unknown>).source_url as string ?? null,
           campaign_id: brief.campaign_id ?? null,
           brand_kit_id: brief.brand_kit_id ?? null,
           status: "strategy_pending",

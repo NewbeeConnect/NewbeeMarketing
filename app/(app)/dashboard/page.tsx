@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AiInsightBadges } from "@/components/dashboard/AiInsightBadges";
 import {
   Film,
   Megaphone,
@@ -18,6 +19,7 @@ import {
   Plus,
   ArrowRight,
   DollarSign,
+  Settings,
 } from "lucide-react";
 import { TOTAL_CREDIT_USD, WORKFLOW_STEPS } from "@/lib/constants";
 import { formatDistanceToNow } from "date-fns";
@@ -152,9 +154,25 @@ export default function DashboardPage() {
                   Set Up Brand Kit
                 </Link>
               </Button>
+              <Button asChild className="w-full justify-start" variant="outline">
+                <Link href="/settings">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Configure Ad API Keys
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         </div>
+
+        {/* AI Insights */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Performance Insights</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AiInsightBadges />
+          </CardContent>
+        </Card>
 
         {/* Recent Projects */}
         <Card>

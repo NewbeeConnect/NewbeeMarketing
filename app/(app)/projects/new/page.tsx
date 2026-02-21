@@ -10,6 +10,8 @@ import {
   Globe,
   Palette as PaletteIcon,
   Loader2,
+  Link as LinkIcon,
+  Search,
 } from "lucide-react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +27,8 @@ import { useCreateProject } from "@/hooks/useProjects";
 export default function NewProjectPage() {
   const router = useRouter();
   const createProject = useCreateProject();
+  const [fetchingContext, setFetchingContext] = useState(false);
+  const [contextFetched, setContextFetched] = useState(false);
   const [form, setForm] = useState({
     title: "",
     product_name: "",
@@ -35,6 +39,7 @@ export default function NewProjectPage() {
     style: "modern",
     tone: "professional",
     additional_notes: "",
+    source_url: "",
   });
 
   const togglePlatform = (value: string) => {
@@ -55,6 +60,50 @@ export default function NewProjectPage() {
     }));
   };
 
+  const handleFetchContext = async () => {
+    if (!form.source_url) {
+      toast.error("Please enter a URL first");
+      return;
+    }
+
+    setFetchingContext(true);
+    try {
+      const response = await fetch("/api/context/fetch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: form.source_url }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to fetch context");
+      }
+
+      const { context } = await response.json();
+
+      // Auto-fill form fields from context
+      setForm((prev) => ({
+        ...prev,
+        product_name: prev.product_name || context.companyName || "",
+        product_description: prev.product_description || context.productDescription || "",
+        target_audience: prev.target_audience || context.targetAudience || "",
+        additional_notes: prev.additional_notes
+          ? prev.additional_notes
+          : [
+              context.keyFeatures?.length > 0 ? `Key Features: ${context.keyFeatures.join(", ")}` : "",
+              context.uniqueSellingPoints?.length > 0 ? `USPs: ${context.uniqueSellingPoints.join(", ")}` : "",
+            ].filter(Boolean).join("\n"),
+      }));
+
+      setContextFetched(true);
+      toast.success("Context fetched! Fields have been auto-filled.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to fetch context");
+    } finally {
+      setFetchingContext(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!form.title || !form.product_name || form.target_platforms.length === 0) {
       toast.error("Please fill in required fields");
@@ -71,6 +120,7 @@ export default function NewProjectPage() {
         style: form.style,
         tone: form.tone,
         additional_notes: form.additional_notes || null,
+        source_url: form.source_url || null,
       });
       toast.success("Project created! Redirecting to strategy...");
       router.push(`/projects/${project.id}/strategy`);
@@ -92,6 +142,52 @@ export default function NewProjectPage() {
             marketing strategy and video.
           </p>
         </div>
+
+        {/* Context Fetching */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <LinkIcon className="h-4 w-4" />
+              Quick Start: Fetch from URL
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Paste a website URL or GitHub link and we&apos;ll automatically extract product info to fill the brief.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="https://example.com or https://github.com/org/repo"
+                value={form.source_url}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, source_url: e.target.value, }))
+                }
+                className="flex-1"
+              />
+              <Button
+                onClick={handleFetchContext}
+                disabled={fetchingContext || !form.source_url}
+                variant={contextFetched ? "outline" : "default"}
+              >
+                {fetchingContext ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : contextFetched ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                <span className="ml-2 hidden sm:inline">
+                  {fetchingContext ? "Fetching..." : contextFetched ? "Fetched" : "Fetch Context"}
+                </span>
+              </Button>
+            </div>
+            {contextFetched && (
+              <p className="text-xs text-green-600">
+                Context extracted successfully. Review and edit the auto-filled fields below.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Basic Info */}
         <Card>

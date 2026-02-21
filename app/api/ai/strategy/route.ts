@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, MODELS } from "@/lib/google-ai";
-import { STRATEGY_SYSTEM_PROMPT, buildStrategyUserPrompt } from "@/lib/ai/prompts/strategy";
-import { buildBrandContext, buildNewbeeInsightContext } from "@/lib/ai/prompts/brand-context";
-import { strategyResponseSchema, parseAiJson } from "@/lib/ai/response-schemas";
+import { STRATEGY_SYSTEM_PROMPT, buildStrategyUserPrompt, buildAbStrategyUserPrompt } from "@/lib/ai/prompts/strategy";
+import { buildBrandContext, buildNewbeeInsightContext, buildExternalContext, buildPerformanceContext } from "@/lib/ai/prompts/brand-context";
+import { strategyResponseSchema, abStrategyResponseSchema, parseAiJson } from "@/lib/ai/response-schemas";
 import { fetchNewbeeInsights } from "@/lib/newbee/insights";
-import type { Project, BrandKit } from "@/types/database";
+import { scrapeUrl, scrapeGithubRepo, isGithubUrl } from "@/lib/scraping/url-scraper";
+import { summarizeContext } from "@/lib/scraping/context-summarizer";
+import type { Project, BrandKit, CampaignPerformance } from "@/types/database";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { projectId } = body;
+    const { projectId, ab_mode = false } = body;
 
     if (!projectId) {
       return NextResponse.json({ error: "projectId is required" }, { status: 400 });
@@ -59,8 +61,37 @@ export async function POST(request: NextRequest) {
     const brandContext = buildBrandContext(brandKit);
     const insightContext = buildNewbeeInsightContext(insights);
 
-    // Build prompt
-    const userPrompt = buildStrategyUserPrompt({
+    // Fetch external context if source_url exists
+    let externalContext = "";
+    if (project.source_url) {
+      try {
+        const scraped = isGithubUrl(project.source_url)
+          ? await scrapeGithubRepo(project.source_url)
+          : await scrapeUrl(project.source_url);
+        const summarized = await summarizeContext(scraped);
+        externalContext = buildExternalContext(summarized);
+      } catch (err) {
+        console.warn("Failed to fetch external context:", err);
+      }
+    }
+
+    // Fetch performance context if campaign is linked
+    let performanceContext = "";
+    if (project.campaign_id) {
+      const { data: perfData } = await serviceClient
+        .from("mkt_campaign_performance")
+        .select("*")
+        .eq("campaign_id", project.campaign_id)
+        .order("date", { ascending: false })
+        .limit(30);
+
+      if (perfData && perfData.length > 0) {
+        performanceContext = buildPerformanceContext(perfData as CampaignPerformance[]);
+      }
+    }
+
+    // Build prompt params
+    const promptParams = {
       productName: project.product_name,
       productDescription: project.product_description,
       targetPlatforms: project.target_platforms,
@@ -71,68 +102,182 @@ export async function POST(request: NextRequest) {
       additionalNotes: project.additional_notes,
       brandContext,
       insightContext,
-    });
+      externalContext,
+      performanceContext,
+    };
 
-    // Call Gemini
-    const response = await ai.models.generateContent({
-      model: MODELS.GEMINI_PRO,
-      contents: userPrompt,
-      config: {
-        systemInstruction: STRATEGY_SYSTEM_PROMPT,
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-      },
-    });
+    if (ab_mode) {
+      // A/B Mode: Generate two strategies
+      const userPrompt = buildAbStrategyUserPrompt(promptParams);
 
-    const text = response.text ?? "";
-    const strategy = parseAiJson(text, strategyResponseSchema);
+      const response = await ai.models.generateContent({
+        model: MODELS.GEMINI_PRO,
+        contents: userPrompt,
+        config: {
+          systemInstruction: STRATEGY_SYSTEM_PROMPT,
+          temperature: 0.8,
+          maxOutputTokens: 4096,
+        },
+      });
 
-    // Update project with strategy
-    await serviceClient
-      .from("mkt_projects")
-      .update({
-        strategy: JSON.parse(JSON.stringify(strategy)),
-        status: "strategy_ready" as const,
-        current_step: 2,
-      })
-      .eq("id", projectId);
+      const text = response.text ?? "";
+      const abStrategy = parseAiJson(text, abStrategyResponseSchema);
 
-    // Save version
-    const { count } = await serviceClient
-      .from("mkt_project_versions")
-      .select("*", { count: "exact", head: true })
-      .eq("project_id", projectId)
-      .eq("step", "strategy");
+      // Update parent project with Version A strategy
+      await serviceClient
+        .from("mkt_projects")
+        .update({
+          strategy: JSON.parse(JSON.stringify(abStrategy.version_a)),
+          status: "strategy_ready" as const,
+          current_step: 2,
+        })
+        .eq("id", projectId);
 
-    await serviceClient.from("mkt_project_versions").insert({
-      project_id: projectId,
-      step: "strategy",
-      version_number: (count ?? 0) + 1,
-      snapshot: JSON.parse(JSON.stringify(strategy)),
-      change_description: "AI generated initial strategy",
-    });
+      // Create or update variant project for Version B
+      const { data: existingVariant } = await serviceClient
+        .from("mkt_projects")
+        .select("id")
+        .eq("parent_project_id", projectId)
+        .eq("is_ab_variant", true)
+        .single();
 
-    // Log usage
-    await serviceClient.from("mkt_usage_logs").insert({
-      user_id: user.id,
-      project_id: projectId,
-      api_service: "gemini",
-      model: MODELS.GEMINI_PRO,
-      operation: "strategy_generation",
-      input_tokens: response.usageMetadata?.promptTokenCount ?? null,
-      output_tokens: response.usageMetadata?.candidatesTokenCount ?? null,
-      estimated_cost_usd: estimateCost(
-        response.usageMetadata?.promptTokenCount ?? 0,
-        response.usageMetadata?.candidatesTokenCount ?? 0
-      ),
-    });
+      let variantId: string;
 
-    return NextResponse.json({ strategy });
+      if (existingVariant) {
+        variantId = existingVariant.id;
+        await serviceClient
+          .from("mkt_projects")
+          .update({
+            strategy: JSON.parse(JSON.stringify(abStrategy.version_b)),
+            status: "strategy_ready" as const,
+            current_step: 2,
+          })
+          .eq("id", variantId);
+      } else {
+        const { data: newVariant } = await serviceClient
+          .from("mkt_projects")
+          .insert({
+            user_id: user.id,
+            campaign_id: project.campaign_id,
+            brand_kit_id: project.brand_kit_id,
+            title: `${project.title} (B)`,
+            product_name: project.product_name,
+            product_description: project.product_description,
+            target_platforms: project.target_platforms,
+            target_audience: project.target_audience,
+            languages: project.languages,
+            style: project.style,
+            tone: project.tone,
+            additional_notes: project.additional_notes,
+            source_url: project.source_url,
+            strategy: JSON.parse(JSON.stringify(abStrategy.version_b)),
+            status: "strategy_ready" as const,
+            current_step: 2,
+            is_ab_variant: true,
+            parent_project_id: projectId,
+          })
+          .select("id")
+          .single();
+
+        variantId = newVariant?.id ?? "";
+      }
+
+      // Save versions
+      await saveVersion(serviceClient, projectId, abStrategy.version_a, "A/B Test: Version A (Emotional)");
+      if (variantId) {
+        await saveVersion(serviceClient, variantId, abStrategy.version_b, "A/B Test: Version B (Technical)");
+      }
+
+      // Log usage
+      await logUsage(serviceClient, user.id, projectId, response);
+
+      return NextResponse.json({
+        ab_mode: true,
+        version_a: { projectId, strategy: abStrategy.version_a },
+        version_b: { projectId: variantId, strategy: abStrategy.version_b },
+      });
+    } else {
+      // Standard single strategy mode
+      const userPrompt = buildStrategyUserPrompt(promptParams);
+
+      const response = await ai.models.generateContent({
+        model: MODELS.GEMINI_PRO,
+        contents: userPrompt,
+        config: {
+          systemInstruction: STRATEGY_SYSTEM_PROMPT,
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+        },
+      });
+
+      const text = response.text ?? "";
+      const strategy = parseAiJson(text, strategyResponseSchema);
+
+      // Update project with strategy
+      await serviceClient
+        .from("mkt_projects")
+        .update({
+          strategy: JSON.parse(JSON.stringify(strategy)),
+          status: "strategy_ready" as const,
+          current_step: 2,
+        })
+        .eq("id", projectId);
+
+      // Save version
+      await saveVersion(serviceClient, projectId, strategy, "AI generated initial strategy");
+
+      // Log usage
+      await logUsage(serviceClient, user.id, projectId, response);
+
+      return NextResponse.json({ strategy });
+    }
   } catch (error) {
     console.error("Strategy generation error:", error);
     const message = error instanceof Error ? error.message : "Failed to generate strategy";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+async function saveVersion(
+  serviceClient: ReturnType<typeof createServiceClient>,
+  projectId: string,
+  strategy: object,
+  description: string
+) {
+  const { count } = await serviceClient
+    .from("mkt_project_versions")
+    .select("*", { count: "exact", head: true })
+    .eq("project_id", projectId)
+    .eq("step", "strategy");
+
+  await serviceClient.from("mkt_project_versions").insert({
+    project_id: projectId,
+    step: "strategy",
+    version_number: (count ?? 0) + 1,
+    snapshot: JSON.parse(JSON.stringify(strategy)),
+    change_description: description,
+  });
+}
+
+async function logUsage(
+  serviceClient: ReturnType<typeof createServiceClient>,
+  userId: string,
+  projectId: string,
+  response: { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number } }
+) {
+  await serviceClient.from("mkt_usage_logs").insert({
+    user_id: userId,
+    project_id: projectId,
+    api_service: "gemini",
+    model: MODELS.GEMINI_PRO,
+    operation: "strategy_generation",
+    input_tokens: response.usageMetadata?.promptTokenCount ?? null,
+    output_tokens: response.usageMetadata?.candidatesTokenCount ?? null,
+    estimated_cost_usd: estimateCost(
+      response.usageMetadata?.promptTokenCount ?? 0,
+      response.usageMetadata?.candidatesTokenCount ?? 0
+    ),
+  });
 }
 
 function estimateCost(inputTokens: number, outputTokens: number): number {

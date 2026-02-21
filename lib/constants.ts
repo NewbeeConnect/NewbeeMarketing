@@ -71,6 +71,20 @@ export const NAV_ITEMS = [
   { title: "Templates", url: "/templates", icon: "FileStack" },
   { title: "Calendar", url: "/calendar", icon: "CalendarDays" },
   { title: "Analytics", url: "/analytics", icon: "BarChart3" },
+  { title: "Settings", url: "/settings", icon: "Settings" },
+] as const;
+
+export const CAMPAIGN_WORKFLOW_STEPS = [
+  { number: 1, label: "Fetch Context", path: "", icon: "Globe" },
+  { number: 2, label: "AI Strategy", path: "/strategy", icon: "Brain" },
+  { number: 3, label: "Media Production", path: "/media", icon: "Film" },
+  { number: 4, label: "Ad Distribution", path: "/publish", icon: "Megaphone" },
+  { number: 5, label: "Analytics", path: "/analytics", icon: "BarChart3" },
+] as const;
+
+export const AD_PLATFORMS = [
+  { value: "google", label: "Google Ads", description: "Search, Display, YouTube" },
+  { value: "meta", label: "Meta Ads", description: "Facebook, Instagram" },
 ] as const;
 
 // Budget alert thresholds

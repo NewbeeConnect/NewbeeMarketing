@@ -52,6 +52,20 @@ export const refineResponseSchema = z.object({
 
 export type RefineResponse = z.infer<typeof refineResponseSchema>;
 
+// A/B Strategy schemas
+const strategyWithPersonaSchema = strategyResponseSchema.extend({
+  persona_type: z.enum(["emotional", "technical"]),
+  persona_description: z.string().min(1),
+});
+
+export const abStrategyResponseSchema = z.object({
+  version_a: strategyWithPersonaSchema,
+  version_b: strategyWithPersonaSchema,
+});
+
+export type AbStrategyResponse = z.infer<typeof abStrategyResponseSchema>;
+export type StrategyWithPersona = z.infer<typeof strategyWithPersonaSchema>;
+
 /**
  * Parse AI response that might contain JSON wrapped in markdown code blocks
  */

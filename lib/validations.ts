@@ -57,8 +57,29 @@ export const projectBriefSchema = z.object({
   style: z.string().min(1, "Select a style"),
   tone: z.string().min(1, "Select a tone"),
   additional_notes: z.string().max(2000).nullable().optional(),
+  source_url: z.string().url().nullable().optional(),
   campaign_id: z.string().uuid().nullable().optional(),
   brand_kit_id: z.string().uuid().nullable().optional(),
+});
+
+export const adDeploymentSchema = z.object({
+  platform: z.enum(["google", "meta"]),
+  campaign_id: z.string().uuid().nullable().optional(),
+  project_id: z.string().uuid(),
+  creative_urls: z.array(z.string().url()).min(1, "At least one creative is required"),
+  budget_daily_usd: z.number().min(1).max(10000),
+  budget_total_usd: z.number().min(1).max(1000000),
+  targeting: z.object({
+    age_range: z.tuple([z.number().min(13), z.number().max(65)]),
+    locations: z.array(z.string()).min(1),
+    interests: z.array(z.string()),
+    languages: z.array(z.string()).min(1),
+  }),
+});
+
+export const apiKeysSchema = z.object({
+  platform: z.enum(["google_ads", "meta_ads"]),
+  keys: z.record(z.string(), z.string()),
 });
 
 export const sceneSchema = z.object({
@@ -113,3 +134,5 @@ export type ProjectBriefFormData = z.infer<typeof projectBriefSchema>;
 export type SceneFormData = z.infer<typeof sceneSchema>;
 export type TemplateFormData = z.infer<typeof templateSchema>;
 export type CalendarEventFormData = z.infer<typeof calendarEventSchema>;
+export type AdDeploymentFormData = z.infer<typeof adDeploymentSchema>;
+export type ApiKeysFormData = z.infer<typeof apiKeysSchema>;
