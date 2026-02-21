@@ -16,7 +16,7 @@ export default function HistoryPage() {
   if (isLoading) {
     return (
       <>
-        <AppHeader title="Version History" />
+        <AppHeader breadcrumbs={[{ label: "Projects", href: "/projects" }, { label: "History" }]} />
         <div className="p-6">
           <Skeleton className="h-64 w-full" />
         </div>
@@ -26,7 +26,7 @@ export default function HistoryPage() {
 
   return (
     <>
-      <AppHeader title="Version History" />
+      <AppHeader breadcrumbs={[{ label: "Projects", href: "/projects" }, { label: "History" }]} />
       <div className="p-6 space-y-4">
         {!versions || versions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 space-y-4">

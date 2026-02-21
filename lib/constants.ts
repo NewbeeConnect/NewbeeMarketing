@@ -63,15 +63,15 @@ export const WORKFLOW_STEPS = [
 ] as const;
 
 export const NAV_ITEMS = [
-  { title: "Dashboard", url: "/dashboard", icon: "LayoutDashboard" },
-  { title: "Brand Kit", url: "/brand", icon: "Palette" },
-  { title: "Campaigns", url: "/campaigns", icon: "Megaphone" },
-  { title: "Projects", url: "/projects", icon: "Film" },
-  { title: "Gallery", url: "/gallery", icon: "Images" },
-  { title: "Templates", url: "/templates", icon: "FileStack" },
-  { title: "Calendar", url: "/calendar", icon: "CalendarDays" },
-  { title: "Analytics", url: "/analytics", icon: "BarChart3" },
-  { title: "Settings", url: "/settings", icon: "Settings" },
+  { title: "Dashboard", url: "/dashboard", icon: "LayoutDashboard", group: "home" },
+  { title: "Projects", url: "/projects", icon: "Film", group: "create" },
+  { title: "Brand Kit", url: "/brand", icon: "Palette", group: "create" },
+  { title: "Campaigns", url: "/campaigns", icon: "Megaphone", group: "distribute" },
+  { title: "Calendar", url: "/calendar", icon: "CalendarDays", group: "distribute" },
+  { title: "Gallery", url: "/gallery", icon: "Images", group: "library" },
+  { title: "Templates", url: "/templates", icon: "FileStack", group: "library" },
+  { title: "Analytics", url: "/analytics", icon: "BarChart3", group: "footer" },
+  { title: "Settings", url: "/settings", icon: "Settings", group: "footer" },
 ] as const;
 
 export const CAMPAIGN_WORKFLOW_STEPS = [

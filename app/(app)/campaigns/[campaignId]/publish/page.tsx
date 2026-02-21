@@ -169,10 +169,12 @@ export default function PublishPage() {
     }
   };
 
+  const baseBreadcrumbs = [{ label: "Campaigns", href: "/campaigns" }];
+
   if (campaignLoading) {
     return (
       <>
-        <AppHeader title="Publish Ads" />
+        <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: "Loading..." }]} />
         <div className="p-6 space-y-4">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-64 w-full" />
@@ -184,7 +186,7 @@ export default function PublishPage() {
   if (!campaign) {
     return (
       <>
-        <AppHeader title="Publish Ads" />
+        <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: "Not Found" }]} />
         <div className="p-6">
           <p className="text-muted-foreground">Campaign not found.</p>
         </div>
@@ -194,7 +196,7 @@ export default function PublishPage() {
 
   return (
     <>
-      <AppHeader title="Publish Ads" />
+      <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: campaign.name, href: `/campaigns/${campaignId}` }, { label: "Publish" }]} />
       <div className="flex-1 p-4 lg:p-6 space-y-6 max-w-3xl">
         <div>
           <h2 className="text-lg font-semibold">

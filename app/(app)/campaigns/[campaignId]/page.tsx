@@ -45,10 +45,12 @@ export default function CampaignDetailPage() {
   const { data: projects } = useProjects(campaignId);
   const { data: deployments } = useAdDeployments(campaignId);
 
+  const baseBreadcrumbs = [{ label: "Campaigns", href: "/campaigns" }];
+
   if (isLoading) {
     return (
       <>
-        <AppHeader title="Campaign" />
+        <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: "Loading..." }]} />
         <div className="p-6 space-y-4">
           <Skeleton className="h-32 w-full" />
           <Skeleton className="h-64 w-full" />
@@ -60,7 +62,7 @@ export default function CampaignDetailPage() {
   if (!campaign) {
     return (
       <>
-        <AppHeader title="Campaign" />
+        <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: "Not Found" }]} />
         <div className="p-6">
           <p className="text-muted-foreground">Campaign not found.</p>
         </div>
@@ -70,7 +72,7 @@ export default function CampaignDetailPage() {
 
   return (
     <>
-      <AppHeader title={campaign.name} />
+      <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: campaign.name }]} />
       <div className="p-6 space-y-6">
         {/* Campaign Info */}
         <Card>

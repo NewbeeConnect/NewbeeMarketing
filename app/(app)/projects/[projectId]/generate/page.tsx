@@ -92,10 +92,12 @@ export default function GeneratePage() {
     []
   );
 
+  const baseBreadcrumbs = [{ label: "Projects", href: "/projects" }];
+
   if (isLoading) {
     return (
       <>
-        <AppHeader title="Video Generation" />
+        <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: "Loading..." }]} />
         <div className="p-6 space-y-6">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-96 w-full" />
@@ -107,7 +109,7 @@ export default function GeneratePage() {
   if (!project || !scenes) {
     return (
       <>
-        <AppHeader title="Video Generation" />
+        <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: "Not Found" }]} />
         <div className="p-6">
           <p className="text-muted-foreground">Project not found.</p>
         </div>
@@ -234,7 +236,7 @@ export default function GeneratePage() {
 
   return (
     <>
-      <AppHeader title="Video Generation" />
+      <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: project.title, href: `/projects/${projectId}` }, { label: "Generate" }]} />
       <div className="p-6 space-y-6">
         <WorkflowStepper
           projectId={projectId}

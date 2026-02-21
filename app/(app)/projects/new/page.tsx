@@ -133,7 +133,7 @@ export default function NewProjectPage() {
 
   return (
     <>
-      <AppHeader title="New Project" />
+      <AppHeader breadcrumbs={[{ label: "Projects", href: "/projects" }, { label: "New Project" }]} />
       <div className="flex-1 p-4 lg:p-6 space-y-6 max-w-4xl">
         <div>
           <h2 className="text-lg font-semibold">Project Brief</h2>

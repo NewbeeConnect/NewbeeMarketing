@@ -52,7 +52,7 @@ export default function NewCampaignPage() {
 
   return (
     <>
-      <AppHeader title="New Campaign" />
+      <AppHeader breadcrumbs={[{ label: "Campaigns", href: "/campaigns" }, { label: "New Campaign" }]} />
       <div className="flex-1 p-4 lg:p-6 space-y-6 max-w-2xl">
         <div>
           <h2 className="text-lg font-semibold">Create Campaign</h2>

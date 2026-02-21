@@ -24,11 +24,12 @@ export default function PromptsPage() {
   const updateProject = useUpdateProject();
 
   const isLoading = projectLoading || scenesLoading;
+  const baseBreadcrumbs = [{ label: "Projects", href: "/projects" }];
 
   if (isLoading) {
     return (
       <>
-        <AppHeader title="Prompt Optimization" />
+        <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: "Loading..." }]} />
         <div className="p-6 space-y-6">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-96 w-full" />
@@ -40,7 +41,7 @@ export default function PromptsPage() {
   if (!project || !scenes) {
     return (
       <>
-        <AppHeader title="Prompt Optimization" />
+        <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: "Not Found" }]} />
         <div className="p-6">
           <p className="text-muted-foreground">Project not found.</p>
         </div>
@@ -205,7 +206,7 @@ export default function PromptsPage() {
 
   return (
     <>
-      <AppHeader title="Prompt Optimization" />
+      <AppHeader breadcrumbs={[...baseBreadcrumbs, { label: project.title, href: `/projects/${projectId}` }, { label: "Prompts" }]} />
       <div className="p-6 space-y-6">
         <WorkflowStepper projectId={projectId} currentStep={project.current_step} />
 
