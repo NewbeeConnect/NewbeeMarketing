@@ -114,17 +114,17 @@ export default function DashboardPage() {
             <CardContent className="space-y-4">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Used</span>
-                <span className="font-medium">
+                <span className="font-medium" suppressHydrationWarning>
                   ${totalSpent.toFixed(2)} / $
-                  {TOTAL_CREDIT_USD.toLocaleString()}
+                  {TOTAL_CREDIT_USD.toLocaleString("en-US")}
                 </span>
               </div>
               <Progress
                 value={budgetPercentage}
                 className={`h-2 ${budgetPercentage > 90 ? "[&>div]:bg-red-500" : budgetPercentage > 75 ? "[&>div]:bg-yellow-500" : ""}`}
               />
-              <p className="text-xs text-muted-foreground">
-                ${(TOTAL_CREDIT_USD - totalSpent).toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
+              <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+                ${(TOTAL_CREDIT_USD - totalSpent).toLocaleString("en-US", { maximumFractionDigits: 2 })}{" "}
                 remaining
               </p>
             </CardContent>
