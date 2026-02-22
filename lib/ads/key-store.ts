@@ -51,8 +51,9 @@ export async function getUserAdKeys<
     }
   }
 
-  // Fallback: plain JSONB (for migration period)
-  return data.keys_encrypted as unknown as T;
+  // No encryption configured - refuse to return plaintext keys
+  console.error("[KeyStore] ENCRYPTION_KEY not configured. Refusing to return unencrypted keys.");
+  return null;
 }
 
 /**
@@ -67,10 +68,12 @@ export async function saveUserAdKeys(
   platform: PlatformSlug,
   keys: GoogleAdsKeys | MetaAdsKeys
 ): Promise<{ success: boolean; error?: string }> {
-  // Encrypt keys if encryption is configured, otherwise store as plain JSONB
-  const keysToStore = isEncryptionConfigured()
-    ? encryptJson(keys)
-    : keys;
+  // Require encryption for storing keys
+  if (!isEncryptionConfigured()) {
+    console.error("[KeyStore] ENCRYPTION_KEY not configured. Cannot save API keys without encryption.");
+    return { success: false, error: "Encryption is not configured. Set ENCRYPTION_KEY environment variable." };
+  }
+  const keysToStore = encryptJson(keys);
 
   const { error } = await serviceClient
     .from("mkt_api_keys")

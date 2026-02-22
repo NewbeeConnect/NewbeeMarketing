@@ -18,7 +18,7 @@ interface CachedSpend {
 }
 
 const spendCache = new Map<string, CachedSpend>();
-const CACHE_TTL_MS = 60 * 1000; // 1 minute
+const CACHE_TTL_MS = 10 * 1000; // 10 seconds
 
 export async function checkBudget(
   serviceClient: SupabaseClient,

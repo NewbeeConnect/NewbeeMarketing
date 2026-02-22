@@ -143,13 +143,27 @@ export async function POST(request: NextRequest) {
           upsert: true,
         });
 
-      let outputUrl = "";
-      if (!uploadError) {
-        const { data: publicUrl } = serviceClient.storage
-          .from("mkt-assets")
-          .getPublicUrl(fileName);
-        outputUrl = publicUrl.publicUrl;
+      if (uploadError) {
+        console.error("Image upload to storage failed:", uploadError);
+        await serviceClient
+          .from("mkt_generations")
+          .update({
+            status: "failed",
+            error_message: `Storage upload failed: ${uploadError.message}`,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", generation.id);
+
+        return NextResponse.json(
+          { generationId: generation.id, status: "failed", error: "Failed to upload generated image to storage" },
+          { status: 500 }
+        );
       }
+
+      const { data: publicUrl } = serviceClient.storage
+        .from("mkt-assets")
+        .getPublicUrl(fileName);
+      const outputUrl = publicUrl.publicUrl;
 
       await serviceClient
         .from("mkt_generations")

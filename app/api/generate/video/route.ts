@@ -84,9 +84,8 @@ export async function POST(request: NextRequest) {
 
     // Validate aspect ratio (Veo only supports 16:9 and 9:16)
     const validAspectRatios = ["16:9", "9:16"];
-    const finalAspectRatio = validAspectRatios.includes(targetAspectRatio)
-      ? targetAspectRatio
-      : "9:16";
+    const aspectRatioConverted = !validAspectRatios.includes(targetAspectRatio);
+    const finalAspectRatio = aspectRatioConverted ? "9:16" : targetAspectRatio;
 
     // Clamp duration to Veo-supported values (4, 6, or 8 seconds)
     const validDurations = [4, 6, 8] as const;
@@ -162,6 +161,9 @@ export async function POST(request: NextRequest) {
         generationId: generation.id,
         operationName,
         status: "processing",
+        ...(aspectRatioConverted && {
+          warning: `Aspect ratio "${targetAspectRatio}" is not supported by Veo. Using "9:16" instead.`,
+        }),
       });
     } catch (veoError) {
       // Extract detailed error info
@@ -169,7 +171,7 @@ export async function POST(request: NextRequest) {
         ? { message: veoError.message, name: veoError.name, stack: veoError.stack }
         : { message: String(veoError) };
       console.error("Veo API error:", JSON.stringify(errorDetail, null, 2));
-      console.error("Veo request config:", { model, prompt: prompt.substring(0, 100), targetAspectRatio, duration: scene.duration_seconds });
+      console.error("Veo request config:", { model, prompt: "[REDACTED]", aspectRatio: finalAspectRatio, duration: finalDuration });
 
       const errorMsg = veoError instanceof Error ? veoError.message : "Veo generation failed";
 

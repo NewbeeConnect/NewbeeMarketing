@@ -199,7 +199,7 @@ function extractSection($: cheerio.CheerioAPI, keywords: string[]): string | nul
 
       while (next.length > 0 && count < 10) {
         const tag = next.prop("tagName")?.toLowerCase() ?? "";
-        if (["h1", "h2", "h3", "h4"].includes(tag) && tag <= headingTag) break;
+        if (["h1", "h2", "h3", "h4"].includes(tag) && parseInt(tag[1]) <= parseInt(headingTag[1])) break;
 
         const text = next.text().trim();
         if (text) parts.push(text);

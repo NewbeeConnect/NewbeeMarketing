@@ -43,7 +43,7 @@ export async function GET(
       query = query.eq("platform", platform);
     }
 
-    const { data, error } = await query;
+    const { data, error } = await query.limit(1000);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

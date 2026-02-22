@@ -83,13 +83,15 @@ export function useAnalytics() {
       };
 
       // Counts
-      const { count: projectCount } = await supabase
+      const { count: projectCount, error: projectCountError } = await supabase
         .from("mkt_projects")
         .select("*", { count: "exact", head: true });
+      if (projectCountError) throw projectCountError;
 
-      const { count: campaignCount } = await supabase
+      const { count: campaignCount, error: campaignCountError } = await supabase
         .from("mkt_campaigns")
         .select("*", { count: "exact", head: true });
+      if (campaignCountError) throw campaignCountError;
 
       return {
         totalSpent,

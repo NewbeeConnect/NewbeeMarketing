@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
       const fullPrompt = `## Few-shot Examples\n${fewShotContext}\n\n## Your Task\n${userPrompt}`;
 
       // Check cache
-      const cacheKey = `prompt-opt:${scene.description}:${project.style}:${project.tone}`;
+      const cacheKey = `prompt-opt:${user.id}:${project.brand_kit_id ?? "none"}:${scene.description}:${project.style}:${project.tone}`;
       const cached = aiCache.get(cacheKey);
       if (cached) {
         const cachedResult = cached as { optimized_prompt: string; negative_prompt: string };

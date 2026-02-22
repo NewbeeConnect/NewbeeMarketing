@@ -201,7 +201,10 @@ export async function POST(request: NextRequest) {
           .select("id")
           .single();
 
-        variantId = newVariant?.id ?? "";
+        if (!newVariant?.id) {
+          return NextResponse.json({ error: "Failed to create A/B variant project" }, { status: 500 });
+        }
+        variantId = newVariant.id;
       }
 
       // Save versions

@@ -101,7 +101,13 @@ Apply the requested changes and return the updated ${contentType} as JSON with t
     if (cleaned.startsWith("```")) {
       cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
     }
-    const result = JSON.parse(cleaned);
+    let result;
+    try {
+      result = JSON.parse(cleaned);
+    } catch {
+      console.error("Failed to parse AI refine response. Raw:", cleaned.substring(0, 200));
+      return NextResponse.json({ error: "AI returned an invalid response. Please try again." }, { status: 502 });
+    }
 
     // Log usage
     await serviceClient.from("mkt_usage_logs").insert({
