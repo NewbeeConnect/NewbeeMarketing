@@ -144,6 +144,7 @@ export default function GeneratePage() {
     setIsGenerating(true);
     let started = 0;
     let failed = 0;
+    const errors: string[] = [];
 
     try {
       await updateProject.mutateAsync({
@@ -151,8 +152,14 @@ export default function GeneratePage() {
         data: { status: "generating" },
       });
 
+      // Throttle: max 2 requests per batch, then wait 25s to respect rate limit (3/min)
+      let requestCount = 0;
       for (const batch of selectedBatch) {
         for (const scene of approvedScenes) {
+          // Wait before sending if we've hit the throttle threshold
+          if (requestCount > 0 && requestCount % 2 === 0) {
+            await new Promise((resolve) => setTimeout(resolve, 25000));
+          }
           try {
             await startVideo.mutateAsync({
               projectId,
@@ -163,21 +170,26 @@ export default function GeneratePage() {
               useFastModel,
             });
             started++;
-          } catch {
+          } catch (err) {
             failed++;
+            const msg = err instanceof Error ? err.message : "Unknown error";
+            if (!errors.includes(msg)) errors.push(msg);
           }
+          requestCount++;
         }
       }
 
       if (started > 0) {
         toast.success(
           `Started ${started} video generation${started > 1 ? "s" : ""}${
-            failed > 0 ? ` (${failed} failed to start)` : ""
+            failed > 0 ? ` (${failed} failed)` : ""
           }`
         );
       }
       if (failed > 0 && started === 0) {
-        toast.error("All generations failed to start");
+        toast.error(`All generations failed: ${errors[0] || "Unknown error"}`);
+      } else if (failed > 0) {
+        toast.warning(`${failed} generation(s) failed: ${errors[0]}`);
       }
     } catch (error) {
       toast.error(

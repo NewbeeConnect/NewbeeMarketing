@@ -36,8 +36,8 @@ function cleanup() {
 export const RATE_LIMITS = {
   /** Gemini text generation: 10 req/min */
   "ai-gemini": { maxTokens: 10, refillRate: 10 / 60 },
-  /** Veo / Imagen media generation: 3 req/min */
-  "ai-media": { maxTokens: 3, refillRate: 3 / 60 },
+  /** Veo / Imagen media generation: 10 req/min (frontend throttles batch) */
+  "ai-media": { maxTokens: 10, refillRate: 10 / 60 },
   /** General API: 60 req/min */
   "api-general": { maxTokens: 60, refillRate: 1 },
 } as const;

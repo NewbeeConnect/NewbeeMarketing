@@ -82,6 +82,19 @@ export async function POST(request: NextRequest) {
     const model = useFastModel ? MODELS.VEO_FAST : MODELS.VEO;
     const targetAspectRatio = aspectRatio || scene.aspect_ratio || "9:16";
 
+    // Validate aspect ratio (Veo only supports 16:9 and 9:16)
+    const validAspectRatios = ["16:9", "9:16"];
+    const finalAspectRatio = validAspectRatios.includes(targetAspectRatio)
+      ? targetAspectRatio
+      : "9:16";
+
+    // Clamp duration to Veo-supported values (4, 6, or 8 seconds)
+    const validDurations = [4, 6, 8] as const;
+    const rawDuration = scene.duration_seconds;
+    const finalDuration = validDurations.reduce((closest, val) =>
+      Math.abs(val - rawDuration) < Math.abs(closest - rawDuration) ? val : closest
+    );
+
     // Create generation record
     const { data: generationData, error: genInsertError } = await serviceClient
       .from("mkt_generations")
@@ -93,17 +106,17 @@ export async function POST(request: NextRequest) {
         model,
         config: JSON.parse(
           JSON.stringify({
-            duration_seconds: scene.duration_seconds,
-            aspect_ratio: targetAspectRatio,
+            duration_seconds: finalDuration,
+            aspect_ratio: finalAspectRatio,
             negative_prompt: scene.negative_prompt,
           })
         ),
         language: language || null,
         platform: platform || null,
-        aspect_ratio: targetAspectRatio,
+        aspect_ratio: finalAspectRatio,
         status: "pending",
         estimated_cost_usd: estimateVideoCost(
-          scene.duration_seconds,
+          finalDuration,
           useFastModel ?? false
         ),
         started_at: new Date().toISOString(),
@@ -126,9 +139,9 @@ export async function POST(request: NextRequest) {
         model,
         prompt,
         config: {
-          aspectRatio: targetAspectRatio,
+          aspectRatio: finalAspectRatio,
           numberOfVideos: 1,
-          durationSeconds: scene.duration_seconds,
+          durationSeconds: finalDuration,
           negativePrompt: scene.negative_prompt || undefined,
           personGeneration: "dont_allow" as const,
         },
@@ -151,13 +164,21 @@ export async function POST(request: NextRequest) {
         status: "processing",
       });
     } catch (veoError) {
+      // Extract detailed error info
+      const errorDetail = veoError instanceof Error
+        ? { message: veoError.message, name: veoError.name, stack: veoError.stack }
+        : { message: String(veoError) };
+      console.error("Veo API error:", JSON.stringify(errorDetail, null, 2));
+      console.error("Veo request config:", { model, prompt: prompt.substring(0, 100), targetAspectRatio, duration: scene.duration_seconds });
+
+      const errorMsg = veoError instanceof Error ? veoError.message : "Veo generation failed";
+
       // Update generation as failed
       await serviceClient
         .from("mkt_generations")
         .update({
           status: "failed",
-          error_message:
-            veoError instanceof Error ? veoError.message : "Veo generation failed",
+          error_message: errorMsg,
           completed_at: new Date().toISOString(),
         })
         .eq("id", generation.id);
@@ -166,15 +187,14 @@ export async function POST(request: NextRequest) {
         {
           generationId: generation.id,
           status: "failed",
-          error:
-            veoError instanceof Error ? veoError.message : "Video generation failed",
+          error: errorMsg,
         },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error("Video generation error:", error);
-    const message = "Failed to start video generation";
+    const message = error instanceof Error ? error.message : "Failed to start video generation";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
