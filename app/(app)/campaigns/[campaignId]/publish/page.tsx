@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useCampaign } from "@/hooks/useCampaigns";
 import { useProjects } from "@/hooks/useProjects";
@@ -50,38 +51,27 @@ export default function PublishPage() {
   const [interests, setInterests] = useState("");
   const [languages, setLanguages] = useState("en");
   const [selectedCreatives, setSelectedCreatives] = useState<string[]>([]);
-  const [completedGenerations, setCompletedGenerations] = useState<
-    Generation[]
-  >([]);
-  const [generationsLoaded, setGenerationsLoaded] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  // Load completed generations from linked projects
-  const loadGenerations = async () => {
-    if (!projects || projects.length === 0 || generationsLoaded) return;
-
-    const supabase = createClient();
-    const projectIds = projects.map((p) => p.id);
-
-    const { data, error } = await supabase
-      .from("mkt_generations")
-      .select("*")
-      .in("project_id", projectIds)
-      .eq("status", "completed")
-      .in("type", ["video", "image"])
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      setCompletedGenerations(data as Generation[]);
-    }
-    setGenerationsLoaded(true);
-  };
-
-  // Load generations when projects are available
-  if (projects && projects.length > 0 && !generationsLoaded) {
-    loadGenerations();
-  }
+  // Load completed generations from linked projects via React Query
+  const { data: completedGenerations = [] } = useQuery({
+    queryKey: ["completed-generations", projects?.map((p) => p.id)],
+    queryFn: async (): Promise<Generation[]> => {
+      const supabase = createClient();
+      const projectIds = projects!.map((p) => p.id);
+      const { data, error } = await supabase
+        .from("mkt_generations")
+        .select("*")
+        .in("project_id", projectIds)
+        .eq("status", "completed")
+        .in("type", ["video", "image"])
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Generation[];
+    },
+    enabled: !!projects && projects.length > 0,
+  });
 
   const togglePlatform = (platform: AdPlatform) => {
     setSelectedPlatforms((prev) =>
@@ -122,44 +112,62 @@ export default function PublishPage() {
 
   const handleConfirmPublish = async () => {
     setShowConfirmDialog(false);
+
+    const projectId = projects?.[0]?.id;
+    if (!projectId) {
+      toast.error("No linked project found");
+      return;
+    }
+
     setPublishing(true);
 
     try {
-      const response = await fetch("/api/ads/publish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          campaign_id: campaignId,
-          platforms: selectedPlatforms,
-          budget_daily_usd: parseFloat(budgetDaily),
-          budget_total_usd: parseFloat(budgetTotal),
-          targeting: {
-            age_range: [parseInt(ageMin), parseInt(ageMax)],
-            locations: locations
-              .split(",")
-              .map((l) => l.trim())
-              .filter(Boolean),
-            interests: interests
-              .split(",")
-              .map((i) => i.trim())
-              .filter(Boolean),
-            languages: languages
-              .split(",")
-              .map((l) => l.trim())
-              .filter(Boolean),
-          },
-          creative_urls: selectedCreatives,
-          project_id: projects?.[0]?.id,
-        }),
-      });
+      const errors: string[] = [];
+      const targeting = {
+        age_range: [parseInt(ageMin), parseInt(ageMax)],
+        locations: locations
+          .split(",")
+          .map((l) => l.trim())
+          .filter(Boolean),
+        interests: interests
+          .split(",")
+          .map((i) => i.trim())
+          .filter(Boolean),
+        languages: languages
+          .split(",")
+          .map((l) => l.trim())
+          .filter(Boolean),
+      };
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to publish ads");
+      // Send per-platform requests (API expects singular "platform", not array)
+      for (const platform of selectedPlatforms) {
+        const response = await fetch("/api/ads/publish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            platform,
+            campaign_id: campaignId,
+            campaign_name: campaign?.name || "Untitled Campaign",
+            budget_daily_usd: parseFloat(budgetDaily),
+            budget_total_usd: parseFloat(budgetTotal),
+            targeting,
+            creative_urls: selectedCreatives,
+            project_id: projectId,
+          }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          errors.push(`${platform}: ${data.error || "Failed"}`);
+        }
       }
 
-      toast.success("Ads published successfully!");
-      router.push(`/campaigns/${campaignId}`);
+      if (errors.length > 0) {
+        toast.error(`Some platforms failed: ${errors.join(", ")}`);
+      } else {
+        toast.success("Ads published successfully!");
+        router.push(`/campaigns/${campaignId}`);
+      }
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to publish ads"

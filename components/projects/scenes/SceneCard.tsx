@@ -50,6 +50,18 @@ export function SceneCard({
   const [voiceoverText, setVoiceoverText] = useState(scene.voiceover_text ?? "");
   const [voiceoverLang, setVoiceoverLang] = useState(scene.voiceover_language ?? "en");
 
+  const startEditing = () => {
+    setTitle(scene.title);
+    setDescription(scene.description);
+    setCamera(scene.camera_movement ?? "");
+    setLighting(scene.lighting ?? "");
+    setTextOverlay(scene.text_overlay ?? "");
+    setAudioType(scene.audio_type);
+    setVoiceoverText(scene.voiceover_text ?? "");
+    setVoiceoverLang(scene.voiceover_language ?? "en");
+    setEditing(true);
+  };
+
   const handleSave = () => {
     onUpdate({
       title,
@@ -65,14 +77,6 @@ export function SceneCard({
   };
 
   const handleCancel = () => {
-    setTitle(scene.title);
-    setDescription(scene.description);
-    setCamera(scene.camera_movement ?? "");
-    setLighting(scene.lighting ?? "");
-    setTextOverlay(scene.text_overlay ?? "");
-    setAudioType(scene.audio_type);
-    setVoiceoverText(scene.voiceover_text ?? "");
-    setVoiceoverLang(scene.voiceover_language ?? "en");
     setEditing(false);
   };
 
@@ -226,7 +230,7 @@ export function SceneCard({
               </div>
 
               <div className="flex gap-2 justify-end pt-2 border-t">
-                <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+                <Button variant="ghost" size="sm" onClick={startEditing}>
                   Edit
                 </Button>
                 <Button variant="ghost" size="sm" onClick={onDuplicate}>

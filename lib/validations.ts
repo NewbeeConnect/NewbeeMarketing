@@ -70,7 +70,8 @@ export const adDeploymentSchema = z.object({
   budget_daily_usd: z.number().min(1).max(10000),
   budget_total_usd: z.number().min(1).max(1000000),
   targeting: z.object({
-    age_range: z.tuple([z.number().min(13), z.number().max(65)]),
+    age_range: z.tuple([z.number().min(13), z.number().max(65)])
+      .refine(([min, max]) => min <= max, { message: "Minimum age must be less than or equal to maximum age" }),
     locations: z.array(z.string()).min(1),
     interests: z.array(z.string()),
     languages: z.array(z.string()).min(1),
@@ -85,7 +86,9 @@ export const apiKeysSchema = z.object({
 export const sceneSchema = z.object({
   title: z.string().min(1, "Scene title is required").max(200),
   description: z.string().min(1, "Scene description is required").max(2000),
-  duration_seconds: z.number().min(4).max(8),
+  duration_seconds: z.number().refine((v) => [4, 6, 8].includes(v), {
+    message: "Duration must be 4, 6, or 8 seconds",
+  }),
   aspect_ratio: z.enum(["9:16", "16:9", "1:1"]).optional(),
   resolution: z.enum(["720p", "1080p", "4k"]).optional(),
   camera_movement: z.string().max(200).nullable().optional(),

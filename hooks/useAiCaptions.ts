@@ -49,7 +49,7 @@ export function useGenerateCaptions() {
     }: {
       projectId: string;
       language: string;
-      generationId?: string;
+      generationId: string;
     }) => {
       const response = await fetch("/api/ai/captions", {
         method: "POST",

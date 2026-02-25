@@ -147,13 +147,17 @@ function EditableField({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
 
+  const startEditing = () => {
+    setDraft(value);
+    setEditing(true);
+  };
+
   const handleSave = () => {
     onSave(draft);
     setEditing(false);
   };
 
   const handleCancel = () => {
-    setDraft(value);
     setEditing(false);
   };
 
@@ -169,7 +173,7 @@ function EditableField({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setEditing(true)}
+              onClick={startEditing}
             >
               <Pencil className="h-3.5 w-3.5" />
             </Button>

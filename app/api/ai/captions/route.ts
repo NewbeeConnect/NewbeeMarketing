@@ -14,7 +14,7 @@ import { z } from "zod";
 const inputSchema = z.object({
   projectId: z.string().uuid(),
   language: z.string().min(2).max(5),
-  generationId: z.string().uuid().optional(),
+  generationId: z.string().uuid(),
 });
 
 export async function POST(request: NextRequest) {
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     const { data: captionData, error: captionError } = await serviceClient
       .from("mkt_captions")
       .insert({
-        generation_id: generationId ?? null,
+        generation_id: generationId,
         language,
         srt_content: captionResult.srt_content,
         is_embedded: false,
@@ -133,12 +133,16 @@ export async function POST(request: NextRequest) {
 
     // Also upload SRT file to storage
     const srtFileName = `${projectId}/captions/${language}.srt`;
-    await serviceClient.storage
+    const { error: uploadError } = await serviceClient.storage
       .from("mkt-assets")
       .upload(srtFileName, captionResult.srt_content, {
         contentType: "text/plain",
         upsert: true,
       });
+
+    if (uploadError) {
+      console.error("SRT upload error:", uploadError);
+    }
 
     const { data: srtUrl } = serviceClient.storage
       .from("mkt-assets")

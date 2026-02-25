@@ -76,6 +76,14 @@ export function parseAiJson<T>(text: string, schema: z.ZodType<T>): T {
     cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
   }
 
-  const parsed = JSON.parse(cleaned);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    throw new Error(
+      `AI response is not valid JSON. First 200 chars: ${cleaned.substring(0, 200)}`
+    );
+  }
+
   return schema.parse(parsed);
 }

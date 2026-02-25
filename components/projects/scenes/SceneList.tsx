@@ -6,6 +6,7 @@ import { SceneCard } from "./SceneCard";
 import { DurationBar } from "./DurationBar";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown } from "lucide-react";
+import { toast } from "sonner";
 
 interface SceneListProps {
   scenes: Scene[];
@@ -41,10 +42,9 @@ export function SceneList({
   );
 
   const handleDuplicate = useCallback(
-    (scene: Scene) => {
-      // Duplicate is handled by creating a new scene via update
-      // For simplicity, we'll just log - actual implementation would insert via hook
-      console.log("Duplicate scene:", scene.id);
+    () => {
+      // TODO: Implement scene duplication via useCreateScene hook
+      toast.info("Scene duplication will be available soon.");
     },
     []
   );
@@ -81,7 +81,7 @@ export function SceneList({
                 scene={scene}
                 onUpdate={(data) => onUpdateScene(scene.id, data)}
                 onDelete={() => onDeleteScene(scene.id)}
-                onDuplicate={() => handleDuplicate(scene)}
+                onDuplicate={handleDuplicate}
               />
             </div>
           </div>

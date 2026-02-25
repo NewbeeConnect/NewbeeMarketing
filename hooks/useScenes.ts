@@ -76,7 +76,12 @@ export function useReorderScenes() {
           .eq("id", id)
       );
 
-      await Promise.all(updates);
+      const results = await Promise.allSettled(updates);
+      const failed = results.filter((r) => r.status === "rejected");
+      if (failed.length > 0) {
+        console.error("Some scene reorder updates failed:", failed);
+        throw new Error(`${failed.length} scene(s) failed to reorder`);
+      }
       return projectId;
     },
     onSuccess: (projectId) => {

@@ -135,7 +135,12 @@ export function RefinementChat({
             placeholder={`e.g. "Make the hook more aggressive"...`}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
             disabled={refineMutation.isPending}
           />
           <Button

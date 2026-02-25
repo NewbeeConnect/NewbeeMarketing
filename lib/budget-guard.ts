@@ -52,9 +52,9 @@ export async function checkBudget(
     .gte("created_at", startOfMonth.toISOString());
 
   if (error) {
-    // If we can't check, allow but log
+    // Fail closed — block requests when budget cannot be verified
     console.error("Budget check failed:", error);
-    return { allowed: true, totalSpent: 0, remaining: MONTHLY_LIMIT_USD };
+    return { allowed: false, totalSpent: 0, remaining: 0, error: "Budget check temporarily unavailable. Please try again." };
   }
 
   const totalUsd = (data ?? []).reduce(

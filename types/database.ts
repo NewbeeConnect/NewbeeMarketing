@@ -429,20 +429,20 @@ export type Database = {
       mkt_captions: {
         Row: {
           id: string;
-          generation_id: string | null;
+          generation_id: string;
           language: string;
           srt_content: string;
           is_embedded: boolean;
           created_at: string;
         };
         Insert: {
-          generation_id?: string | null;
+          generation_id: string;
           language: string;
           srt_content: string;
           is_embedded?: boolean;
         };
         Update: {
-          generation_id?: string | null;
+          generation_id?: string;
           language?: string;
           srt_content?: string;
           is_embedded?: boolean;

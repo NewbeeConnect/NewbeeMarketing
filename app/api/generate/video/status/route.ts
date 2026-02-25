@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
-import { ai } from "@/lib/google-ai";
+import { ai, COST_ESTIMATES } from "@/lib/google-ai";
 import { GenerateVideosOperation } from "@google/genai";
 import type { Generation } from "@/types/database";
 
@@ -78,11 +78,15 @@ export async function GET(request: NextRequest) {
           operation.response?.generatedVideos?.[0]?.video?.uri || null;
 
         if (videoUri) {
-          // Upload video to Supabase storage
+          // Download video from GCP
           const videoResponse = await fetch(videoUri);
+          if (!videoResponse.ok) {
+            throw new Error(`Failed to download video: ${videoResponse.status} ${videoResponse.statusText}`);
+          }
           const videoBlob = await videoResponse.blob();
           const fileName = `${generation.project_id}/scenes/${generation.scene_id || "unknown"}/${generation.id}.mp4`;
 
+          // Upload to Supabase storage - fail if upload fails to avoid temporary URLs
           const { error: uploadError } = await serviceClient.storage
             .from("mkt-assets")
             .upload(fileName, videoBlob, {
@@ -90,13 +94,15 @@ export async function GET(request: NextRequest) {
               upsert: true,
             });
 
-          let outputUrl = videoUri;
-          if (!uploadError) {
-            const { data: publicUrl } = serviceClient.storage
-              .from("mkt-assets")
-              .getPublicUrl(fileName);
-            outputUrl = publicUrl.publicUrl;
+          if (uploadError) {
+            console.error("Storage upload failed:", uploadError);
+            throw new Error("Failed to upload video to storage");
           }
+
+          const { data: publicUrl } = serviceClient.storage
+            .from("mkt-assets")
+            .getPublicUrl(fileName);
+          const outputUrl = publicUrl.publicUrl;
 
           await serviceClient
             .from("mkt_generations")
@@ -121,7 +127,9 @@ export async function GET(request: NextRequest) {
           const config = generation.config as { duration_seconds?: number } | null;
           const durationSec = config?.duration_seconds ?? 8;
           const isFast = generation.model.includes("fast");
-          const costPerSec = isFast ? 0.15 : 0.4;
+          const costPerSec = isFast
+            ? COST_ESTIMATES.veo_fast_per_second
+            : COST_ESTIMATES.veo_standard_per_second;
 
           await serviceClient.from("mkt_usage_logs").insert({
             user_id: user.id,

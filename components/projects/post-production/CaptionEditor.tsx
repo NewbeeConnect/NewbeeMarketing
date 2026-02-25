@@ -62,7 +62,7 @@ export function CaptionEditor({
     a.href = url;
     a.download = `captions_${caption.language}.srt`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (

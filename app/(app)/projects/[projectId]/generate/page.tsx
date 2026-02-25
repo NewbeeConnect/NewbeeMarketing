@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useProject, useUpdateProject } from "@/hooks/useProject";
 import { useScenes } from "@/hooks/useScenes";
@@ -54,10 +54,11 @@ export default function GeneratePage() {
 
   // Build batch matrix from project languages x platforms
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
+  const [prevProjectId, setPrevProjectId] = useState<string | null>(null);
 
-  // Initialize batch items when project loads
-  useMemo(() => {
-    if (!project) return;
+  // React-recommended pattern: store previous props, conditionally update during render
+  if (project && project.id !== prevProjectId) {
+    setPrevProjectId(project.id);
     const items: BatchItem[] = [];
     for (const lang of project.languages) {
       for (const platform of project.target_platforms) {
@@ -71,7 +72,7 @@ export default function GeneratePage() {
       }
     }
     setBatchItems(items);
-  }, [project]);
+  }
 
   const isLoading = projectLoading || scenesLoading;
 

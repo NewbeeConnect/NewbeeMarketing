@@ -60,7 +60,11 @@ export function ExportPanel({
 
   const handleDownloadVideo = (gen: Generation) => {
     if (gen.output_url) {
-      window.open(gen.output_url, "_blank");
+      const a = document.createElement("a");
+      a.href = gen.output_url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.click();
     }
   };
 

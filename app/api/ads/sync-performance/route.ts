@@ -47,12 +47,11 @@ export async function POST(request: NextRequest) {
     // 5. Update mkt_campaigns.current_spend_usd with latest total
 
     return NextResponse.json({
-      success: true,
-      message: "Performance sync would be triggered for campaign",
+      success: false,
+      message: "Performance sync is not yet implemented.",
       campaign_id,
       synced_platforms: [],
-      note: "This is a stub endpoint. Google Ads and Meta Ads API integrations are pending.",
-    });
+    }, { status: 501 });
   } catch (error) {
     console.error("Sync performance error:", error);
     const message =
