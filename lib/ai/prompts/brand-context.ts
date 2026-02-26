@@ -1,4 +1,4 @@
-import type { BrandKit, CampaignPerformance } from "@/types/database";
+import type { BrandKit, CampaignPerformance, CodeAnalysis } from "@/types/database";
 import type { SummarizedContext } from "@/lib/scraping/context-summarizer";
 
 export function buildBrandContext(brandKit: BrandKit | null): string {
@@ -87,6 +87,40 @@ export function buildExternalContext(context: SummarizedContext | null): string 
   }
   if (context.techStack.length > 0) {
     parts.push(`Tech Stack: ${context.techStack.join(", ")}`);
+  }
+
+  return parts.join("\n");
+}
+
+export function buildCodeContext(analysis: CodeAnalysis | null): string {
+  if (!analysis) return "";
+
+  const parts: string[] = ["\n## App Codebase Analysis (for marketing accuracy)"];
+  parts.push(`App: ${analysis.appName} (${analysis.appType})`);
+
+  if (analysis.techStack.length > 0) {
+    parts.push(`Tech Stack: ${analysis.techStack.join(", ")}`);
+  }
+  if (analysis.targetPlatforms.length > 0) {
+    parts.push(`Platforms: ${analysis.targetPlatforms.join(", ")}`);
+  }
+  if (analysis.mainFeatures.length > 0) {
+    parts.push(`Key Features:\n${analysis.mainFeatures.map((f) => `- ${f}`).join("\n")}`);
+  }
+  if (analysis.keyScreens.length > 0) {
+    parts.push(`Key Screens/Views:\n${analysis.keyScreens.map((s) => `- ${s}`).join("\n")}`);
+  }
+  if (analysis.uiComponents.length > 0) {
+    parts.push(`UI Patterns: ${analysis.uiComponents.join(", ")}`);
+  }
+  if (analysis.userFlows.length > 0) {
+    parts.push(`User Flows:\n${analysis.userFlows.map((f) => `- ${f}`).join("\n")}`);
+  }
+  if (analysis.marketingAngles.length > 0) {
+    parts.push(`Suggested Marketing Angles:\n${analysis.marketingAngles.map((a) => `- ${a}`).join("\n")}`);
+  }
+  if (analysis.monetization && analysis.monetization !== "unknown") {
+    parts.push(`Monetization: ${analysis.monetization}`);
   }
 
   return parts.join("\n");

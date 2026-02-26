@@ -87,6 +87,35 @@ export const AD_PLATFORMS = [
   { value: "meta", label: "Meta Ads", description: "Facebook, Instagram" },
 ] as const;
 
+// Phone mockup templates
+export const PHONE_TEMPLATES = [
+  {
+    id: "iphone16-portrait",
+    name: "iPhone 16",
+    orientation: "portrait" as const,
+    // Outer frame dimensions
+    frameWidth: 396,
+    frameHeight: 852,
+    frameRadius: 53,
+    // Screen area within the frame
+    screen: { x: 19, y: 19, width: 358, height: 776, radius: 45 },
+    // Dynamic Island
+    dynamicIsland: { x: 135, y: 30, width: 126, height: 37, radius: 19 },
+  },
+  {
+    id: "iphone16-landscape",
+    name: "iPhone 16 Landscape",
+    orientation: "landscape" as const,
+    frameWidth: 852,
+    frameHeight: 396,
+    frameRadius: 53,
+    screen: { x: 38, y: 19, width: 776, height: 358, radius: 45 },
+    dynamicIsland: { x: 363, y: 135, width: 37, height: 126, radius: 19 },
+  },
+] as const;
+
+export type PhoneTemplateId = (typeof PHONE_TEMPLATES)[number]["id"];
+
 // Budget alert thresholds
 export const BUDGET_THRESHOLDS = [0.75, 0.9, 0.95] as const;
 export const TOTAL_CREDIT_USD = 25000;

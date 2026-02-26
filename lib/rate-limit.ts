@@ -29,6 +29,10 @@ function cleanup() {
   }
 }
 
+// Import at runtime to determine environment-aware limits
+const veoEnv = process.env.VEO_ENVIRONMENT === "production" ? "production" : "preview";
+const veoMediaLimit = veoEnv === "production" ? 50 : 10; // Preview: 10/min, Production: 50/min
+
 /**
  * Rate limit presets per endpoint category.
  * maxTokens = max requests in the window, refillRate = tokens added per second.
@@ -36,8 +40,8 @@ function cleanup() {
 export const RATE_LIMITS = {
   /** Gemini text generation: 10 req/min */
   "ai-gemini": { maxTokens: 10, refillRate: 10 / 60 },
-  /** Veo / Imagen media generation: 10 req/min (frontend throttles batch) */
-  "ai-media": { maxTokens: 10, refillRate: 10 / 60 },
+  /** Veo / Imagen media generation: environment-aware (preview=10, production=50) */
+  "ai-media": { maxTokens: veoMediaLimit, refillRate: veoMediaLimit / 60 },
   /** General API: 60 req/min */
   "api-general": { maxTokens: 60, refillRate: 1 },
 } as const;

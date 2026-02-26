@@ -5,11 +5,23 @@ import { GenerateVideosOperation } from "@google/genai";
 import type { Generation } from "@/types/database";
 
 const MAX_GENERATION_TIME_MS = 15 * 60 * 1000; // 15 minutes
+const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000; // Veo video retention limit
+const MAX_UPLOAD_SIZE_MB = 500; // Supabase storage practical limit
 
-type ErrorType = "transient" | "permanent";
+interface ErrorInfo {
+  type: "transient" | "permanent";
+  retryAfterMs?: number;
+}
 
-function classifyError(error: unknown): ErrorType {
+function classifyError(error: unknown): ErrorInfo {
   const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+
+  // 429 rate limit - extract Retry-After hint if available
+  if (msg.includes("429") || msg.includes("rate limit") || msg.includes("resource_exhausted")) {
+    const retryMatch = msg.match(/retry.?after[:\s]*(\d+)/i);
+    const retryAfterMs = retryMatch ? parseInt(retryMatch[1]) * 1000 : 60000;
+    return { type: "transient", retryAfterMs };
+  }
 
   // Permanent errors - fail immediately
   if (
@@ -21,10 +33,25 @@ function classifyError(error: unknown): ErrorType {
     msg.includes("blocked") ||
     msg.includes("safety")
   ) {
-    return "permanent";
+    return { type: "permanent" };
   }
 
-  return "transient";
+  return { type: "transient" };
+}
+
+function calculateActualCost(generation: Generation): number {
+  const config = generation.config as {
+    duration_seconds?: number;
+    resolution?: string;
+  } | null;
+  const durationSec = config?.duration_seconds ?? 8;
+  const isFast = generation.model.includes("fast");
+  const costPerSec = isFast
+    ? COST_ESTIMATES.veo_fast_per_second
+    : COST_ESTIMATES.veo_standard_per_second;
+  const resMultiplier =
+    config?.resolution === "4k" ? 2.0 : config?.resolution === "1080p" ? 1.5 : 1.0;
+  return Math.round(durationSec * costPerSec * resMultiplier * 10000) / 10000;
 }
 
 export async function GET(request: NextRequest) {
@@ -103,6 +130,30 @@ export async function GET(request: NextRequest) {
     const storedMetadata = generation.output_metadata as { veo_video_uri?: string } | null;
     const storedVideoUri = storedMetadata?.veo_video_uri;
 
+    // Check 2-day video retention (Veo videos expire after 2 days on Google servers)
+    if (storedVideoUri && elapsed > TWO_DAYS_MS) {
+      await serviceClient
+        .from("mkt_generations")
+        .update({
+          status: "failed",
+          error_message: "Video expired (2-day Veo retention limit exceeded). Please retry generation.",
+          output_metadata: JSON.parse(
+            JSON.stringify({
+              expired_video_uri: storedVideoUri,
+              expired_at: new Date().toISOString(),
+            })
+          ),
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", generation.id);
+
+      return NextResponse.json({
+        generationId: generation.id,
+        status: "failed",
+        errorMessage: "Video expired. Veo videos must be downloaded within 2 days. Please retry.",
+      });
+    }
+
     // If we have a stored URI, skip polling and try upload directly
     if (storedVideoUri) {
       return await handleVideoUpload(
@@ -131,7 +182,64 @@ export async function GET(request: NextRequest) {
       });
 
       if (operation.done) {
-        // Extract video URL from the response
+        // CHECK 1: operation-level error (done=true but errored)
+        if (operation.error) {
+          const errorCode = (operation.error as Record<string, unknown>).code ?? "UNKNOWN";
+          const errorMessage =
+            (operation.error as Record<string, unknown>).message ?? "Operation completed with error";
+
+          await serviceClient
+            .from("mkt_generations")
+            .update({
+              status: "failed",
+              error_message: `Veo error [${errorCode}]: ${errorMessage}`,
+              output_metadata: JSON.parse(
+                JSON.stringify({ operation_error: operation.error })
+              ),
+              completed_at: new Date().toISOString(),
+            })
+            .eq("id", generation.id);
+
+          return NextResponse.json({
+            generationId: generation.id,
+            status: "failed",
+            errorMessage: `Veo error: ${errorMessage}`,
+          });
+        }
+
+        // CHECK 2: RAI safety filter
+        const raiFilteredCount = operation.response?.raiMediaFilteredCount ?? 0;
+        const raiFilteredReasons = operation.response?.raiMediaFilteredReasons ?? [];
+
+        if (raiFilteredCount > 0) {
+          const reasonText =
+            raiFilteredReasons.length > 0
+              ? raiFilteredReasons.join(", ")
+              : "Content policy violation";
+
+          await serviceClient
+            .from("mkt_generations")
+            .update({
+              status: "failed",
+              error_message: `Content blocked by safety filter: ${reasonText}`,
+              output_metadata: JSON.parse(
+                JSON.stringify({
+                  rai_filtered_count: raiFilteredCount,
+                  rai_filtered_reasons: raiFilteredReasons,
+                })
+              ),
+              completed_at: new Date().toISOString(),
+            })
+            .eq("id", generation.id);
+
+          return NextResponse.json({
+            generationId: generation.id,
+            status: "failed",
+            errorMessage: `Content blocked by safety filter: ${reasonText}`,
+          });
+        }
+
+        // CHECK 3: Extract video URL
         const videoUri =
           operation.response?.generatedVideos?.[0]?.video?.uri || null;
 
@@ -143,12 +251,12 @@ export async function GET(request: NextRequest) {
             user.id
           );
         } else {
-          // Operation done but no video - failure
+          // Operation done, no error, no RAI, but no video
           await serviceClient
             .from("mkt_generations")
             .update({
               status: "failed",
-              error_message: "No video generated",
+              error_message: "No video generated (empty response)",
               completed_at: new Date().toISOString(),
             })
             .eq("id", generation.id);
@@ -169,11 +277,11 @@ export async function GET(request: NextRequest) {
     } catch (pollError) {
       console.error("Veo polling error:", pollError);
 
-      const errorType = classifyError(pollError);
+      const errorInfo = classifyError(pollError);
       const errorMsg = pollError instanceof Error ? pollError.message : "Unknown error";
 
       // Permanent errors - fail immediately
-      if (errorType === "permanent") {
+      if (errorInfo.type === "permanent") {
         await serviceClient
           .from("mkt_generations")
           .update({
@@ -217,6 +325,14 @@ export async function GET(request: NextRequest) {
         .update({
           retry_count: newRetryCount,
           error_message: `Retry ${newRetryCount}/${maxRetries}: ${errorMsg}`,
+          ...(errorInfo.retryAfterMs && {
+            output_metadata: JSON.parse(
+              JSON.stringify({
+                ...((generation.output_metadata as object) || {}),
+                next_retry_after_ms: errorInfo.retryAfterMs,
+              })
+            ),
+          }),
         })
         .eq("id", generation.id);
 
@@ -251,6 +367,30 @@ async function handleVideoUpload(
       throw new Error(`Failed to download video: ${videoResponse.status} ${videoResponse.statusText}`);
     }
     const videoBlob = await videoResponse.blob();
+    const fileSizeMB = videoBlob.size / (1024 * 1024);
+
+    // File size validation
+    if (fileSizeMB > MAX_UPLOAD_SIZE_MB) {
+      console.error(`Video too large: ${fileSizeMB.toFixed(1)}MB exceeds ${MAX_UPLOAD_SIZE_MB}MB limit`);
+
+      await serviceClient
+        .from("mkt_generations")
+        .update({
+          status: "failed",
+          error_message: `Video file too large (${fileSizeMB.toFixed(1)}MB). Consider using lower resolution or compression.`,
+          output_metadata: JSON.parse(
+            JSON.stringify({ veo_video_uri: videoUri, file_size_mb: fileSizeMB })
+          ),
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", generation.id);
+
+      return NextResponse.json({
+        generationId: generation.id,
+        status: "failed",
+        errorMessage: `Video file too large (${fileSizeMB.toFixed(1)}MB)`,
+      });
+    }
 
     // Upload to Supabase storage
     const { error: uploadError } = await serviceClient.storage
@@ -285,12 +425,22 @@ async function handleVideoUpload(
       .getPublicUrl(fileName);
     const outputUrl = publicUrl.publicUrl;
 
+    // Calculate actual cost with resolution multiplier
+    const actualCost = calculateActualCost(generation);
+
     await serviceClient
       .from("mkt_generations")
       .update({
         status: "completed",
         output_url: outputUrl,
-        output_metadata: null, // Clear stored URI
+        output_metadata: JSON.parse(
+          JSON.stringify({
+            file_size_mb: Math.round(fileSizeMB * 100) / 100,
+            uploaded_at: new Date().toISOString(),
+            source_uri: videoUri,
+          })
+        ),
+        actual_cost_usd: actualCost,
         error_message: null,
         completed_at: new Date().toISOString(),
       })
@@ -306,14 +456,7 @@ async function handleVideoUpload(
       reference_type: "generation",
     });
 
-    // Log usage
-    const config = generation.config as { duration_seconds?: number } | null;
-    const durationSec = config?.duration_seconds ?? 8;
-    const isFast = generation.model.includes("fast");
-    const costPerSec = isFast
-      ? COST_ESTIMATES.veo_fast_per_second
-      : COST_ESTIMATES.veo_standard_per_second;
-
+    // Log usage with resolution multiplier
     await serviceClient.from("mkt_usage_logs").insert({
       user_id: userId,
       project_id: generation.project_id,
@@ -321,9 +464,8 @@ async function handleVideoUpload(
       api_service: "veo",
       model: generation.model,
       operation: "video_generation",
-      duration_seconds: durationSec,
-      estimated_cost_usd:
-        Math.round(durationSec * costPerSec * 10000) / 10000,
+      duration_seconds: (generation.config as { duration_seconds?: number } | null)?.duration_seconds ?? 8,
+      estimated_cost_usd: actualCost,
     });
 
     return NextResponse.json({

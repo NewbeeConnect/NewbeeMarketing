@@ -20,6 +20,7 @@ import {
   Save,
   Trash2,
   Loader2,
+  Github,
 } from "lucide-react";
 
 function StatusBadge({ ok, label }: { ok: boolean; label?: string }) {
@@ -94,6 +95,19 @@ export default function SettingsPage() {
   const hasSupabaseUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
   const googleConfigured = apiKeys?.some((k) => k.platform === "google_ads");
   const metaConfigured = apiKeys?.some((k) => k.platform === "meta_ads");
+  const githubConfigured = apiKeys?.some((k) => k.platform === "github");
+
+  const githubFormDefault = useMemo(() => {
+    const gk = apiKeys?.find((k) => k.platform === "github");
+    if (gk?.keys_encrypted) {
+      const keys = gk.keys_encrypted as Record<string, string>;
+      return { personal_access_token: keys.personal_access_token || "" };
+    }
+    return { personal_access_token: "" };
+  }, [apiKeys]);
+
+  const [githubForm, setGithubForm] = useState(githubFormDefault);
+  useEffect(() => { setGithubForm(githubFormDefault); }, [githubFormDefault]);
 
   return (
     <>
@@ -278,6 +292,62 @@ export default function SettingsPage() {
                 </Button>
               )}
               <Button size="sm" onClick={async () => { if (!metaForm.app_id || !metaForm.access_token) { toast.error("App ID and Access Token required"); return; } await saveKeys.mutateAsync({ platform: "meta_ads", keys: metaForm }); toast.success("Meta Ads keys saved"); }} disabled={saveKeys.isPending}>
+                {saveKeys.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Save
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* GitHub Integration */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Github className="h-4 w-4" />
+                  GitHub Integration
+                </CardTitle>
+                <CardDescription>Connect private repos for AI-powered code analysis</CardDescription>
+              </div>
+              {!keysLoading && (
+                <StatusBadge ok={!!githubConfigured} label={githubConfigured ? "Connected" : "Not configured"} />
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Add a GitHub Personal Access Token to let AI analyze your private repositories.
+              The token needs <code className="bg-muted px-1 rounded">repo</code> scope.
+              Generate one at GitHub &rarr; Settings &rarr; Developer settings &rarr; Personal access tokens.
+            </p>
+            <div className="space-y-1">
+              <Label className="text-xs">Personal Access Token *</Label>
+              <Input
+                size={1}
+                type="password"
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                value={githubForm.personal_access_token}
+                onChange={(e) => setGithubForm({ personal_access_token: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              {githubConfigured && (
+                <Button variant="outline" size="sm" onClick={async () => {
+                  await deleteKeys.mutateAsync("github");
+                  setGithubForm({ personal_access_token: "" });
+                  toast.success("GitHub token removed");
+                }}>
+                  <Trash2 className="h-3 w-3 mr-1" /> Remove
+                </Button>
+              )}
+              <Button size="sm" onClick={async () => {
+                if (!githubForm.personal_access_token) {
+                  toast.error("Personal Access Token is required");
+                  return;
+                }
+                await saveKeys.mutateAsync({ platform: "github", keys: githubForm });
+                toast.success("GitHub token saved");
+              }} disabled={saveKeys.isPending}>
                 {saveKeys.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Save
               </Button>
             </div>

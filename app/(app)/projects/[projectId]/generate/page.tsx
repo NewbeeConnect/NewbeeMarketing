@@ -30,6 +30,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PLATFORMS, RESOLUTIONS } from "@/lib/constants";
+import { Input } from "@/components/ui/input";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Play,
   Loader2,
@@ -37,6 +43,9 @@ import {
   ImageIcon,
   AlertTriangle,
   Info,
+  ChevronDown,
+  Settings2,
+  Smartphone,
 } from "lucide-react";
 
 interface BatchItem {
@@ -59,7 +68,11 @@ export default function GeneratePage() {
 
   const [useFastModel, setUseFastModel] = useState(false);
   const [resolution, setResolution] = useState("720p");
+  const [seed, setSeed] = useState<number | undefined>(undefined);
+  const [compressionQuality, setCompressionQuality] = useState<"OPTIMIZED" | "LOSSLESS" | undefined>(undefined);
+  const [enhancePrompt, setEnhancePrompt] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Build batch matrix from project languages x platforms
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
@@ -163,13 +176,14 @@ export default function GeneratePage() {
         data: { status: "generating" },
       });
 
-      // Throttle: max 2 requests per batch, then wait 25s to respect rate limit (3/min)
+      // Throttle: 3 requests per batch, then wait 18s (≈10 req/min preview limit)
+      const BATCH_SIZE = 3;
+      const BATCH_DELAY_MS = 18000;
       let requestCount = 0;
       for (const batch of selectedBatch) {
         for (const scene of approvedScenes) {
-          // Wait before sending if we've hit the throttle threshold
-          if (requestCount > 0 && requestCount % 2 === 0) {
-            await new Promise((resolve) => setTimeout(resolve, 25000));
+          if (requestCount > 0 && requestCount % BATCH_SIZE === 0) {
+            await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
           }
           try {
             await startVideo.mutateAsync({
@@ -180,6 +194,10 @@ export default function GeneratePage() {
               aspectRatio: batch.aspectRatio,
               resolution,
               useFastModel,
+              ...(seed !== undefined && { seed }),
+              ...(compressionQuality && { compressionQuality }),
+              ...(enhancePrompt && { enhancePrompt }),
+              ...(scene.mockup_image_url && { firstFrameImageUrl: scene.mockup_image_url }),
             });
             started++;
           } catch (err) {
@@ -290,6 +308,22 @@ export default function GeneratePage() {
           </Card>
         )}
 
+        {approvedScenes.some((s) => s.mockup_image_url) && (
+          <Card className="border-blue-500/30">
+            <CardContent className="flex items-center gap-3 py-3">
+              <Smartphone className="h-5 w-5 text-blue-500 shrink-0" />
+              <p className="text-sm">
+                {approvedScenes.filter((s) => s.mockup_image_url).length} scene
+                {approvedScenes.filter((s) => s.mockup_image_url).length > 1
+                  ? "s have"
+                  : " has"}{" "}
+                phone mockups. These will use the mockup image as the first
+                frame for video generation.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {activeGens && activeGens.length > 0 && (
           <GenerationProgress
             activeGenerations={activeGens}
@@ -382,6 +416,57 @@ export default function GeneratePage() {
                     <span>${estimateTotalCost().toFixed(2)}</span>
                   </div>
                 </div>
+
+                <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="w-full justify-between text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <Settings2 className="h-3.5 w-3.5" />
+                        Advanced Settings
+                      </span>
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-3 pt-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Seed (for reproducibility)</Label>
+                      <Input
+                        type="number"
+                        placeholder="Random (leave empty)"
+                        min={0}
+                        max={4294967295}
+                        value={seed ?? ""}
+                        onChange={(e) => setSeed(e.target.value ? parseInt(e.target.value) : undefined)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Compression</Label>
+                      <Select
+                        value={compressionQuality ?? "default"}
+                        onValueChange={(v) => setCompressionQuality(v === "default" ? undefined : v as "OPTIMIZED" | "LOSSLESS")}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Default</SelectItem>
+                          <SelectItem value="OPTIMIZED">Optimized (smaller file)</SelectItem>
+                          <SelectItem value="LOSSLESS">Lossless (best quality)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="enhance-prompt" className="text-sm">
+                        Enhance Prompt (Veo auto-improves)
+                      </Label>
+                      <Switch
+                        id="enhance-prompt"
+                        checked={enhancePrompt}
+                        onCheckedChange={setEnhancePrompt}
+                      />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 <Button
                   className="w-full"

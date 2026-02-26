@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import type { ApiKey } from "@/types/database";
+import type { ApiKey, ApiKeyPlatform } from "@/types/database";
 
 const API_KEYS_KEY = ["api-keys"];
 
@@ -32,7 +32,7 @@ export function useSaveApiKeys() {
       platform,
       keys,
     }: {
-      platform: "google_ads" | "meta_ads";
+      platform: ApiKeyPlatform;
       keys: Record<string, string>;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -67,7 +67,7 @@ export function useDeleteApiKeys() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (platform: "google_ads" | "meta_ads") => {
+    mutationFn: async (platform: ApiKeyPlatform) => {
       const { error } = await supabase
         .from("mkt_api_keys")
         .delete()

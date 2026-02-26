@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, MODELS } from "@/lib/google-ai";
 import { STRATEGY_SYSTEM_PROMPT, buildStrategyUserPrompt, buildAbStrategyUserPrompt } from "@/lib/ai/prompts/strategy";
-import { buildBrandContext, buildNewbeeInsightContext, buildExternalContext, buildPerformanceContext } from "@/lib/ai/prompts/brand-context";
+import { buildBrandContext, buildNewbeeInsightContext, buildExternalContext, buildPerformanceContext, buildCodeContext } from "@/lib/ai/prompts/brand-context";
 import { strategyResponseSchema, abStrategyResponseSchema, parseAiJson } from "@/lib/ai/response-schemas";
 import { fetchNewbeeInsights } from "@/lib/newbee/insights";
 import { scrapeUrl, scrapeGithubRepo, isGithubUrl } from "@/lib/scraping/url-scraper";
 import { summarizeContext } from "@/lib/scraping/context-summarizer";
-import type { Project, BrandKit, CampaignPerformance } from "@/types/database";
+import type { Project, BrandKit, CampaignPerformance, CodeAnalysis } from "@/types/database";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { z } from "zod";
@@ -112,6 +112,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Fetch code context if linked
+    let codeContext = "";
+    if (project.code_context_id) {
+      const { data: codeCtx } = await serviceClient
+        .from("mkt_code_contexts")
+        .select("analysis")
+        .eq("id", project.code_context_id)
+        .single();
+      if (codeCtx?.analysis) {
+        codeContext = buildCodeContext(codeCtx.analysis as CodeAnalysis);
+      }
+    }
+
     // Build prompt params
     const promptParams = {
       productName: project.product_name,
@@ -126,6 +139,7 @@ export async function POST(request: NextRequest) {
       insightContext,
       externalContext,
       performanceContext,
+      codeContext,
     };
 
     if (ab_mode) {
@@ -193,6 +207,7 @@ export async function POST(request: NextRequest) {
             tone: project.tone,
             additional_notes: project.additional_notes,
             source_url: project.source_url,
+            code_context_id: project.code_context_id,
             strategy: JSON.parse(JSON.stringify(abStrategy.version_b)),
             status: "strategy_ready" as const,
             current_step: 2,

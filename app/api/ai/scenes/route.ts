@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, MODELS } from "@/lib/google-ai";
 import { SCENES_SYSTEM_PROMPT, buildScenesUserPrompt } from "@/lib/ai/prompts/scenes";
-import { buildBrandContext } from "@/lib/ai/prompts/brand-context";
+import { buildBrandContext, buildCodeContext } from "@/lib/ai/prompts/brand-context";
 import { scenesResponseSchema, parseAiJson } from "@/lib/ai/response-schemas";
-import type { Project, ProjectStrategy, BrandKit } from "@/types/database";
+import type { Project, ProjectStrategy, BrandKit, CodeAnalysis } from "@/types/database";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { z } from "zod";
@@ -77,13 +77,26 @@ export async function POST(request: NextRequest) {
 
     const brandContext = buildBrandContext(brandKit);
 
+    // Fetch code context if linked
+    let codeContext = "";
+    if (project.code_context_id) {
+      const { data: codeCtx } = await serviceClient
+        .from("mkt_code_contexts")
+        .select("analysis")
+        .eq("id", project.code_context_id)
+        .single();
+      if (codeCtx?.analysis) {
+        codeContext = buildCodeContext(codeCtx.analysis as CodeAnalysis);
+      }
+    }
+
     const userPrompt = buildScenesUserPrompt({
       strategy,
       productName: project.product_name,
       productDescription: project.product_description,
       style: project.style,
       tone: project.tone,
-      brandContext,
+      brandContext: brandContext + codeContext,
     });
 
     const response = await ai.models.generateContent({

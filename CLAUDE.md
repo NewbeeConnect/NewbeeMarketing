@@ -26,7 +26,8 @@
 7. **Veo is async:** Returns `operation_name` for polling (5s interval). Imagen is sync.
 8. **`parseAiJson()`** must always be used to parse Gemini responses (strips markdown code blocks).
 9. **Zod schemas:** Use `.optional()` NOT `.default()` to avoid zodResolver type mismatch.
-10. **PersonGeneration:** `PersonGeneration.DONT_ALLOW` for images, `"dont_allow"` string for video.
+10. **PersonGeneration:** `PersonGeneration.DONT_ALLOW` for images, `"allow_all"` for text-to-video (required for person content). Veo 3.1 also uses `generateAudio: true` by default.
+11. **Resolution:** Veo supports `720p`, `1080p`, `4k`. Note: 1080p/4k only supports 8s duration per clip.
 
 ## Two Workflow Systems
 

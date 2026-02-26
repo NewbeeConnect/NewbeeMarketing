@@ -4,6 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useProject, useUpdateProject } from "@/hooks/useProject";
 import { useScenes, useUpdateScene, useReorderScenes, useDeleteScene } from "@/hooks/useScenes";
 import { useGenerateScenes } from "@/hooks/useAiScenes";
+import { useBrandAssets } from "@/hooks/useBrandAssets";
+import { useGenerateMockup } from "@/hooks/usePhoneMockup";
 import { WorkflowStepper } from "@/components/projects/WorkflowStepper";
 import { SceneList } from "@/components/projects/scenes/SceneList";
 import { RefinementChat } from "@/components/projects/strategy/RefinementChat";
@@ -25,6 +27,8 @@ export default function ScenesPage() {
   const reorderScenes = useReorderScenes();
   const deleteScene = useDeleteScene();
   const updateProject = useUpdateProject();
+  const { data: screenshots } = useBrandAssets("screenshot");
+  const generateMockup = useGenerateMockup();
 
   const isLoading = projectLoading || scenesLoading;
   const baseBreadcrumbs = [{ label: "Projects", href: "/projects" }];
@@ -111,6 +115,25 @@ export default function ScenesPage() {
     }
   };
 
+  const handleGenerateMockup = async (params: {
+    screenshotUrl: string;
+    templateId: string;
+    sceneId: string;
+  }): Promise<void> => {
+    try {
+      await generateMockup.mutateAsync({
+        ...params,
+        projectId,
+      });
+      toast.success("Phone mockup generated!");
+      refetchScenes();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to generate mockup"
+      );
+    }
+  };
+
   const handleRefined = async (_updatedContent: unknown, explanation: string) => {
     toast.success(`Scenes refined: ${explanation}`);
     refetchScenes();
@@ -160,6 +183,9 @@ export default function ScenesPage() {
                 onUpdateScene={handleUpdateScene}
                 onDeleteScene={handleDeleteScene}
                 onReorder={handleReorder}
+                screenshots={screenshots}
+                onGenerateMockup={handleGenerateMockup}
+                isGeneratingMockup={generateMockup.isPending}
               />
 
               <Button onClick={handleApprove} size="lg" className="w-full">

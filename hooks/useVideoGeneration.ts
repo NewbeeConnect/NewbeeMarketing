@@ -39,6 +39,10 @@ export function useStartVideoGeneration() {
       aspectRatio,
       resolution,
       useFastModel,
+      seed,
+      compressionQuality,
+      enhancePrompt,
+      firstFrameImageUrl,
     }: {
       projectId: string;
       sceneId: string;
@@ -47,6 +51,10 @@ export function useStartVideoGeneration() {
       aspectRatio?: string;
       resolution?: string;
       useFastModel?: boolean;
+      seed?: number;
+      compressionQuality?: "OPTIMIZED" | "LOSSLESS";
+      enhancePrompt?: boolean;
+      firstFrameImageUrl?: string;
     }) => {
       const response = await fetch("/api/generate/video", {
         method: "POST",
@@ -59,6 +67,10 @@ export function useStartVideoGeneration() {
           aspectRatio,
           resolution,
           useFastModel,
+          seed,
+          compressionQuality,
+          enhancePrompt,
+          firstFrameImageUrl,
         }),
       });
 
@@ -104,6 +116,9 @@ export function useCheckVideoStatus() {
         queryClient.invalidateQueries({
           queryKey: generationsKey(projectId),
         });
+        queryClient.invalidateQueries({
+          queryKey: ["active-generations", projectId],
+        });
       }
 
       return result;
@@ -145,6 +160,44 @@ export function useRetryVideoGeneration() {
   });
 }
 
+export function useExtendVideo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      sourceGenerationId,
+      prompt,
+      durationSeconds,
+    }: {
+      sourceGenerationId: string;
+      prompt: string;
+      projectId: string;
+      durationSeconds?: number;
+    }) => {
+      const response = await fetch("/api/generate/video/extend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceGenerationId, prompt, durationSeconds }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to extend video");
+      }
+
+      return response.json();
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: generationsKey(variables.projectId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["active-generations", variables.projectId],
+      });
+    },
+  });
+}
+
 // Hook for polling active generations
 export function useActiveGenerations(projectId: string) {
   const supabase = createClient();
@@ -163,6 +216,7 @@ export function useActiveGenerations(projectId: string) {
       return (data ?? []) as Generation[];
     },
     enabled: !!projectId,
-    refetchInterval: 5000, // Poll every 5 seconds for active generations
+    refetchInterval: 10000, // Align with GenerationProgress API poll interval
+    staleTime: 8000, // Prevent redundant fetches between intervals
   });
 }

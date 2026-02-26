@@ -36,6 +36,7 @@ When previous campaign performance data is provided, use it to inform your strat
 - If brand guidelines are provided, ensure every element aligns with them
 - Use provided platform data/insights to strengthen the strategy with real numbers
 - If external product context is provided, use it to create more specific and accurate strategies
+- If app codebase analysis is provided, leverage it to reference actual features, screens, and user flows accurately in the strategy
 - Keep strategies actionable and specific - avoid generic advice
 - Think about the viewer's emotional journey through the video
 - For multi-platform strategies, note key differences between platform versions
@@ -56,6 +57,7 @@ export type StrategyPromptParams = {
   insightContext: string;
   externalContext?: string;
   performanceContext?: string;
+  codeContext?: string;
 };
 
 function buildBriefSection(params: StrategyPromptParams): string {
@@ -78,7 +80,8 @@ ${params.additionalNotes ? `\nAdditional Notes from the creator:\n${params.addit
 ${params.brandContext}
 ${params.insightContext}
 ${params.externalContext || ""}
-${params.performanceContext || ""}`;
+${params.performanceContext || ""}
+${params.codeContext || ""}`;
 }
 
 export function buildStrategyUserPrompt(params: StrategyPromptParams): string {

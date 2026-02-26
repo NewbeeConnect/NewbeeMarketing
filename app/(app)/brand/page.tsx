@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Palette, Upload, Save, Loader2, Trash2 } from "lucide-react";
+import { Palette, Upload, Save, Loader2, Trash2, Smartphone, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { AppHeader } from "@/components/layout/AppHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useBrandKit, useUpsertBrandKit } from "@/hooks/useBrandKit";
+import { useBrandAssets, useUploadBrandAsset, useDeleteBrandAsset } from "@/hooks/useBrandAssets";
 import { createClient } from "@/lib/supabase/client";
 
 type WatermarkPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
@@ -26,6 +27,10 @@ type WatermarkPosition = "top-left" | "top-right" | "bottom-left" | "bottom-righ
 export default function BrandPage() {
   const { data: brandKit, isLoading } = useBrandKit();
   const upsertBrandKit = useUpsertBrandKit();
+  const { data: screenshots, isLoading: screenshotsLoading } = useBrandAssets("screenshot");
+  const uploadScreenshot = useUploadBrandAsset();
+  const deleteScreenshot = useDeleteBrandAsset();
+  const screenshotInputRef = useRef<HTMLInputElement>(null);
 
   const [brandName, setBrandName] = useState("");
   const [brandVoice, setBrandVoice] = useState("");
@@ -395,22 +400,132 @@ export default function BrandPage() {
           </Card>
         </div>
 
-        {/* Asset Library */}
+        {/* App Screenshots */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Asset Library</CardTitle>
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                App Screenshots
+              </CardTitle>
+              <CardDescription>
+                Upload app screenshots to use in phone mockup scenes. These will appear inside a phone frame in your ad videos.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => screenshotInputRef.current?.click()}
+              disabled={uploadScreenshot.isPending || !brandKit}
+            >
+              {uploadScreenshot.isPending ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-1" />
+              )}
+              Add Screenshot
+            </Button>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Palette className="h-10 w-10 text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">
-                Upload product photos, app screenshots, and other brand assets
-                to use as references in video generation
+            <input
+              ref={screenshotInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={async (e) => {
+                const files = e.target.files;
+                if (!files || !brandKit) return;
+
+                for (const file of Array.from(files)) {
+                  try {
+                    await uploadScreenshot.mutateAsync({
+                      brandKitId: brandKit.id,
+                      file,
+                      name: file.name.replace(/\.[^.]+$/, ""),
+                      type: "screenshot",
+                      tags: ["app-screenshot"],
+                    });
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Upload failed");
+                  }
+                }
+                toast.success(`${files.length} screenshot${files.length > 1 ? "s" : ""} uploaded`);
+                e.target.value = "";
+              }}
+            />
+
+            {!brandKit && (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                Save your Brand Kit first to upload screenshots.
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Assets are automatically saved when you upload logos and watermarks above.
-              </p>
-            </div>
+            )}
+
+            {brandKit && screenshotsLoading && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-[9/16] rounded-lg" />
+                ))}
+              </div>
+            )}
+
+            {brandKit && !screenshotsLoading && (!screenshots || screenshots.length === 0) && (
+              <div
+                className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed rounded-lg cursor-pointer hover:border-primary transition-colors"
+                onClick={() => screenshotInputRef.current?.click()}
+              >
+                <Smartphone className="h-10 w-10 text-muted-foreground mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  Drag & drop or click to upload app screenshots
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  PNG, JPG up to 10MB each. Portrait recommended for mobile app ads.
+                </p>
+              </div>
+            )}
+
+            {screenshots && screenshots.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {screenshots.map((asset) => (
+                  <div
+                    key={asset.id}
+                    className="relative group aspect-[9/16] rounded-lg overflow-hidden border bg-muted"
+                  >
+                    <Image
+                      src={asset.url}
+                      alt={asset.name}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          deleteScreenshot.mutate(asset.id, {
+                            onSuccess: () => toast.success("Screenshot deleted"),
+                            onError: (err) => toast.error(err.message),
+                          });
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 p-2">
+                      <p className="text-xs text-white truncate">{asset.name}</p>
+                    </div>
+                  </div>
+                ))}
+                {/* Add more button */}
+                <div
+                  className="aspect-[9/16] rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => screenshotInputRef.current?.click()}
+                >
+                  <Plus className="h-6 w-6 text-muted-foreground" />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

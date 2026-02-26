@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai } from "@/lib/google-ai";
+import { VideoGenerationReferenceType, VideoCompressionQuality } from "@google/genai";
 import type { Generation, Scene } from "@/types/database";
 import { z } from "zod";
 
@@ -86,8 +87,18 @@ export async function POST(request: NextRequest) {
     const config = generation.config as {
       duration_seconds?: number;
       aspect_ratio?: string;
+      resolution?: string;
       negative_prompt?: string;
+      seed?: number;
+      compression_quality?: string;
+      enhance_prompt?: boolean;
+      first_frame_image_url?: string;
+      generate_audio?: boolean;
     } | null;
+
+    // Determine audio and personGeneration from stored config
+    const shouldGenerateAudio = config?.generate_audio !== false && scene.audio_type !== "silent";
+    const personGenSetting = config?.first_frame_image_url ? "allow_adult" : "allow_all";
 
     // Reset generation record
     await serviceClient
@@ -103,18 +114,45 @@ export async function POST(request: NextRequest) {
       })
       .eq("id", generationId);
 
+    // Build reference images from scene
+    let referenceImages: Array<{
+      image: { gcsUri: string };
+      referenceType: VideoGenerationReferenceType;
+    }> | undefined;
+
+    if (scene.reference_image_urls && scene.reference_image_urls.length > 0) {
+      referenceImages = scene.reference_image_urls.slice(0, 3).map((url) => ({
+        image: { gcsUri: url },
+        referenceType: VideoGenerationReferenceType.ASSET,
+      }));
+    }
+
     // Start new Veo operation
     try {
-      const operation = await ai.models.generateVideos({
+      const generateParams: Parameters<typeof ai.models.generateVideos>[0] = {
         model: generation.model,
         prompt,
         config: {
           aspectRatio: config?.aspect_ratio || "9:16",
           numberOfVideos: 1,
           durationSeconds: config?.duration_seconds || 8,
+          resolution: config?.resolution || "720p",
           negativePrompt: config?.negative_prompt || undefined,
+          personGeneration: personGenSetting,
+          generateAudio: shouldGenerateAudio,
+          ...(config?.seed !== undefined && { seed: config.seed }),
+          ...(config?.compression_quality && { compressionQuality: config.compression_quality as VideoCompressionQuality }),
+          ...(config?.enhance_prompt !== undefined && { enhancePrompt: config.enhance_prompt }),
+          ...(referenceImages && { referenceImages }),
         },
-      });
+      };
+
+      // Image-to-video: use stored first frame
+      if (config?.first_frame_image_url) {
+        generateParams.image = { gcsUri: config.first_frame_image_url };
+      }
+
+      const operation = await ai.models.generateVideos(generateParams);
 
       const operationName = operation.name || null;
 

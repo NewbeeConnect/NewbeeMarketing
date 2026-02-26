@@ -55,6 +55,7 @@ export function useCreateProject() {
           source_url: (brief as Record<string, unknown>).source_url as string ?? null,
           campaign_id: brief.campaign_id ?? null,
           brand_kit_id: brief.brand_kit_id ?? null,
+          code_context_id: brief.code_context_id ?? null,
           status: "strategy_pending",
           strategy: null,
           parent_project_id: null,

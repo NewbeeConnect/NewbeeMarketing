@@ -1,14 +1,28 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, CheckCircle2, XCircle, Clock, RefreshCw, FastForward } from "lucide-react";
+import { useRetryVideoGeneration, useExtendVideo } from "@/hooks/useVideoGeneration";
+import { toast } from "sonner";
 import type { Generation } from "@/types/database";
 
 interface GenerationQueueProps {
   generations: Generation[];
   totalExpected: number;
+  projectId: string;
 }
 
 const STATUS_CONFIG = {
@@ -22,7 +36,14 @@ const STATUS_CONFIG = {
 export function GenerationQueue({
   generations,
   totalExpected,
+  projectId,
 }: GenerationQueueProps) {
+  const retryGeneration = useRetryVideoGeneration();
+  const extendVideo = useExtendVideo();
+  const [extendDialogOpen, setExtendDialogOpen] = useState(false);
+  const [extendTarget, setExtendTarget] = useState<Generation | null>(null);
+  const [extendPrompt, setExtendPrompt] = useState("");
+
   const completed = generations.filter((g) => g.status === "completed").length;
   const failed = generations.filter((g) => g.status === "failed").length;
   const processing = generations.filter(
@@ -33,6 +54,38 @@ export function GenerationQueue({
     totalExpected > 0
       ? Math.round(((completed + failed) / totalExpected) * 100)
       : 0;
+
+  const handleRetry = async (generationId: string) => {
+    try {
+      await retryGeneration.mutateAsync({ generationId, projectId });
+      toast.success("Retrying generation...");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to retry");
+    }
+  };
+
+  const openExtendDialog = (gen: Generation) => {
+    setExtendTarget(gen);
+    setExtendPrompt(gen.prompt);
+    setExtendDialogOpen(true);
+  };
+
+  const handleExtend = async () => {
+    if (!extendTarget || !extendPrompt.trim()) return;
+    try {
+      await extendVideo.mutateAsync({
+        sourceGenerationId: extendTarget.id,
+        prompt: extendPrompt.trim(),
+        projectId,
+      });
+      toast.success("Extending video...");
+      setExtendDialogOpen(false);
+      setExtendTarget(null);
+      setExtendPrompt("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to extend video");
+    }
+  };
 
   return (
     <Card>
@@ -114,17 +167,48 @@ export function GenerationQueue({
                     {gen.prompt.substring(0, 80)}
                     {gen.prompt.length > 80 ? "..." : ""}
                   </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <Badge variant="outline" className={config.color}>
-                    {config.label}
-                  </Badge>
-                  {gen.estimated_cost_usd && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      ~${gen.estimated_cost_usd.toFixed(2)}
+                  {gen.status === "failed" && gen.error_message && (
+                    <p className="text-xs text-red-500 truncate mt-0.5">
+                      {gen.error_message}
                     </p>
                   )}
                 </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant="outline" className={config.color}>
+                    {config.label}
+                  </Badge>
+                  {gen.status === "failed" && gen.type === "video" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleRetry(gen.id)}
+                      disabled={retryGeneration.isPending}
+                      title="Retry generation"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${retryGeneration.isPending ? "animate-spin" : ""}`} />
+                    </Button>
+                  )}
+                  {gen.status === "completed" && gen.type === "video" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => openExtendDialog(gen)}
+                      disabled={extendVideo.isPending}
+                      title="Extend video"
+                    >
+                      <FastForward className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+                {gen.actual_cost_usd != null ? (
+                  <p className="text-xs text-muted-foreground shrink-0">
+                    ${gen.actual_cost_usd.toFixed(2)}
+                  </p>
+                ) : gen.estimated_cost_usd != null ? (
+                  <p className="text-xs text-muted-foreground shrink-0">
+                    ~${gen.estimated_cost_usd.toFixed(2)}
+                  </p>
+                ) : null}
               </div>
             );
           })}
@@ -137,6 +221,48 @@ export function GenerationQueue({
           )}
         </div>
       </CardContent>
+
+      {/* Extend Video Dialog */}
+      <Dialog open={extendDialogOpen} onOpenChange={setExtendDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Extend Video</DialogTitle>
+            <DialogDescription>
+              Continue this video with a new or modified prompt. The extension will pick up where the original video ended.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={extendPrompt}
+            onChange={(e) => setExtendPrompt(e.target.value)}
+            placeholder="Enter the prompt for the extended video..."
+            rows={4}
+          />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setExtendDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleExtend}
+              disabled={extendVideo.isPending || !extendPrompt.trim()}
+            >
+              {extendVideo.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Extending...
+                </>
+              ) : (
+                <>
+                  <FastForward className="mr-2 h-4 w-4" />
+                  Extend
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

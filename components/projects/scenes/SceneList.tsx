@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { Scene } from "@/types/database";
+import type { Scene, BrandAsset } from "@/types/database";
 import { SceneCard } from "./SceneCard";
 import { DurationBar } from "./DurationBar";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,13 @@ interface SceneListProps {
   onUpdateScene: (sceneId: string, data: Partial<Scene>) => void;
   onDeleteScene: (sceneId: string) => void;
   onReorder: (sceneIds: string[]) => void;
+  screenshots?: BrandAsset[];
+  onGenerateMockup?: (params: {
+    screenshotUrl: string;
+    templateId: string;
+    sceneId: string;
+  }) => Promise<void>;
+  isGeneratingMockup?: boolean;
 }
 
 export function SceneList({
@@ -22,6 +29,9 @@ export function SceneList({
   onUpdateScene,
   onDeleteScene,
   onReorder,
+  screenshots,
+  onGenerateMockup,
+  isGeneratingMockup,
 }: SceneListProps) {
   const totalDuration = scenes.reduce((sum, s) => sum + s.duration_seconds, 0);
 
@@ -82,6 +92,9 @@ export function SceneList({
                 onUpdate={(data) => onUpdateScene(scene.id, data)}
                 onDelete={() => onDeleteScene(scene.id)}
                 onDuplicate={handleDuplicate}
+                screenshots={screenshots}
+                onGenerateMockup={onGenerateMockup}
+                isGeneratingMockup={isGeneratingMockup}
               />
             </div>
           </div>

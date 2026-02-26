@@ -59,6 +59,27 @@ export type NotificationType = "generation_complete" | "generation_failed" | "bu
 export type AdPlatform = "google" | "meta";
 export type AdDeploymentStatus = "draft" | "pending_review" | "active" | "paused" | "completed" | "rejected";
 export type VersionType = "emotional" | "technical" | "single";
+export type CodeContextSourceType = "repomix_upload" | "github_pat";
+export type ApiKeyPlatform = "google_ads" | "meta_ads" | "github";
+
+export type PhoneMockupConfig = {
+  templateId: string;
+  screenshotUrl: string;
+  backgroundColor?: string;
+};
+
+export type CodeAnalysis = {
+  appName: string;
+  appType: string;
+  techStack: string[];
+  mainFeatures: string[];
+  keyScreens: string[];
+  uiComponents: string[];
+  userFlows: string[];
+  marketingAngles: string[];
+  targetPlatforms: string[];
+  monetization: string;
+};
 
 export type AdTargeting = {
   age_range: [number, number];
@@ -191,6 +212,7 @@ export type Database = {
           user_id: string;
           campaign_id: string | null;
           brand_kit_id: string | null;
+          code_context_id: string | null;
           title: string;
           description: string | null;
           product_name: string;
@@ -215,6 +237,7 @@ export type Database = {
           user_id: string;
           campaign_id?: string | null;
           brand_kit_id?: string | null;
+          code_context_id?: string | null;
           title: string;
           description?: string | null;
           product_name: string;
@@ -237,6 +260,7 @@ export type Database = {
           user_id?: string;
           campaign_id?: string | null;
           brand_kit_id?: string | null;
+          code_context_id?: string | null;
           title?: string;
           description?: string | null;
           product_name?: string;
@@ -305,6 +329,8 @@ export type Database = {
           voiceover_language: string | null;
           voiceover_voice: string | null;
           reference_image_urls: string[] | null;
+          phone_mockup_config: PhoneMockupConfig | null;
+          mockup_image_url: string | null;
           sort_order: number;
           created_at: string;
           updated_at: string;
@@ -329,6 +355,8 @@ export type Database = {
           voiceover_language?: string | null;
           voiceover_voice?: string | null;
           reference_image_urls?: string[] | null;
+          phone_mockup_config?: PhoneMockupConfig | null;
+          mockup_image_url?: string | null;
           sort_order?: number;
         };
         Update: {
@@ -351,6 +379,8 @@ export type Database = {
           voiceover_language?: string | null;
           voiceover_voice?: string | null;
           reference_image_urls?: string[] | null;
+          phone_mockup_config?: PhoneMockupConfig | null;
+          mockup_image_url?: string | null;
           sort_order?: number;
         };
         Relationships: [];
@@ -610,7 +640,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          platform: "google_ads" | "meta_ads";
+          platform: ApiKeyPlatform;
           keys_encrypted: Json;
           is_valid: boolean;
           last_validated_at: string | null;
@@ -619,14 +649,14 @@ export type Database = {
         };
         Insert: {
           user_id: string;
-          platform: "google_ads" | "meta_ads";
+          platform: ApiKeyPlatform;
           keys_encrypted: Json;
           is_valid?: boolean;
           last_validated_at?: string | null;
         };
         Update: {
           user_id?: string;
-          platform?: "google_ads" | "meta_ads";
+          platform?: ApiKeyPlatform;
           keys_encrypted?: Json;
           is_valid?: boolean;
           last_validated_at?: string | null;
@@ -678,6 +708,42 @@ export type Database = {
           targeting?: AdTargeting | null;
           status?: AdDeploymentStatus;
           published_at?: string | null;
+        };
+        Relationships: [];
+      };
+      mkt_code_contexts: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          source_type: CodeContextSourceType;
+          repo_url: string | null;
+          raw_file_url: string | null;
+          analysis: CodeAnalysis;
+          file_tree: string | null;
+          token_count: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          name: string;
+          source_type: CodeContextSourceType;
+          repo_url?: string | null;
+          raw_file_url?: string | null;
+          analysis: CodeAnalysis;
+          file_tree?: string | null;
+          token_count?: number | null;
+        };
+        Update: {
+          user_id?: string;
+          name?: string;
+          source_type?: CodeContextSourceType;
+          repo_url?: string | null;
+          raw_file_url?: string | null;
+          analysis?: CodeAnalysis;
+          file_tree?: string | null;
+          token_count?: number | null;
         };
         Relationships: [];
       };
@@ -755,3 +821,4 @@ export type Notification = Database["public"]["Tables"]["mkt_notifications"]["Ro
 export type ApiKey = Database["public"]["Tables"]["mkt_api_keys"]["Row"];
 export type AdDeployment = Database["public"]["Tables"]["mkt_ad_deployments"]["Row"];
 export type CampaignPerformance = Database["public"]["Tables"]["mkt_campaign_performance"]["Row"];
+export type CodeContext = Database["public"]["Tables"]["mkt_code_contexts"]["Row"];

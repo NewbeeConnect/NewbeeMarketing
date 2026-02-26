@@ -8,11 +8,15 @@ const apiKey = process.env.GOOGLE_API_KEY;
 
 export const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
+// Environment toggle: "preview" (default) or "production"
+const isProduction = process.env.VEO_ENVIRONMENT === "production";
+export const VEO_ENVIRONMENT: "preview" | "production" = isProduction ? "production" : "preview";
+
 export const MODELS = {
   GEMINI_PRO: "gemini-2.5-pro",
   GEMINI_FLASH: "gemini-2.5-flash",
-  VEO: "veo-3.1-generate-preview",
-  VEO_FAST: "veo-3.1-fast-generate-preview",
+  VEO: isProduction ? "veo-3.1-generate-001" : "veo-3.1-generate-preview",
+  VEO_FAST: isProduction ? "veo-3.1-fast-generate-001" : "veo-3.1-fast-generate-preview",
   IMAGEN: "imagen-4.0-generate-001",
   IMAGEN_FAST: "imagen-4.0-fast-generate-001",
 } as const;

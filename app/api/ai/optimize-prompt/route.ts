@@ -94,6 +94,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Scene not found" }, { status: 404 });
     }
 
+    // Get total scene count for narrative context
+    const { count: totalScenes } = await serviceClient
+      .from("mkt_scenes")
+      .select("*", { count: "exact", head: true })
+      .eq("project_id", projectId);
+
     // Build few-shot context
     const fewShotContext = VEO_PROMPT_EXAMPLES.map(
       (ex) =>
@@ -111,6 +117,13 @@ export async function POST(request: NextRequest) {
       tone: project.tone,
       aspectRatio,
       brandContext,
+      audioType: scene.audio_type,
+      voiceoverText: scene.voiceover_text,
+      musicMood: project.strategy?.music_mood ?? null,
+      sceneNumber: scene.scene_number,
+      totalScenes: totalScenes ?? null,
+      platform: project.target_platforms?.[0] ?? null,
+      hasPhoneMockup: !!scene.mockup_image_url,
     });
 
     const fullPrompt = `## Few-shot Examples\n${fewShotContext}\n\n## Your Task\n${userPrompt}`;

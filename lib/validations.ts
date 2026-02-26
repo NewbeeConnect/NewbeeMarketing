@@ -60,6 +60,7 @@ export const projectBriefSchema = z.object({
   source_url: z.string().url().nullable().optional(),
   campaign_id: z.string().uuid().nullable().optional(),
   brand_kit_id: z.string().uuid().nullable().optional(),
+  code_context_id: z.string().uuid().nullable().optional(),
 });
 
 export const adDeploymentSchema = z.object({
@@ -79,7 +80,7 @@ export const adDeploymentSchema = z.object({
 });
 
 export const apiKeysSchema = z.object({
-  platform: z.enum(["google_ads", "meta_ads"]),
+  platform: z.enum(["google_ads", "meta_ads", "github"]),
   keys: z.record(z.string(), z.string()),
 });
 

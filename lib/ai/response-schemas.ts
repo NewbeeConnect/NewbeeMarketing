@@ -24,6 +24,10 @@ export const sceneItemSchema = z.object({
   text_overlay: z.string().nullable().optional(),
   audio_type: z.enum(["native_veo", "tts_voiceover", "silent"]).default("native_veo"),
   voiceover_text: z.string().nullable().optional(),
+  audio_description: z.string().nullable().optional(),
+  dialogue_text: z.string().nullable().optional(),
+  transition_hint: z.string().nullable().optional(),
+  shot_type: z.string().nullable().optional(),
 });
 
 export const scenesResponseSchema = z.object({

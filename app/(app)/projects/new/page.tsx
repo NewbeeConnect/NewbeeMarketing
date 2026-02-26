@@ -12,6 +12,11 @@ import {
   Loader2,
   Link as LinkIcon,
   Search,
+  Code2,
+  Upload,
+  Github,
+  Trash2,
+  X,
 } from "lucide-react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,12 +28,22 @@ import { Badge } from "@/components/ui/badge";
 import { PLATFORMS, LANGUAGES, STYLES, TONES } from "@/lib/constants";
 import { toast } from "sonner";
 import { useCreateProject } from "@/hooks/useProjects";
+import { useCodeContexts, useUploadCodeContext, useFetchGithubContext, useDeleteCodeContext } from "@/hooks/useCodeContext";
+import { useApiKeys } from "@/hooks/useApiKeys";
+import { CardDescription } from "@/components/ui/card";
 
 export default function NewProjectPage() {
   const router = useRouter();
   const createProject = useCreateProject();
   const [fetchingContext, setFetchingContext] = useState(false);
   const [contextFetched, setContextFetched] = useState(false);
+  const [githubRepoUrl, setGithubRepoUrl] = useState("");
+  const { data: codeContexts } = useCodeContexts();
+  const { data: apiKeys } = useApiKeys();
+  const uploadCodeContext = useUploadCodeContext();
+  const fetchGithubContext = useFetchGithubContext();
+  const deleteCodeContext = useDeleteCodeContext();
+  const githubConfigured = apiKeys?.some((k) => k.platform === "github");
   const [form, setForm] = useState({
     title: "",
     product_name: "",
@@ -40,6 +55,7 @@ export default function NewProjectPage() {
     tone: "professional",
     additional_notes: "",
     source_url: "",
+    code_context_id: null as string | null,
   });
 
   const togglePlatform = (value: string) => {
@@ -121,6 +137,7 @@ export default function NewProjectPage() {
         tone: form.tone,
         additional_notes: form.additional_notes || null,
         source_url: form.source_url || null,
+        code_context_id: form.code_context_id || null,
       });
       toast.success("Project created! Redirecting to strategy...");
       router.push(`/projects/${project.id}/strategy`);
@@ -186,6 +203,157 @@ export default function NewProjectPage() {
                 Context extracted successfully. Review and edit the auto-filled fields below.
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Code Context */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Code2 className="h-4 w-4" />
+              Code Context
+            </CardTitle>
+            <CardDescription>
+              Help AI understand your app&apos;s code to create more accurate briefs
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Existing contexts selector */}
+            {codeContexts && codeContexts.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs">Select Existing Analysis</Label>
+                <div className="flex flex-wrap gap-2">
+                  {codeContexts.map((ctx) => {
+                    const selected = form.code_context_id === ctx.id;
+                    return (
+                      <div key={ctx.id} className="flex items-center gap-1">
+                        <Button
+                          variant={selected ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setForm((prev) => ({
+                            ...prev,
+                            code_context_id: selected ? null : ctx.id,
+                          }))}
+                          className="gap-1"
+                        >
+                          {selected && <Check className="h-3 w-3" />}
+                          <Code2 className="h-3 w-3" />
+                          {ctx.name}
+                          <Badge variant="secondary" className="ml-1 text-[10px]">
+                            {ctx.source_type === "github_pat" ? "GitHub" : "Upload"}
+                          </Badge>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={async () => {
+                            if (form.code_context_id === ctx.id) {
+                              setForm((prev) => ({ ...prev, code_context_id: null }));
+                            }
+                            await deleteCodeContext.mutateAsync(ctx.id);
+                            toast.success("Code context removed");
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Upload new */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-1">
+                <Label className="text-xs mb-1 block">Upload Repomix File</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="file"
+                    accept=".txt,.md"
+                    className="flex-1 text-xs"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const result = await uploadCodeContext.mutateAsync({
+                          file,
+                          name: file.name.replace(/\.(txt|md)$/, ""),
+                        });
+                        setForm((prev) => ({ ...prev, code_context_id: result.id }));
+                        toast.success(`Code analyzed: ${result.analysis.appName}`);
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Upload failed");
+                      }
+                    }}
+                    disabled={uploadCodeContext.isPending}
+                  />
+                  {uploadCodeContext.isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin self-center" />
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Run <code className="bg-muted px-1 rounded">npx repomix</code> in your project to generate the file
+                </p>
+              </div>
+
+              {githubConfigured && (
+                <div className="flex-1">
+                  <Label className="text-xs mb-1 block">Fetch from GitHub</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="https://github.com/org/repo"
+                      value={githubRepoUrl}
+                      onChange={(e) => setGithubRepoUrl(e.target.value)}
+                      className="flex-1 text-xs"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!githubRepoUrl || fetchGithubContext.isPending}
+                      onClick={async () => {
+                        try {
+                          const result = await fetchGithubContext.mutateAsync(githubRepoUrl);
+                          setForm((prev) => ({ ...prev, code_context_id: result.id }));
+                          toast.success(`Repo analyzed: ${result.analysis.appName}`);
+                          setGithubRepoUrl("");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Fetch failed");
+                        }
+                      }}
+                    >
+                      {fetchGithubContext.isPending ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Github className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Selected context preview */}
+            {form.code_context_id && codeContexts && (() => {
+              const selected = codeContexts.find((c) => c.id === form.code_context_id);
+              if (!selected) return null;
+              const a = selected.analysis;
+              return (
+                <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-1">
+                  <p className="font-medium">{a.appName} ({a.appType})</p>
+                  {a.techStack.length > 0 && (
+                    <p className="text-muted-foreground">Stack: {a.techStack.slice(0, 6).join(", ")}</p>
+                  )}
+                  {a.mainFeatures.length > 0 && (
+                    <p className="text-muted-foreground">Features: {a.mainFeatures.slice(0, 4).join(", ")}</p>
+                  )}
+                  {a.marketingAngles.length > 0 && (
+                    <p className="text-muted-foreground">Angles: {a.marketingAngles.slice(0, 3).join(", ")}</p>
+                  )}
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 
