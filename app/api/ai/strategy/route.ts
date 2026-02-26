@@ -139,6 +139,7 @@ export async function POST(request: NextRequest) {
           systemInstruction: STRATEGY_SYSTEM_PROMPT,
           temperature: 0.8,
           maxOutputTokens: 4096,
+          responseMimeType: "application/json",
         },
       });
 
@@ -232,6 +233,7 @@ export async function POST(request: NextRequest) {
           systemInstruction: STRATEGY_SYSTEM_PROMPT,
           temperature: 0.7,
           maxOutputTokens: 2048,
+          responseMimeType: "application/json",
         },
       });
 

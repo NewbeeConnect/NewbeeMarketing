@@ -165,6 +165,15 @@ export async function POST(request: NextRequest) {
             systemInstruction: VEO_OPTIMIZER_SYSTEM_PROMPT,
             temperature: 0.5,
             maxOutputTokens: 1024,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "object" as const,
+              properties: {
+                optimized_prompt: { type: "string" as const },
+                negative_prompt: { type: "string" as const },
+              },
+              required: ["optimized_prompt", "negative_prompt"],
+            },
           },
         });
         text = response.text ?? "";

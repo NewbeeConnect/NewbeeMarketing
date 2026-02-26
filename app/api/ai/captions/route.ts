@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
         systemInstruction: CAPTION_SYSTEM_PROMPT,
         temperature: 0.3,
         maxOutputTokens: 2048,
+        responseMimeType: "application/json",
       },
     });
 

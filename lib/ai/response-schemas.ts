@@ -68,22 +68,58 @@ export type StrategyWithPersona = z.infer<typeof strategyWithPersonaSchema>;
 
 /**
  * Parse AI response that might contain JSON wrapped in markdown code blocks
+ * or mixed with explanatory text.
  */
 export function parseAiJson<T>(text: string, schema: z.ZodType<T>): T {
-  // Strip markdown code blocks if present
   let cleaned = text.trim();
+
+  // 1) Strip markdown code blocks if present
   if (cleaned.startsWith("```")) {
     cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
   }
 
+  // 2) Try direct parse first
   let parsed: unknown;
   try {
     parsed = JSON.parse(cleaned);
+    return schema.parse(parsed);
   } catch {
-    throw new Error(
-      `AI response is not valid JSON. First 200 chars: ${cleaned.substring(0, 200)}`
-    );
+    // continue to fallback strategies
   }
 
-  return schema.parse(parsed);
+  // 3) Extract JSON from markdown code block anywhere in the text
+  const codeBlockMatch = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (codeBlockMatch) {
+    try {
+      parsed = JSON.parse(codeBlockMatch[1].trim());
+      return schema.parse(parsed);
+    } catch {
+      // continue
+    }
+  }
+
+  // 4) Find first { ... } or [ ... ] block in the text
+  const firstBrace = cleaned.indexOf("{");
+  const firstBracket = cleaned.indexOf("[");
+  const startIdx =
+    firstBrace === -1 ? firstBracket :
+    firstBracket === -1 ? firstBrace :
+    Math.min(firstBrace, firstBracket);
+
+  if (startIdx !== -1) {
+    const closingChar = cleaned[startIdx] === "{" ? "}" : "]";
+    const lastClose = cleaned.lastIndexOf(closingChar);
+    if (lastClose > startIdx) {
+      try {
+        parsed = JSON.parse(cleaned.substring(startIdx, lastClose + 1));
+        return schema.parse(parsed);
+      } catch {
+        // continue
+      }
+    }
+  }
+
+  throw new Error(
+    `AI response is not valid JSON. First 200 chars: ${cleaned.substring(0, 200)}`
+  );
 }

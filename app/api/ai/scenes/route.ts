@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
         systemInstruction: SCENES_SYSTEM_PROMPT,
         temperature: 0.7,
         maxOutputTokens: 4096,
+        responseMimeType: "application/json",
       },
     });
 
