@@ -55,7 +55,7 @@ export function VoiceoverPanel({
   const [selectedLang, setSelectedLang] = useState(projectLanguages[0] || "en");
   const [selectedVoice, setSelectedVoice] = useState("");
   const [customText, setCustomText] = useState("");
-  const [selectedScene, setSelectedScene] = useState<string>("");
+  const [selectedScene, setSelectedScene] = useState<string>("none");
 
   const voiceoverScenes = scenes.filter(
     (s) => s.audio_type === "tts_voiceover" && s.voiceover_text
@@ -73,7 +73,7 @@ export function VoiceoverPanel({
   const handleGenerateCustom = () => {
     if (!customText.trim()) return;
     onGenerate(
-      selectedScene || "",
+      selectedScene === "none" ? "" : selectedScene,
       customText,
       selectedLang,
       selectedVoice || undefined
@@ -115,7 +115,7 @@ export function VoiceoverPanel({
             </SelectContent>
           </Select>
 
-          <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+          <Select value={selectedVoice || undefined} onValueChange={setSelectedVoice}>
             <SelectTrigger className="flex-1">
               <SelectValue placeholder="Select voice" />
             </SelectTrigger>
@@ -206,7 +206,7 @@ export function VoiceoverPanel({
                   <SelectValue placeholder="Link to scene" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No scene</SelectItem>
+                  <SelectItem value="none">No scene</SelectItem>
                   {scenes.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       Scene {s.scene_number}

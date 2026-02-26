@@ -478,7 +478,7 @@ function CreateEventDialog({
             </div>
             <div className="space-y-2">
               <Label>Platform</Label>
-              <Select value={platform} onValueChange={setPlatform}>
+              <Select value={platform || undefined} onValueChange={setPlatform}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select..." />
                 </SelectTrigger>

@@ -108,6 +108,41 @@ export function useCheckVideoStatus() {
   });
 }
 
+export function useRetryVideoGeneration() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      generationId,
+      projectId,
+    }: {
+      generationId: string;
+      projectId: string;
+    }) => {
+      const response = await fetch("/api/generate/video/retry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ generationId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to retry generation");
+      }
+
+      return response.json();
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: generationsKey(variables.projectId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["active-generations", variables.projectId],
+      });
+    },
+  });
+}
+
 // Hook for polling active generations
 export function useActiveGenerations(projectId: string) {
   const supabase = createClient();

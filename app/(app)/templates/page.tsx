@@ -390,7 +390,7 @@ function CreateTemplateDialog({
             </div>
             <div className="space-y-2">
               <Label>Platform</Label>
-              <Select value={platform} onValueChange={setPlatform}>
+              <Select value={platform || undefined} onValueChange={setPlatform}>
                 <SelectTrigger>
                   <SelectValue placeholder="Any" />
                 </SelectTrigger>
@@ -405,7 +405,7 @@ function CreateTemplateDialog({
             </div>
             <div className="space-y-2">
               <Label>Style</Label>
-              <Select value={style} onValueChange={setStyle}>
+              <Select value={style || undefined} onValueChange={setStyle}>
                 <SelectTrigger>
                   <SelectValue placeholder="Any" />
                 </SelectTrigger>
@@ -420,7 +420,7 @@ function CreateTemplateDialog({
             </div>
             <div className="space-y-2">
               <Label>Tone</Label>
-              <Select value={tone} onValueChange={setTone}>
+              <Select value={tone || undefined} onValueChange={setTone}>
                 <SelectTrigger>
                   <SelectValue placeholder="Any" />
                 </SelectTrigger>
