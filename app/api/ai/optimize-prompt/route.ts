@@ -16,7 +16,7 @@ import { z } from "zod";
 
 const inputSchema = z.object({
   projectId: z.string().uuid(),
-  sceneId: z.string().uuid().optional(),
+  sceneId: z.string().uuid(),
 });
 
 export async function POST(request: NextRequest) {
@@ -81,22 +81,17 @@ export async function POST(request: NextRequest) {
     }
     const brandContext = buildBrandContext(brandKit);
 
-    // Determine which scenes to optimize
-    let scenesQuery = serviceClient
+    // Fetch the single scene
+    const { data: sceneData, error: sceneError } = await serviceClient
       .from("mkt_scenes")
       .select("*")
+      .eq("id", sceneId)
       .eq("project_id", projectId)
-      .order("sort_order", { ascending: true });
+      .single();
+    const scene = sceneData as Scene | null;
 
-    if (sceneId) {
-      scenesQuery = scenesQuery.eq("id", sceneId);
-    }
-
-    const { data: scenesData, error: scenesError } = await scenesQuery;
-    const scenes = (scenesData ?? []) as Scene[];
-
-    if (scenesError || scenes.length === 0) {
-      return NextResponse.json({ error: "No scenes found" }, { status: 404 });
+    if (sceneError || !scene) {
+      return NextResponse.json({ error: "Scene not found" }, { status: 404 });
     }
 
     // Build few-shot context
@@ -105,131 +100,102 @@ export async function POST(request: NextRequest) {
         `Input: "${ex.scene_description}"\nOutput: ${JSON.stringify({ optimized_prompt: ex.optimized_prompt, negative_prompt: ex.negative_prompt })}`
     ).join("\n\n");
 
-    const results: Array<{
-      sceneId: string;
-      optimized_prompt: string;
-      negative_prompt: string;
-    }> = [];
+    const aspectRatio = scene.aspect_ratio || "9:16";
+    const userPrompt = buildVeoOptimizerPrompt({
+      sceneTitle: scene.title,
+      sceneDescription: scene.description,
+      durationSeconds: scene.duration_seconds,
+      cameraMovement: scene.camera_movement,
+      lighting: scene.lighting,
+      style: project.style,
+      tone: project.tone,
+      aspectRatio,
+      brandContext,
+    });
 
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
+    const fullPrompt = `## Few-shot Examples\n${fewShotContext}\n\n## Your Task\n${userPrompt}`;
 
-    // Optimize each scene
-    for (const scene of scenes) {
-      const aspectRatio = scene.aspect_ratio || "9:16";
-      const userPrompt = buildVeoOptimizerPrompt({
-        sceneTitle: scene.title,
-        sceneDescription: scene.description,
-        durationSeconds: scene.duration_seconds,
-        cameraMovement: scene.camera_movement,
-        lighting: scene.lighting,
-        style: project.style,
-        tone: project.tone,
-        aspectRatio,
-        brandContext,
-      });
-
-      const fullPrompt = `## Few-shot Examples\n${fewShotContext}\n\n## Your Task\n${userPrompt}`;
-
-      // Check cache
-      const cacheKey = `prompt-opt:${user.id}:${project.brand_kit_id ?? "none"}:${scene.description}:${project.style}:${project.tone}`;
-      const cached = aiCache.get(cacheKey);
-      if (cached) {
-        const cachedResult = cached as { optimized_prompt: string; negative_prompt: string };
-        await serviceClient
-          .from("mkt_scenes")
-          .update({
-            user_prompt: scene.description,
-            optimized_prompt: cachedResult.optimized_prompt,
-            negative_prompt: cachedResult.negative_prompt,
-            prompt_approved: false,
-          })
-          .eq("id", scene.id);
-
-        results.push({
-          sceneId: scene.id,
-          optimized_prompt: cachedResult.optimized_prompt,
-          negative_prompt: cachedResult.negative_prompt,
-        });
-        continue;
-      }
-
-      let text: string;
-      let inputTokens = 0;
-      let outputTokens = 0;
-      try {
-        const response = await ai.models.generateContent({
-          model: MODELS.GEMINI_FLASH,
-          contents: fullPrompt,
-          config: {
-            systemInstruction: VEO_OPTIMIZER_SYSTEM_PROMPT,
-            temperature: 0.5,
-            maxOutputTokens: 1024,
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "object" as const,
-              properties: {
-                optimized_prompt: { type: "string" as const },
-                negative_prompt: { type: "string" as const },
-              },
-              required: ["optimized_prompt", "negative_prompt"],
-            },
-          },
-        });
-        text = response.text ?? "";
-        inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
-        outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
-      } catch (aiError) {
-        console.error(`Gemini API error for scene ${scene.id}:`, aiError);
-        return NextResponse.json(
-          { error: `AI generation failed: ${aiError instanceof Error ? aiError.message : "Unknown AI error"}` },
-          { status: 502 }
-        );
-      }
-
-      let parsed;
-      try {
-        parsed = parseAiJson(text, promptOptimizeResponseSchema);
-      } catch (parseError) {
-        console.error(`Parse error for scene ${scene.id}. Raw response:`, text);
-        return NextResponse.json(
-          { error: `Failed to parse AI response for scene "${scene.title}"` },
-          { status: 502 }
-        );
-      }
-
-      // Cache the result
-      aiCache.set(cacheKey, { optimized_prompt: parsed.optimized_prompt, negative_prompt: parsed.negative_prompt });
-
-      // Update scene with optimized prompt
+    // Check cache
+    const cacheKey = `prompt-opt:${user.id}:${project.brand_kit_id ?? "none"}:${scene.description}:${project.style}:${project.tone}`;
+    const cached = aiCache.get(cacheKey);
+    if (cached) {
+      const cachedResult = cached as { optimized_prompt: string; negative_prompt: string };
       await serviceClient
         .from("mkt_scenes")
         .update({
           user_prompt: scene.description,
-          optimized_prompt: parsed.optimized_prompt,
-          negative_prompt: parsed.negative_prompt,
+          optimized_prompt: cachedResult.optimized_prompt,
+          negative_prompt: cachedResult.negative_prompt,
           prompt_approved: false,
         })
         .eq("id", scene.id);
 
-      results.push({
-        sceneId: scene.id,
-        optimized_prompt: parsed.optimized_prompt,
-        negative_prompt: parsed.negative_prompt,
+      return NextResponse.json({
+        results: [{
+          sceneId: scene.id,
+          optimized_prompt: cachedResult.optimized_prompt,
+          negative_prompt: cachedResult.negative_prompt,
+        }],
       });
-
-      totalInputTokens += inputTokens;
-      totalOutputTokens += outputTokens;
     }
 
-    // Update project status
+    let text: string;
+    let inputTokens = 0;
+    let outputTokens = 0;
+    try {
+      const response = await ai.models.generateContent({
+        model: MODELS.GEMINI_FLASH,
+        contents: fullPrompt,
+        config: {
+          systemInstruction: VEO_OPTIMIZER_SYSTEM_PROMPT,
+          temperature: 0.5,
+          maxOutputTokens: 1024,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT" as const,
+            properties: {
+              optimized_prompt: { type: "STRING" as const },
+              negative_prompt: { type: "STRING" as const },
+            },
+            required: ["optimized_prompt", "negative_prompt"],
+          },
+        },
+      });
+      text = response.text ?? "";
+      inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
+      outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
+    } catch (aiError) {
+      console.error(`Gemini API error for scene ${scene.id}:`, aiError);
+      return NextResponse.json(
+        { error: `AI generation failed: ${aiError instanceof Error ? aiError.message : "Unknown AI error"}` },
+        { status: 502 }
+      );
+    }
+
+    let optimized;
+    try {
+      optimized = parseAiJson(text, promptOptimizeResponseSchema);
+    } catch (parseError) {
+      console.error(`Parse error for scene ${scene.id}. Raw response:`, text);
+      return NextResponse.json(
+        { error: `Failed to parse AI response for scene "${scene.title}"` },
+        { status: 502 }
+      );
+    }
+
+    // Cache the result
+    aiCache.set(cacheKey, { optimized_prompt: optimized.optimized_prompt, negative_prompt: optimized.negative_prompt });
+
+    // Update scene with optimized prompt
     await serviceClient
-      .from("mkt_projects")
+      .from("mkt_scenes")
       .update({
-        status: "prompts_ready" as const,
-        current_step: 4,
+        user_prompt: scene.description,
+        optimized_prompt: optimized.optimized_prompt,
+        negative_prompt: optimized.negative_prompt,
+        prompt_approved: false,
       })
-      .eq("id", projectId);
+      .eq("id", scene.id);
 
     // Save version snapshot
     const { count } = await serviceClient
@@ -242,10 +208,8 @@ export async function POST(request: NextRequest) {
       project_id: projectId,
       step: "prompts",
       version_number: (count ?? 0) + 1,
-      snapshot: JSON.parse(JSON.stringify({ prompts: results })),
-      change_description: sceneId
-        ? "AI optimized prompt for single scene"
-        : `AI optimized prompts for ${results.length} scenes`,
+      snapshot: JSON.parse(JSON.stringify({ prompts: [{ sceneId: scene.id, optimized_prompt: optimized.optimized_prompt, negative_prompt: optimized.negative_prompt }] })),
+      change_description: `AI optimized prompt for scene "${scene.title}"`,
     });
 
     // Log usage
@@ -255,12 +219,18 @@ export async function POST(request: NextRequest) {
       api_service: "gemini",
       model: MODELS.GEMINI_FLASH,
       operation: "prompt_optimization",
-      input_tokens: totalInputTokens,
-      output_tokens: totalOutputTokens,
-      estimated_cost_usd: estimateCostFlash(totalInputTokens, totalOutputTokens),
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      estimated_cost_usd: estimateCostFlash(inputTokens, outputTokens),
     });
 
-    return NextResponse.json({ results });
+    return NextResponse.json({
+      results: [{
+        sceneId: scene.id,
+        optimized_prompt: optimized.optimized_prompt,
+        negative_prompt: optimized.negative_prompt,
+      }],
+    });
   } catch (error) {
     console.error("Prompt optimization error:", error);
     const message = "Failed to optimize prompts";

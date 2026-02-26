@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useProject, useUpdateProject } from "@/hooks/useProject";
 import { useScenes, useUpdateScene } from "@/hooks/useScenes";
-import { useOptimizePrompts } from "@/hooks/useAiPromptOptimize";
+import { useOptimizePrompts, useOptimizeAllPrompts } from "@/hooks/useAiPromptOptimize";
 import { WorkflowStepper } from "@/components/projects/WorkflowStepper";
 import { PromptList } from "@/components/projects/prompts/PromptList";
 import { RefinementChat } from "@/components/projects/strategy/RefinementChat";
@@ -20,6 +20,7 @@ export default function PromptsPage() {
   const { data: project, isLoading: projectLoading, refetch: refetchProject } = useProject(projectId);
   const { data: scenes, isLoading: scenesLoading, refetch: refetchScenes } = useScenes(projectId);
   const optimizePrompts = useOptimizePrompts();
+  const optimizeAll = useOptimizeAllPrompts();
   const updateScene = useUpdateScene();
   const updateProject = useUpdateProject();
 
@@ -54,7 +55,8 @@ export default function PromptsPage() {
 
   const handleOptimizeAll = async () => {
     try {
-      await optimizePrompts.mutateAsync({ projectId });
+      const sceneIds = scenes.map((s) => s.id);
+      await optimizeAll.mutateAsync({ projectId, sceneIds });
       toast.success(`Optimized prompts for ${scenes.length} scenes!`);
       refetchScenes();
       refetchProject();
@@ -76,6 +78,8 @@ export default function PromptsPage() {
       );
     }
   };
+
+  const isOptimizingAny = optimizePrompts.isPending || optimizeAll.isPending;
 
   const handleApprove = async (sceneId: string) => {
     try {
@@ -223,12 +227,12 @@ export default function PromptsPage() {
             <Button
               size="lg"
               onClick={handleOptimizeAll}
-              disabled={optimizePrompts.isPending}
+              disabled={isOptimizingAny}
             >
-              {optimizePrompts.isPending ? (
+              {optimizeAll.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Optimizing {scenes.length} scenes...
+                  Optimizing {optimizeAll.progress.completed}/{optimizeAll.progress.total} scenes...
                 </>
               ) : (
                 <>
@@ -248,7 +252,7 @@ export default function PromptsPage() {
                 onEdit={handleEdit}
                 onRegenerate={handleOptimizeSingle}
                 onApproveAll={handleApproveAll}
-                isOptimizing={optimizePrompts.isPending}
+                isOptimizing={isOptimizingAny}
               />
 
               <div className="flex items-center justify-between pt-2">
@@ -294,14 +298,19 @@ export default function PromptsPage() {
                 variant="outline"
                 className="w-full"
                 onClick={handleOptimizeAll}
-                disabled={optimizePrompts.isPending}
+                disabled={isOptimizingAny}
               >
-                {optimizePrompts.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                {optimizeAll.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Re-optimizing {optimizeAll.progress.completed}/{optimizeAll.progress.total}...
+                  </>
                 ) : (
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Re-optimize All Prompts
+                  </>
                 )}
-                Re-optimize All Prompts
               </Button>
             </div>
           </div>

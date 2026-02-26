@@ -142,7 +142,6 @@ export async function POST(request: NextRequest) {
           numberOfVideos: 1,
           durationSeconds: finalDuration,
           negativePrompt: scene.negative_prompt || undefined,
-          personGeneration: "dont_allow" as const,
         },
       });
 
