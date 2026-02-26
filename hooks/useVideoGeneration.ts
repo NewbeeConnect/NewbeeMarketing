@@ -37,6 +37,7 @@ export function useStartVideoGeneration() {
       language,
       platform,
       aspectRatio,
+      resolution,
       useFastModel,
     }: {
       projectId: string;
@@ -44,6 +45,7 @@ export function useStartVideoGeneration() {
       language?: string;
       platform?: string;
       aspectRatio?: string;
+      resolution?: string;
       useFastModel?: boolean;
     }) => {
       const response = await fetch("/api/generate/video", {
@@ -55,6 +57,7 @@ export function useStartVideoGeneration() {
           language,
           platform,
           aspectRatio,
+          resolution,
           useFastModel,
         }),
       });
@@ -114,7 +117,6 @@ export function useRetryVideoGeneration() {
   return useMutation({
     mutationFn: async ({
       generationId,
-      projectId,
     }: {
       generationId: string;
       projectId: string;

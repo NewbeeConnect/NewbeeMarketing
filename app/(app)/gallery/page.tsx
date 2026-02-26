@@ -220,6 +220,7 @@ export default function GalleryPage() {
                   />
                 )}
                 {selectedItem.type === "image" && (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={selectedItem.output_url ?? undefined}
                     alt="Generated"

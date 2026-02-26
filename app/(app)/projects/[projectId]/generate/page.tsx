@@ -22,13 +22,21 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { PLATFORMS } from "@/lib/constants";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PLATFORMS, RESOLUTIONS } from "@/lib/constants";
 import {
   Play,
   Loader2,
   ArrowRight,
   ImageIcon,
   AlertTriangle,
+  Info,
 } from "lucide-react";
 
 interface BatchItem {
@@ -50,6 +58,7 @@ export default function GeneratePage() {
   const updateProject = useUpdateProject();
 
   const [useFastModel, setUseFastModel] = useState(false);
+  const [resolution, setResolution] = useState("720p");
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Build batch matrix from project languages x platforms
@@ -125,11 +134,12 @@ export default function GeneratePage() {
 
   const estimateTotalCost = () => {
     const costPerSecond = useFastModel ? 0.15 : 0.4;
+    const resMultiplier = resolution === "4k" ? 2.0 : resolution === "1080p" ? 1.5 : 1.0;
     const totalDuration = approvedScenes.reduce(
       (sum, s) => sum + s.duration_seconds,
       0
     );
-    return totalDuration * costPerSecond * selectedBatch.length;
+    return totalDuration * costPerSecond * resMultiplier * selectedBatch.length;
   };
 
   const handleStartGeneration = async () => {
@@ -168,6 +178,7 @@ export default function GeneratePage() {
               language: batch.language,
               platform: batch.platform,
               aspectRatio: batch.aspectRatio,
+              resolution,
               useFastModel,
             });
             started++;
@@ -300,6 +311,7 @@ export default function GeneratePage() {
             <GenerationQueue
               generations={generations ?? []}
               totalExpected={totalVideos}
+              projectId={projectId}
             />
           </div>
 
@@ -320,12 +332,38 @@ export default function GeneratePage() {
                   />
                 </div>
 
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Resolution</Label>
+                  <Select value={resolution} onValueChange={setResolution}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RESOLUTIONS.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label} - {r.description}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(resolution === "1080p" || resolution === "4k") && (
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Info className="h-3 w-3 shrink-0" />
+                      {resolution === "4k" ? "4K" : "1080p"} only supports 8s duration per clip
+                    </p>
+                  )}
+                </div>
+
                 <div className="rounded-md bg-muted p-3 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Model</span>
                     <span className="font-mono">
                       {useFastModel ? "Veo 3.1 Fast" : "Veo 3.1"}
                     </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Resolution</span>
+                    <span className="font-mono">{resolution.toUpperCase()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Scenes</span>

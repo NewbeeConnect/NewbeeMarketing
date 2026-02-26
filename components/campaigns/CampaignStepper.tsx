@@ -116,12 +116,11 @@ export function CampaignStepper({
 }
 
 function StepIconWrapper({
-  number,
   completed,
   current,
   children,
 }: {
-  number: number;
+  number?: number;
   completed: boolean;
   current: boolean;
   children: React.ReactNode;

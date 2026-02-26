@@ -171,7 +171,6 @@ export default function DashboardPage() {
   const genStats = analytics?.generationStats;
 
   const hasBrandKit = !!brandKit;
-  const hasInProgressProject = recentProjects?.some((p) => p.status !== "completed");
 
   return (
     <>

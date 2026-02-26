@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     let optimized;
     try {
       optimized = parseAiJson(text, promptOptimizeResponseSchema);
-    } catch (parseError) {
+    } catch {
       console.error(`Parse error for scene ${scene.id}. Raw response:`, text);
       return NextResponse.json(
         { error: `Failed to parse AI response for scene "${scene.title}"` },

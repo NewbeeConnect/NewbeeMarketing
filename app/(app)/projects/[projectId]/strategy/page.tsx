@@ -245,8 +245,6 @@ export default function StrategyPage() {
 
     const selected =
       version === "a" ? abStrategy.data.version_a : abStrategy.data.version_b;
-    const archived =
-      version === "a" ? abStrategy.data.version_b : abStrategy.data.version_a;
 
     // Strip persona fields to store as standard ProjectStrategy
     const { persona_type: _pt, persona_description: _pd, ...strategyData } =

@@ -25,7 +25,6 @@ import {
   Search,
   CalendarDays,
   DollarSign,
-  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -209,14 +208,6 @@ export default function CampaignsPage() {
 }
 
 function CampaignGridCard({ campaign }: { campaign: Campaign }) {
-  const budgetPercentage =
-    campaign.budget_limit_usd && campaign.budget_limit_usd > 0
-      ? Math.min(
-          100,
-          (campaign.current_spend_usd / campaign.budget_limit_usd) * 100
-        )
-      : 0;
-
   return (
     <Link href={`/campaigns/${campaign.id}`} className="block">
       <Card className="h-full hover:border-primary/50 transition-colors">

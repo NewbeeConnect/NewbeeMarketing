@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -49,12 +49,30 @@ export default function SettingsPage() {
   const saveKeys = useSaveApiKeys();
   const deleteKeys = useDeleteApiKeys();
 
-  const [googleForm, setGoogleForm] = useState({
-    client_id: "", client_secret: "", developer_token: "", refresh_token: "",
-  });
-  const [metaForm, setMetaForm] = useState({
-    app_id: "", app_secret: "", access_token: "",
-  });
+  const googleFormDefault = useMemo(() => {
+    const gk = apiKeys?.find((k) => k.platform === "google_ads");
+    if (gk?.keys_encrypted) {
+      const keys = gk.keys_encrypted as Record<string, string>;
+      return { client_id: keys.client_id || "", client_secret: keys.client_secret || "", developer_token: keys.developer_token || "", refresh_token: keys.refresh_token || "" };
+    }
+    return { client_id: "", client_secret: "", developer_token: "", refresh_token: "" };
+  }, [apiKeys]);
+
+  const metaFormDefault = useMemo(() => {
+    const mk = apiKeys?.find((k) => k.platform === "meta_ads");
+    if (mk?.keys_encrypted) {
+      const keys = mk.keys_encrypted as Record<string, string>;
+      return { app_id: keys.app_id || "", app_secret: keys.app_secret || "", access_token: keys.access_token || "" };
+    }
+    return { app_id: "", app_secret: "", access_token: "" };
+  }, [apiKeys]);
+
+  const [googleForm, setGoogleForm] = useState(googleFormDefault);
+  const [metaForm, setMetaForm] = useState(metaFormDefault);
+
+  // Sync form state when API keys load
+  useEffect(() => { setGoogleForm(googleFormDefault); }, [googleFormDefault]);
+  useEffect(() => { setMetaForm(metaFormDefault); }, [metaFormDefault]);
 
   useEffect(() => {
     let mounted = true;
@@ -71,20 +89,6 @@ export default function SettingsPage() {
       });
     return () => { mounted = false; };
   }, []);
-
-  useEffect(() => {
-    if (!apiKeys) return;
-    const gk = apiKeys.find((k) => k.platform === "google_ads");
-    if (gk?.keys_encrypted) {
-      const keys = gk.keys_encrypted as Record<string, string>;
-      setGoogleForm({ client_id: keys.client_id || "", client_secret: keys.client_secret || "", developer_token: keys.developer_token || "", refresh_token: keys.refresh_token || "" });
-    }
-    const mk = apiKeys.find((k) => k.platform === "meta_ads");
-    if (mk?.keys_encrypted) {
-      const keys = mk.keys_encrypted as Record<string, string>;
-      setMetaForm({ app_id: keys.app_id || "", app_secret: keys.app_secret || "", access_token: keys.access_token || "" });
-    }
-  }, [apiKeys]);
 
   const hasAppUrl = !!process.env.NEXT_PUBLIC_APP_URL;
   const hasSupabaseUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;

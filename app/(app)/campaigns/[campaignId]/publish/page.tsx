@@ -365,6 +365,7 @@ export default function PublishPage() {
                     >
                       <div className="aspect-video bg-muted flex items-center justify-center">
                         {gen.thumbnail_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={gen.thumbnail_url}
                             alt={gen.prompt.slice(0, 50)}
