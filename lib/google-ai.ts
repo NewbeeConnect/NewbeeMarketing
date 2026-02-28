@@ -19,6 +19,7 @@ export const MODELS = {
   VEO_FAST: isProduction ? "veo-3.1-fast-generate-001" : "veo-3.1-fast-generate-preview",
   IMAGEN: "imagen-4.0-generate-001",
   IMAGEN_FAST: "imagen-4.0-fast-generate-001",
+  GEMINI_TTS: "gemini-2.5-flash-preview-tts",
 } as const;
 
 // Cost estimates per operation (USD)

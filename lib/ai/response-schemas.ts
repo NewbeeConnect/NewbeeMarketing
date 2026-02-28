@@ -102,7 +102,7 @@ export function parseAiJson<T>(text: string, schema: z.ZodType<T>): T {
     }
   }
 
-  // 4) Find first { ... } or [ ... ] block in the text
+  // 4) Find matching { ... } or [ ... ] block using bracket depth tracking
   const firstBrace = cleaned.indexOf("{");
   const firstBracket = cleaned.indexOf("[");
   const startIdx =
@@ -111,11 +111,25 @@ export function parseAiJson<T>(text: string, schema: z.ZodType<T>): T {
     Math.min(firstBrace, firstBracket);
 
   if (startIdx !== -1) {
-    const closingChar = cleaned[startIdx] === "{" ? "}" : "]";
-    const lastClose = cleaned.lastIndexOf(closingChar);
-    if (lastClose > startIdx) {
+    const openChar = cleaned[startIdx];
+    const closeChar = openChar === "{" ? "}" : "]";
+    let depth = 0;
+    let endIdx = -1;
+
+    for (let i = startIdx; i < cleaned.length; i++) {
+      if (cleaned[i] === openChar) depth++;
+      else if (cleaned[i] === closeChar) {
+        depth--;
+        if (depth === 0) {
+          endIdx = i;
+          break;
+        }
+      }
+    }
+
+    if (endIdx > startIdx) {
       try {
-        parsed = JSON.parse(cleaned.substring(startIdx, lastClose + 1));
+        parsed = JSON.parse(cleaned.substring(startIdx, endIdx + 1));
         return schema.parse(parsed);
       } catch {
         // continue

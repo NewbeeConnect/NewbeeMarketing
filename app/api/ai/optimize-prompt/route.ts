@@ -35,12 +35,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit
-    const rl = checkRateLimit(user.id, "ai-gemini");
+    const serviceClient = createServiceClient();
+
+    const rl = await checkRateLimit(serviceClient, user.id, "ai-gemini");
     if (!rl.allowed) {
       return NextResponse.json({ error: rl.error }, { status: 429 });
     }
-
-    const serviceClient = createServiceClient();
 
     // Budget guard
     const budget = await checkBudget(serviceClient, user.id);
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
         config: {
           systemInstruction: VEO_OPTIMIZER_SYSTEM_PROMPT,
           temperature: 0.5,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 2048,
           responseMimeType: "application/json",
           responseSchema: {
             type: "OBJECT" as const,

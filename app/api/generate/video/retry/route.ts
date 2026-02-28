@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai } from "@/lib/google-ai";
-import { VideoGenerationReferenceType, VideoCompressionQuality } from "@google/genai";
+import { VideoGenerationReferenceType } from "@google/genai";
 import type { Generation, Scene } from "@/types/database";
 import { z } from "zod";
 
@@ -96,8 +96,6 @@ export async function POST(request: NextRequest) {
       generate_audio?: boolean;
     } | null;
 
-    // Determine audio and personGeneration from stored config
-    const shouldGenerateAudio = config?.generate_audio !== false && scene.audio_type !== "silent";
     const personGenSetting = config?.first_frame_image_url ? "allow_adult" : "allow_all";
 
     // Reset generation record
@@ -139,9 +137,7 @@ export async function POST(request: NextRequest) {
           resolution: config?.resolution || "720p",
           negativePrompt: config?.negative_prompt || undefined,
           personGeneration: personGenSetting,
-          generateAudio: shouldGenerateAudio,
-          ...(config?.seed !== undefined && { seed: config.seed }),
-          ...(config?.compression_quality && { compressionQuality: config.compression_quality as VideoCompressionQuality }),
+          // generateAudio, seed, compressionQuality are NOT supported in Gemini API
           ...(config?.enhance_prompt !== undefined && { enhancePrompt: config.enhance_prompt }),
           ...(referenceImages && { referenceImages }),
         },

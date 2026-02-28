@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, MODELS, COST_ESTIMATES } from "@/lib/google-ai";
-import { PersonGeneration } from "@google/genai";
 import type { Project } from "@/types/database";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
@@ -31,12 +30,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit (media = stricter)
-    const rl = checkRateLimit(user.id, "ai-media");
+    const serviceClient = createServiceClient();
+
+    const rl = await checkRateLimit(serviceClient, user.id, "ai-media");
     if (!rl.allowed) {
       return NextResponse.json({ error: rl.error }, { status: 429 });
     }
-
-    const serviceClient = createServiceClient();
 
     // Budget guard
     const budget = await checkBudget(serviceClient, user.id);
@@ -109,7 +108,7 @@ export async function POST(request: NextRequest) {
         config: {
           numberOfImages: 1,
           aspectRatio: targetAspectRatio,
-          personGeneration: PersonGeneration.DONT_ALLOW,
+          // personGeneration is NOT supported in Gemini API (only Vertex AI)
         },
       });
 

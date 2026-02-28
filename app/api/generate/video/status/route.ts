@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, COST_ESTIMATES } from "@/lib/google-ai";
+import { checkBudget } from "@/lib/budget-guard";
 import { GenerateVideosOperation } from "@google/genai";
 import type { Generation } from "@/types/database";
 
@@ -156,6 +157,17 @@ export async function GET(request: NextRequest) {
 
     // If we have a stored URI, skip polling and try upload directly
     if (storedVideoUri) {
+      // Budget check before upload (prevents bypass after budget exceeded)
+      const budget = await checkBudget(serviceClient, user.id);
+      if (!budget.allowed) {
+        return NextResponse.json({
+          generationId: generation.id,
+          status: "processing",
+          error: budget.error,
+          warning: "Budget exceeded. Video URI preserved for later upload.",
+        }, { status: 429 });
+      }
+
       return await handleVideoUpload(
         serviceClient,
         generation,
@@ -361,8 +373,11 @@ async function handleVideoUpload(
   const fileName = `${generation.project_id}/scenes/${generation.scene_id || "unknown"}/${generation.id}.mp4`;
 
   try {
-    // Download video from GCP
-    const videoResponse = await fetch(videoUri);
+    // Download video from GCP (requires API key auth for Gemini API URIs)
+    const apiKey = process.env.GOOGLE_API_KEY;
+    const videoResponse = await fetch(videoUri, {
+      headers: apiKey ? { "x-goog-api-key": apiKey } : {},
+    });
     if (!videoResponse.ok) {
       throw new Error(`Failed to download video: ${videoResponse.status} ${videoResponse.statusText}`);
     }
@@ -446,8 +461,8 @@ async function handleVideoUpload(
       })
       .eq("id", generation.id);
 
-    // Create notification
-    await serviceClient.from("mkt_notifications").insert({
+    // Create notification (non-critical — log on failure)
+    const { error: notifError } = await serviceClient.from("mkt_notifications").insert({
       user_id: userId,
       type: "generation_complete",
       title: "Video Ready",
@@ -455,9 +470,12 @@ async function handleVideoUpload(
       reference_id: generation.id,
       reference_type: "generation",
     });
+    if (notifError) {
+      console.error("Notification insert failed:", notifError);
+    }
 
-    // Log usage with resolution multiplier
-    await serviceClient.from("mkt_usage_logs").insert({
+    // Log usage with resolution multiplier (critical — affects budget tracking)
+    const { error: usageError } = await serviceClient.from("mkt_usage_logs").insert({
       user_id: userId,
       project_id: generation.project_id,
       generation_id: generation.id,
@@ -467,6 +485,9 @@ async function handleVideoUpload(
       duration_seconds: (generation.config as { duration_seconds?: number } | null)?.duration_seconds ?? 8,
       estimated_cost_usd: actualCost,
     });
+    if (usageError) {
+      console.error("CRITICAL: Usage log insert failed for generation", generation.id, usageError);
+    }
 
     return NextResponse.json({
       generationId: generation.id,

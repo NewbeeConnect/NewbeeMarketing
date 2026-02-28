@@ -27,15 +27,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Google AI not configured" }, { status: 503 });
     }
 
-    const rl = checkRateLimit(user.id, "ai-media");
+    const serviceClient = createServiceClient();
+
+    const rl = await checkRateLimit(serviceClient, user.id, "ai-media");
     if (!rl.allowed) {
       return NextResponse.json(
         { error: rl.error },
         { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds ?? 60) } }
       );
     }
-
-    const serviceClient = createServiceClient();
 
     const budget = await checkBudget(serviceClient, user.id);
     if (!budget.allowed) {
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
           durationSeconds: finalDuration,
           resolution,
           personGeneration: "allow_all",
-          generateAudio: true,
+          // generateAudio is NOT supported in Gemini API
         },
       });
 

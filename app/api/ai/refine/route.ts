@@ -42,12 +42,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit
-    const rl = checkRateLimit(user.id, "ai-gemini");
+    const serviceClient = createServiceClient();
+
+    const rl = await checkRateLimit(serviceClient, user.id, "ai-gemini");
     if (!rl.allowed) {
       return NextResponse.json({ error: rl.error }, { status: 429 });
     }
-
-    const serviceClient = createServiceClient();
 
     // Budget guard
     const budget = await checkBudget(serviceClient, user.id);
@@ -75,10 +75,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    // Sanitize refinement request to prevent prompt injection
+    const sanitizedRequest = refinementRequest
+      .replace(/```[\s\S]*?```/g, "")    // Remove code blocks
+      .replace(/<[^>]*>/g, "")           // Remove HTML tags
+      .replace(/\b(ignore|override|forget|disregard)\b.*?(instructions?|rules?|prompt)/gi, "[filtered]")
+      .trim();
+
     const userPrompt = `Here is the current ${contentType}:
 ${JSON.stringify(currentContent, null, 2)}
 
-User's refinement request: "${refinementRequest}"
+User's refinement request: "${sanitizedRequest}"
 
 Apply the requested changes and return the updated ${contentType} as JSON with this structure:
 {

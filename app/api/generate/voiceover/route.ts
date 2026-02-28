@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
+import { ai, MODELS, COST_ESTIMATES } from "@/lib/google-ai";
+import { Modality } from "@google/genai";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { z } from "zod";
@@ -12,11 +14,12 @@ const inputSchema = z.object({
   voiceName: z.string().optional(),
 });
 
-// Google Cloud TTS voice mapping per language
-const VOICE_MAP: Record<string, { name: string; languageCode: string }> = {
-  en: { name: "en-US-Studio-O", languageCode: "en-US" },
-  de: { name: "de-DE-Studio-B", languageCode: "de-DE" },
-  tr: { name: "tr-TR-Standard-E", languageCode: "tr-TR" },
+// Gemini TTS voice mapping per language
+// Available voices: Aoede, Charon, Fenrir, Kore, Leda, Orus, Puck, Zephyr
+const VOICE_MAP: Record<string, { voiceName: string; languageCode: string }> = {
+  en: { voiceName: "Kore", languageCode: "en-US" },
+  de: { voiceName: "Kore", languageCode: "de-DE" },
+  tr: { voiceName: "Kore", languageCode: "tr-TR" },
 };
 
 export async function POST(request: NextRequest) {
@@ -30,21 +33,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) {
+    if (!ai) {
       return NextResponse.json(
-        { error: "Google API not configured" },
+        { error: "Google AI not configured" },
         { status: 503 }
       );
     }
 
     // Rate limit (media = stricter)
-    const rl = checkRateLimit(user.id, "ai-media");
+    const serviceClient = createServiceClient();
+
+    const rl = await checkRateLimit(serviceClient, user.id, "ai-media");
     if (!rl.allowed) {
       return NextResponse.json({ error: rl.error }, { status: 429 });
     }
-
-    const serviceClient = createServiceClient();
 
     // Budget guard
     const budget = await checkBudget(serviceClient, user.id);
@@ -73,42 +75,32 @@ export async function POST(request: NextRequest) {
     }
 
     const voice = voiceName
-      ? { name: voiceName, languageCode: VOICE_MAP[language]?.languageCode || "en-US" }
+      ? { voiceName, languageCode: VOICE_MAP[language]?.languageCode || "en-US" }
       : VOICE_MAP[language] || VOICE_MAP.en;
 
-    // Call Google Cloud TTS API
-    const ttsResponse = await fetch(
-      "https://texttospeech.googleapis.com/v1/text:synthesize",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Goog-Api-Key": apiKey },
-        body: JSON.stringify({
-          input: { text },
-          voice: {
-            languageCode: voice.languageCode,
-            name: voice.name,
+    // Generate speech using Gemini TTS (same API key as Gemini/Veo/Imagen)
+    const response = await ai.models.generateContent({
+      model: MODELS.GEMINI_TTS,
+      contents: text,
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: voice.voiceName,
+            },
           },
-          audioConfig: {
-            audioEncoding: "MP3",
-            pitch: 0,
-            speakingRate: 1.0,
-          },
-        }),
-      }
-    );
+          languageCode: voice.languageCode,
+        },
+      },
+    });
 
-    if (!ttsResponse.ok) {
-      const errorData = await ttsResponse.json();
-      return NextResponse.json(
-        { error: errorData.error?.message || "TTS generation failed" },
-        { status: 500 }
-      );
-    }
+    // Extract audio data from response
+    const audioPart = response.candidates?.[0]?.content?.parts?.[0];
+    const audioData = audioPart?.inlineData;
 
-    const ttsData = await ttsResponse.json();
-    const audioContent = ttsData.audioContent;
-
-    if (!audioContent) {
+    if (!audioData?.data) {
+      console.error("No audio data in Gemini TTS response");
       return NextResponse.json(
         { error: "No audio generated" },
         { status: 500 }
@@ -116,23 +108,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload to Supabase storage
-    const buffer = Buffer.from(audioContent, "base64");
-    const fileName = `${projectId}/voiceovers/${sceneId || "full"}_${language}.mp3`;
+    const buffer = Buffer.from(audioData.data, "base64");
+    const mimeType = audioData.mimeType || "audio/wav";
+    const ext = mimeType.includes("mp3") ? "mp3" : "wav";
+    const fileName = `${projectId}/voiceovers/${sceneId || "full"}_${language}.${ext}`;
 
     const { error: uploadError } = await serviceClient.storage
       .from("mkt-assets")
       .upload(fileName, buffer, {
-        contentType: "audio/mpeg",
+        contentType: mimeType,
         upsert: true,
       });
 
-    let outputUrl = "";
-    if (!uploadError) {
-      const { data: publicUrl } = serviceClient.storage
-        .from("mkt-assets")
-        .getPublicUrl(fileName);
-      outputUrl = publicUrl.publicUrl;
+    if (uploadError) {
+      console.error("Voiceover storage upload failed:", uploadError);
+      return NextResponse.json(
+        { error: "Audio generated but storage upload failed. Please try again." },
+        { status: 500 }
+      );
     }
+
+    const { data: publicUrl } = serviceClient.storage
+      .from("mkt-assets")
+      .getPublicUrl(fileName);
+    const outputUrl = publicUrl.publicUrl;
+
+    // Estimate cost based on Gemini Flash token usage
+    const inputTokens = response.usageMetadata?.promptTokenCount ?? 0;
+    const outputTokens = response.usageMetadata?.candidatesTokenCount ?? 0;
+    const estimatedCost = estimateTtsCost(inputTokens, outputTokens);
 
     // Create generation record
     const { data: generationData } = await serviceClient
@@ -142,14 +146,14 @@ export async function POST(request: NextRequest) {
         scene_id: sceneId || null,
         type: "voiceover",
         prompt: text,
-        model: voice.name,
+        model: MODELS.GEMINI_TTS,
         config: JSON.parse(
-          JSON.stringify({ language, voice_name: voice.name })
+          JSON.stringify({ language, voice_name: voice.voiceName })
         ),
         language,
         status: "completed",
         output_url: outputUrl,
-        estimated_cost_usd: estimateTtsCost(text.length),
+        estimated_cost_usd: estimatedCost,
         started_at: new Date().toISOString(),
         completed_at: new Date().toISOString(),
       })
@@ -157,15 +161,20 @@ export async function POST(request: NextRequest) {
       .single();
 
     // Log usage
-    await serviceClient.from("mkt_usage_logs").insert({
+    const { error: usageLogError } = await serviceClient.from("mkt_usage_logs").insert({
       user_id: user.id,
       project_id: projectId,
       generation_id: (generationData as { id: string } | null)?.id ?? null,
       api_service: "tts",
-      model: voice.name,
+      model: MODELS.GEMINI_TTS,
       operation: "voiceover_generation",
-      estimated_cost_usd: estimateTtsCost(text.length),
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      estimated_cost_usd: estimatedCost,
     });
+    if (usageLogError) {
+      console.error("Voiceover usage log failed:", usageLogError);
+    }
 
     return NextResponse.json({
       generationId: (generationData as { id: string } | null)?.id,
@@ -174,13 +183,14 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Voiceover generation error:", error);
-    const message = "Failed to generate voiceover";
+    const message = error instanceof Error ? error.message : "Failed to generate voiceover";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-// TTS pricing: ~$4 per 1M characters (Standard), ~$16 per 1M characters (Studio)
-function estimateTtsCost(characterCount: number): number {
-  const costPer1M = 16; // Studio voices
-  return Math.round((characterCount / 1_000_000) * costPer1M * 10000) / 10000;
+// Gemini TTS pricing based on Flash model rates
+function estimateTtsCost(inputTokens: number, outputTokens: number): number {
+  const inputCost = (inputTokens / 1_000_000) * COST_ESTIMATES.gemini_flash_per_1m_input;
+  const outputCost = (outputTokens / 1_000_000) * COST_ESTIMATES.gemini_flash_per_1m_output;
+  return Math.round((inputCost + outputCost) * 10000) / 10000;
 }

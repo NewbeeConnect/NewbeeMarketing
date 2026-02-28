@@ -26,12 +26,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit
-    const rl = checkRateLimit(user.id, "ai-gemini");
+    const serviceClient = createServiceClient();
+
+    const rl = await checkRateLimit(serviceClient, user.id, "ai-gemini");
     if (!rl.allowed) {
       return NextResponse.json({ error: rl.error }, { status: 429 });
     }
-
-    const serviceClient = createServiceClient();
 
     // Budget guard
     const budget = await checkBudget(serviceClient, user.id);
@@ -113,20 +113,66 @@ export async function POST(request: NextRequest) {
     const text = response.text ?? "";
     const { scenes } = parseAiJson(text, scenesResponseSchema);
 
-    // Delete existing scenes for this project
-    await serviceClient
+    // Clean up old scenes and their dependent data before inserting new ones
+    // (unique constraint on project_id + scene_number requires delete-first)
+    const { data: oldScenes } = await serviceClient
       .from("mkt_scenes")
-      .delete()
+      .select("id")
       .eq("project_id", projectId);
 
-    // Insert new scenes
+    if (oldScenes && oldScenes.length > 0) {
+      const oldSceneIds = (oldScenes as { id: string }[]).map((s) => s.id);
+
+      // Fetch orphan generations (for storage cleanup)
+      const { data: orphanGens } = await serviceClient
+        .from("mkt_generations")
+        .select("id, scene_id, output_url")
+        .in("scene_id", oldSceneIds);
+
+      // Clean up storage files for orphan generations
+      if (orphanGens && orphanGens.length > 0) {
+        for (const gen of orphanGens) {
+          const storagePath = `${projectId}/scenes/${gen.scene_id}/${gen.id}`;
+          await serviceClient.storage.from("mkt-assets").remove([
+            `${storagePath}.mp4`,
+            `${storagePath}.png`,
+            `${storagePath}.mp3`,
+          ]);
+        }
+        // Delete orphan generations (captions cascade via ON DELETE CASCADE)
+        await serviceClient
+          .from("mkt_generations")
+          .delete()
+          .in("scene_id", oldSceneIds);
+      }
+
+      // Clean up voiceover storage for old scenes
+      for (const sceneId of oldSceneIds) {
+        const { data: files } = await serviceClient.storage
+          .from("mkt-assets")
+          .list(`${projectId}/voiceovers`, { search: sceneId });
+        if (files && files.length > 0) {
+          await serviceClient.storage
+            .from("mkt-assets")
+            .remove(files.map((f) => `${projectId}/voiceovers/${f.name}`));
+        }
+      }
+
+      // Delete old scenes (after cleaning up dependents)
+      await serviceClient
+        .from("mkt_scenes")
+        .delete()
+        .in("id", oldSceneIds);
+    }
+
+    // Insert new scenes (old ones are already cleaned up)
     const sceneRows = scenes.map((scene, index) => ({
       project_id: projectId,
       scene_number: scene.scene_number,
       title: scene.title,
       description: scene.description,
       duration_seconds: scene.duration_seconds,
-      aspect_ratio: "9:16" as string, // Default, will be set per-platform at generation
+      aspect_ratio: "9:16" as string,
       resolution: "1080p" as string,
       camera_movement: scene.camera_movement ?? null,
       lighting: scene.lighting ?? null,
@@ -158,17 +204,20 @@ export async function POST(request: NextRequest) {
       .update({ status: "scenes_ready", current_step: 3 })
       .eq("id", projectId);
 
-    // Save version
-    const { count } = await serviceClient
+    // Save version (use max version_number + 1 to avoid race conditions)
+    const { data: maxVersion } = await serviceClient
       .from("mkt_project_versions")
-      .select("*", { count: "exact", head: true })
+      .select("version_number")
       .eq("project_id", projectId)
-      .eq("step", "scenes");
+      .eq("step", "scenes")
+      .order("version_number", { ascending: false })
+      .limit(1)
+      .single();
 
     await serviceClient.from("mkt_project_versions").insert({
       project_id: projectId,
       step: "scenes",
-      version_number: (count ?? 0) + 1,
+      version_number: (maxVersion?.version_number ?? 0) + 1,
       snapshot: JSON.parse(JSON.stringify({ scenes })),
       change_description: "AI generated initial scene breakdown",
     });

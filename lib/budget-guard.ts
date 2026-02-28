@@ -1,9 +1,14 @@
 /**
  * Budget guard — checks if a user has exceeded their monthly AI spending limit.
+ * DB-backed: queries Supabase directly (no in-memory cache) to work correctly
+ * in serverless environments where each instance has isolated memory.
  *
  * Usage:
  *   const budget = await checkBudget(serviceClient, userId);
  *   if (!budget.allowed) return NextResponse.json({ error: budget.error }, { status: 429 });
+ *
+ *   // With pre-deduction (checks if estimated cost would exceed budget):
+ *   const budget = await checkBudget(serviceClient, userId, 3.20);
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -11,35 +16,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 /** Per-user monthly AI spending cap in USD */
 const MONTHLY_LIMIT_USD = 500;
 
-/** In-memory cache to avoid querying DB on every single request */
-interface CachedSpend {
-  totalUsd: number;
-  fetchedAt: number;
-}
-
-const spendCache = new Map<string, CachedSpend>();
-const CACHE_TTL_MS = 10 * 1000; // 10 seconds
-
 export async function checkBudget(
   serviceClient: SupabaseClient,
-  userId: string
+  userId: string,
+  estimatedCostUsd?: number
 ): Promise<{ allowed: boolean; totalSpent: number; remaining: number; error?: string }> {
-  const now = Date.now();
-
-  // Check cache first
-  const cached = spendCache.get(userId);
-  if (cached && now - cached.fetchedAt < CACHE_TTL_MS) {
-    if (cached.totalUsd >= MONTHLY_LIMIT_USD) {
-      return {
-        allowed: false,
-        totalSpent: cached.totalUsd,
-        remaining: 0,
-        error: `Monthly AI budget exceeded ($${cached.totalUsd.toFixed(2)} / $${MONTHLY_LIMIT_USD}). Resets next month.`,
-      };
-    }
-    return { allowed: true, totalSpent: cached.totalUsd, remaining: MONTHLY_LIMIT_USD - cached.totalUsd };
-  }
-
   // Query DB for current month's spending
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -62,14 +43,14 @@ export async function checkBudget(
     0
   );
 
-  // Update cache
-  spendCache.set(userId, { totalUsd, fetchedAt: now });
+  // Pre-deduction check: would this operation exceed the budget?
+  const projectedTotal = totalUsd + (estimatedCostUsd ?? 0);
 
-  if (totalUsd >= MONTHLY_LIMIT_USD) {
+  if (projectedTotal >= MONTHLY_LIMIT_USD) {
     return {
       allowed: false,
       totalSpent: totalUsd,
-      remaining: 0,
+      remaining: Math.max(0, MONTHLY_LIMIT_USD - totalUsd),
       error: `Monthly AI budget exceeded ($${totalUsd.toFixed(2)} / $${MONTHLY_LIMIT_USD}). Resets next month.`,
     };
   }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, MODELS, COST_ESTIMATES } from "@/lib/google-ai";
-import { VideoGenerationReferenceType, type VideoCompressionQuality } from "@google/genai";
+import { VideoGenerationReferenceType } from "@google/genai";
 import type { Project, Scene } from "@/types/database";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
@@ -48,7 +48,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit with Retry-After header
-    const rl = checkRateLimit(user.id, "ai-media");
+    const serviceClient = createServiceClient();
+
+    const rl = await checkRateLimit(serviceClient, user.id, "ai-media");
     if (!rl.allowed) {
       return NextResponse.json(
         { error: rl.error },
@@ -58,8 +60,6 @@ export async function POST(request: NextRequest) {
         }
       );
     }
-
-    const serviceClient = createServiceClient();
 
     // Budget guard
     const budget = await checkBudget(serviceClient, user.id);
@@ -203,9 +203,8 @@ export async function POST(request: NextRequest) {
           resolution: finalResolution,
           negativePrompt: scene.negative_prompt || undefined,
           personGeneration: personGenSetting,
-          generateAudio: shouldGenerateAudio,
-          ...(seed !== undefined && { seed }),
-          ...(compressionQuality && { compressionQuality: compressionQuality as VideoCompressionQuality }),
+          // generateAudio, seed, compressionQuality are NOT supported in Gemini API
+          // (only available via Vertex AI). Omitting them to avoid SDK errors.
           ...(enhancePrompt !== undefined && { enhancePrompt }),
           ...(referenceImages && { referenceImages }),
         },

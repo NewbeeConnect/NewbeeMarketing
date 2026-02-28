@@ -1,37 +1,18 @@
 /**
- * In-memory token bucket rate limiter for Vercel Edge/Serverless.
+ * DB-backed token bucket rate limiter for Vercel Serverless.
+ * Uses Supabase `mkt_rate_limits` table instead of in-memory state,
+ * so rate limits are shared across all serverless instances.
  *
  * Usage:
- *   const result = checkRateLimit(userId, "ai-gemini", 10);
+ *   const result = await checkRateLimit(serviceClient, userId, "ai-gemini");
  *   if (!result.allowed) return NextResponse.json({ error: result.error }, { status: 429 });
  */
 
-interface TokenBucket {
-  tokens: number;
-  lastRefill: number;
-}
-
-const buckets = new Map<string, TokenBucket>();
-
-// Clean up stale buckets every 5 minutes
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
-const BUCKET_TTL_MS = 10 * 60 * 1000; // 10 min inactive → remove
-let lastCleanup = Date.now();
-
-function cleanup() {
-  const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
-  lastCleanup = now;
-  for (const [key, bucket] of buckets) {
-    if (now - bucket.lastRefill > BUCKET_TTL_MS) {
-      buckets.delete(key);
-    }
-  }
-}
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Import at runtime to determine environment-aware limits
 const veoEnv = process.env.VEO_ENVIRONMENT === "production" ? "production" : "preview";
-const veoMediaLimit = veoEnv === "production" ? 50 : 10; // Preview: 10/min, Production: 50/min
+const veoMediaLimit = veoEnv === "production" ? 50 : 10;
 
 /**
  * Rate limit presets per endpoint category.
@@ -48,31 +29,49 @@ export const RATE_LIMITS = {
 
 export type RateLimitCategory = keyof typeof RATE_LIMITS;
 
-export function checkRateLimit(
+export async function checkRateLimit(
+  serviceClient: SupabaseClient,
   userId: string,
   category: RateLimitCategory,
   overrideMax?: number
-): { allowed: boolean; error?: string; retryAfterSeconds?: number } {
-  cleanup();
-
+): Promise<{ allowed: boolean; error?: string; retryAfterSeconds?: number }> {
   const config = RATE_LIMITS[category];
   const maxTokens = overrideMax ?? config.maxTokens;
-  const key = `${userId}:${category}`;
-  const now = Date.now();
+  const now = new Date();
 
-  let bucket = buckets.get(key);
+  // Upsert: get or create bucket
+  const { data: bucket, error: fetchError } = await serviceClient
+    .from("mkt_rate_limits")
+    .select("id, tokens, last_refill_at")
+    .eq("user_id", userId)
+    .eq("category", category)
+    .single();
+
+  if (fetchError && fetchError.code !== "PGRST116") {
+    // PGRST116 = no rows found (expected for new users)
+    console.error("Rate limit check failed:", fetchError);
+    // Fail open for rate limiting (unlike budget which fails closed)
+    return { allowed: true };
+  }
+
   if (!bucket) {
-    bucket = { tokens: maxTokens, lastRefill: now };
-    buckets.set(key, bucket);
+    // First request — create bucket with tokens - 1
+    await serviceClient.from("mkt_rate_limits").insert({
+      user_id: userId,
+      category,
+      tokens: maxTokens - 1,
+      last_refill_at: now.toISOString(),
+    });
+    return { allowed: true };
   }
 
   // Refill tokens based on elapsed time
-  const elapsed = (now - bucket.lastRefill) / 1000;
-  bucket.tokens = Math.min(maxTokens, bucket.tokens + elapsed * config.refillRate);
-  bucket.lastRefill = now;
+  const lastRefill = new Date(bucket.last_refill_at);
+  const elapsedSeconds = (now.getTime() - lastRefill.getTime()) / 1000;
+  const refilledTokens = Math.min(maxTokens, bucket.tokens + elapsedSeconds * config.refillRate);
 
-  if (bucket.tokens < 1) {
-    const waitSeconds = Math.ceil((1 - bucket.tokens) / config.refillRate);
+  if (refilledTokens < 1) {
+    const waitSeconds = Math.ceil((1 - refilledTokens) / config.refillRate);
     return {
       allowed: false,
       error: `Rate limit exceeded. Try again in ${waitSeconds}s.`,
@@ -80,6 +79,14 @@ export function checkRateLimit(
     };
   }
 
-  bucket.tokens -= 1;
+  // Consume one token
+  await serviceClient
+    .from("mkt_rate_limits")
+    .update({
+      tokens: refilledTokens - 1,
+      last_refill_at: now.toISOString(),
+    })
+    .eq("id", bucket.id);
+
   return { allowed: true };
 }
