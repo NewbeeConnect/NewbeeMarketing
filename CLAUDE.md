@@ -69,3 +69,6 @@ Vercel auto-deploys from `main` branch. Required env vars: see `.env.example` or
 | Skill | Usage | Description |
 |-------|-------|-------------|
 | `/deploy` | `/deploy` | Lint + build + Vercel production deploy |
+| `/cost-report` | `/cost-report` | AI usage cost summary |
+| `/monitor-budget` | `/monitor-budget` | Check remaining Google Cloud credit |
+| `/audit-api` | `/audit-api` | Audit API routes for security/logging |
