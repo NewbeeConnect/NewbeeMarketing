@@ -63,3 +63,9 @@ npm run lint    # ESLint
 ```
 
 Vercel auto-deploys from `main` branch. Required env vars: see `.env.example` or Vercel dashboard.
+
+## Skills (Slash Commands)
+
+| Skill | Usage | Description |
+|-------|-------|-------------|
+| `/deploy` | `/deploy` | Lint + build + Vercel production deploy |

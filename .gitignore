@@ -22,7 +22,25 @@
 
 # misc
 .DS_Store
+
+# Certificates and keys - NEVER commit these
+*.key
 *.pem
+*.p8
+*.p12
+*.cer
+*.crt
+*.keystore
+*.jks
+*.mobileprovision
+
+# Firebase/Google service accounts
+*-firebase-adminsdk-*.json
+firebase-service-account.json
+serviceAccountKey.json
+
+# Sensitive files
+sensitive-files/
 
 # debug
 npm-debug.log*
@@ -30,8 +48,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files - NEVER commit these
 .env*
+!.env.example
+
+# Supabase temp
+supabase/.temp/
 
 # vercel
 .vercel

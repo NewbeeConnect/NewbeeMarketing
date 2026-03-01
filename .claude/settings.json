@@ -1,0 +1,54 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Edit(**)",
+      "Write(**)"
+    ],
+    "deny": [
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Delete(**)"
+    ]
+  },
+  "rules": [
+    "Always read CLAUDE.md first before making any changes",
+    "Never modify components/ui/ - shadcn/ui generated (use npx shadcn@latest add)",
+    "Always use createServiceClient() for DB writes in API routes",
+    "Always check if (!ai) before AI operations - client is null when GOOGLE_API_KEY missing",
+    "All tables use mkt_ prefix - never create tables without it",
+    "Every AI API call must log to mkt_usage_logs for cost tracking",
+    "Use parseAiJson() to parse Gemini responses (strips markdown code blocks)",
+    "Commit messages must be in English and descriptive",
+    "Use Turkish when communicating with the user",
+    "Use English for code comments and commit messages",
+    "Preserve existing code style and formatting",
+    "Run 'npm run build' before committing changes"
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "case \"$TOOL_INPUT_FILE_PATH\" in */components/ui/*) echo 'BLOCKED: components/ui/ is shadcn-generated. Use npx shadcn@latest add <component>'; exit 2;; esac"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx eslint --fix \"$TOOL_INPUT_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
