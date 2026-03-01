@@ -40,5 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Claude Code (local secrets & settings)
+.claude/
+.claude.local.md
+
 # MCP config (contains tokens)
 .mcp.json
