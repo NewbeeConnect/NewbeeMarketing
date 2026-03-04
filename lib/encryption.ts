@@ -7,6 +7,13 @@
 
 import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
 
+// SECURITY: Startup validation - warn if encryption key is missing in server context
+if (typeof window === "undefined" && !process.env.ENCRYPTION_KEY) {
+  console.warn(
+    "[Security] ENCRYPTION_KEY not configured. Ad platform key storage will be disabled."
+  );
+}
+
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12; // 96 bits for GCM
 const TAG_LENGTH = 16; // 128 bits auth tag
