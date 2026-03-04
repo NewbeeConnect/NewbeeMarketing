@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Newbee Marketing Hub - AI Video Ad Platform
 
-## Getting Started
+> **Last Updated:** March 04, 2026 | Hosting: Vercel (auto-deploy from `main`)
 
-First, run the development server:
+AI-powered marketing platform for Newbee. Generates video ads, image creatives, and campaign strategies using Google AI models (Gemini, Veo, Imagen).
+
+---
+
+## Quick Start
 
 ```bash
+# Install dependencies
+npm install
+
+# Copy env template and fill values
+cp .env.example .env.local
+
+# Start development server (Turbopack)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **Note:** `npm run build` fails locally without `.env.local`. This is expected — env vars are configured on Vercel.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Documentation
 
-To learn more about Next.js, take a look at the following resources:
+**For comprehensive project documentation, see [CLAUDE.md](CLAUDE.md)**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This includes:
+- AI model reference (Gemini, Veo 3.1, Imagen 4) with pricing
+- Two workflow systems (Project 6-step, Campaign 5-step)
+- Supabase client patterns (`createServiceClient`, `createNewbeeClient`)
+- Cost tracking conventions (`mkt_usage_logs`)
+- Security headers and middleware
+- Slash commands (/deploy, /cost-report, /monitor-budget, /audit-api)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Framework:** Next.js 16 (App Router, Turbopack)
+- **UI:** React 19 + TypeScript 5 + Tailwind CSS 4 + shadcn/ui
+- **Database:** Supabase (own instance, `mkt_` prefixed tables)
+- **AI:** Gemini 2.5 Pro/Flash, Veo 3.1 (async video), Imagen 4 (sync image)
+- **Hosting:** Vercel (auto-deploy)
+- **Budget:** $25,000 Google Cloud startup credit
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Key Links
+
+| Resource | Link |
+|----------|------|
+| Vercel Dashboard | https://vercel.com/newbeeconnect/newbeemarketing |
+| Supabase Dashboard | https://supabase.com/dashboard/project/mkt_project |
+| Google AI Studio | https://aistudio.google.com |
+
+---
+
+## License
+
+This project is proprietary. All rights reserved.
