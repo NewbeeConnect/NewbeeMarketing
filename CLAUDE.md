@@ -64,6 +64,11 @@ npm run lint    # ESLint
 
 Vercel auto-deploys from `main` branch. Required env vars: see `.env.example` or Vercel dashboard.
 
+## Gotchas
+
+- **Local build requires `.env.local`** — `npm run build` fails locally without Supabase env vars. This is expected; env vars are configured on Vercel. Copy `.env.example` to `.env.local` and fill values for local builds.
+- **Security headers** — `lib/supabase/middleware.ts` sets X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy headers on all responses.
+
 ## Skills (Slash Commands)
 
 | Skill | Usage | Description |
