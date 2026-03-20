@@ -4,7 +4,7 @@ import { ai, MODELS } from "@/lib/google-ai";
 import { SCENES_SYSTEM_PROMPT, buildScenesUserPrompt } from "@/lib/ai/prompts/scenes";
 import { buildBrandContext, buildCodeContext } from "@/lib/ai/prompts/brand-context";
 import { scenesResponseSchema, parseAiJson } from "@/lib/ai/response-schemas";
-import type { Project, ProjectStrategy, BrandKit, CodeAnalysis } from "@/types/database";
+import type { Project, ProjectStrategy, BrandKit, CodeAnalysis, Json } from "@/types/database";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { z } from "zod";
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
       project_id: projectId,
       step: "scenes",
       version_number: (maxVersion?.version_number ?? 0) + 1,
-      snapshot: JSON.parse(JSON.stringify({ scenes })),
+      snapshot: structuredClone({ scenes }) as Json,
       change_description: "AI generated initial scene breakdown",
     });
 

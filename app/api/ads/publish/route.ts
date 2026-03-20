@@ -2,7 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { publishToAds } from "@/lib/ads/publisher";
 import { getUserAdKeys } from "@/lib/ads/key-store";
-import type { AdCampaignConfig, PublishAdRequest } from "@/lib/ads/types";
+import type { AdCampaignConfig } from "@/lib/ads/types";
+import { z } from "zod";
+
+const publishSchema = z.object({
+  platform: z.enum(["google", "meta"]),
+  campaign_name: z.string().min(1, "Campaign name is required"),
+  budget_daily_usd: z.number().positive("Daily budget must be positive"),
+  budget_total_usd: z.number().positive().optional(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  targeting: z.object({
+    age_range: z.tuple([z.number().min(13), z.number().max(65)]),
+    locations: z.array(z.string()),
+    interests: z.array(z.string()),
+    languages: z.array(z.string()),
+  }).optional(),
+  creative_urls: z.array(z.string().url()).min(1, "At least one creative URL is required"),
+  project_id: z.string().uuid(),
+  campaign_id: z.string().uuid().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +37,14 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Validate input ────────────────────────────────────────────────────
-    const body: PublishAdRequest = await request.json();
+    const body = await request.json();
+    const parsed = publishSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid input", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
 
     const {
       platform,
@@ -31,35 +57,7 @@ export async function POST(request: NextRequest) {
       creative_urls,
       project_id,
       campaign_id,
-    } = body;
-
-    if (!platform || !campaign_name || !project_id) {
-      return NextResponse.json(
-        { error: "platform, campaign_name, and project_id are required" },
-        { status: 400 }
-      );
-    }
-
-    if (!["google", "meta"].includes(platform)) {
-      return NextResponse.json(
-        { error: 'platform must be "google" or "meta"' },
-        { status: 400 }
-      );
-    }
-
-    if (!creative_urls || creative_urls.length === 0) {
-      return NextResponse.json(
-        { error: "At least one creative_url is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!budget_daily_usd || budget_daily_usd <= 0) {
-      return NextResponse.json(
-        { error: "budget_daily_usd must be a positive number" },
-        { status: 400 }
-      );
-    }
+    } = parsed.data;
 
     const serviceClient = createServiceClient();
 

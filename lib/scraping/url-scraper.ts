@@ -43,8 +43,29 @@ function validateUrl(rawUrl: string): URL {
     }
   }
 
+  // Block IPv6-mapped IPv4 private addresses (e.g., ::ffff:127.0.0.1)
+  if (hostname.startsWith("::ffff:")) {
+    const mappedIp = hostname.slice(7);
+    const mappedMatch = mappedIp.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (mappedMatch) {
+      const [, ma, mb] = mappedMatch.map(Number);
+      if (
+        ma === 10 || ma === 127 || ma === 0 ||
+        (ma === 172 && mb >= 16 && mb <= 31) ||
+        (ma === 192 && mb === 168) ||
+        (ma === 169 && mb === 254)
+      ) {
+        throw new Error("Access to private/internal IP addresses is not allowed");
+      }
+    }
+  }
+
   // Block cloud metadata endpoints
-  if (hostname === "metadata.google.internal" || hostname === "metadata.google.com") {
+  if (
+    hostname === "metadata.google.internal" ||
+    hostname === "metadata.google.com" ||
+    hostname === "169.254.169.254"
+  ) {
     throw new Error("Access to cloud metadata endpoints is not allowed");
   }
 
@@ -61,6 +82,35 @@ export type ScrapedContext = {
   rawText: string;
 };
 
+const MAX_REDIRECTS = 5;
+
+/**
+ * Fetch with redirect protection: manually follows redirects and validates
+ * each target URL against SSRF rules to prevent redirect-based bypasses.
+ */
+async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
+  let currentUrl = url;
+  for (let i = 0; i < MAX_REDIRECTS; i++) {
+    const response = await fetch(currentUrl, { ...init, redirect: "manual" });
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) {
+        throw new Error("Redirect without Location header");
+      }
+      // Resolve relative redirects
+      const redirectUrl = new URL(location, currentUrl).toString();
+      // Validate the redirect target against SSRF rules
+      validateUrl(redirectUrl);
+      currentUrl = redirectUrl;
+      continue;
+    }
+
+    return response;
+  }
+  throw new Error("Too many redirects");
+}
+
 const ABOUT_KEYWORDS = ["about", "who we are", "our story", "mission", "hakkımızda", "über uns"];
 const FEATURE_KEYWORDS = ["feature", "what we offer", "services", "capabilities", "özellikler", "funktionen"];
 const USP_KEYWORDS = ["why", "unique", "advantage", "benefit", "different", "neden", "warum"];
@@ -70,7 +120,7 @@ const USP_KEYWORDS = ["why", "unique", "advantage", "benefit", "different", "ned
  */
 export async function scrapeUrl(url: string): Promise<ScrapedContext> {
   const validatedUrl = validateUrl(url);
-  const response = await fetch(validatedUrl.toString(), {
+  const response = await safeFetch(validatedUrl.toString(), {
     headers: {
       "User-Agent": "NewbeeMarketing-Bot/1.0 (Context Fetcher)",
       Accept: "text/html,application/xhtml+xml",

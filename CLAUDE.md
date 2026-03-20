@@ -18,16 +18,17 @@
 ## Critical Rules
 
 1. **Never modify `components/ui/`** — shadcn/ui generated. Use `npx shadcn@latest add <component>`.
-2. **Always use `createServiceClient()`** for DB writes in API routes (bypasses RLS).
-3. **Always check `if (!ai)`** before AI operations — client is null when GOOGLE_API_KEY missing.
-4. **All tables use `mkt_` prefix** — never create tables without it.
-5. **RLS enforced on all tables** — every table needs `auth.uid() = user_id` policy.
-6. **Cost tracking:** Every AI API call must log to `mkt_usage_logs`.
-7. **Veo is async:** Returns `operation_name` for polling (5s interval). Imagen is sync.
-8. **`parseAiJson()`** must always be used to parse Gemini responses (strips markdown code blocks).
-9. **Zod schemas:** Use `.optional()` NOT `.default()` to avoid zodResolver type mismatch.
-10. **PersonGeneration:** `PersonGeneration.DONT_ALLOW` for images, `"allow_all"` for text-to-video (required for person content). Veo 3.1 also uses `generateAudio: true` by default.
-11. **Resolution:** Veo supports `720p`, `1080p`, `4k`. Note: 1080p/4k only supports 8s duration per clip.
+2. **Git commits:** Always use `newbeeconnect@gmail.com` as commit email. **Check before first commit:** `git config user.email` — if not `newbeeconnect@gmail.com`, run: `git config user.email newbeeconnect@gmail.com && git config user.name newbeeconnect`
+3. **Always use `createServiceClient()`** for DB writes in API routes (bypasses RLS).
+4. **Always check `if (!ai)`** before AI operations — client is null when GOOGLE_API_KEY missing.
+5. **All tables use `mkt_` prefix** — never create tables without it.
+6. **RLS enforced on all tables** — every table needs `auth.uid() = user_id` policy.
+7. **Cost tracking:** Every AI API call must log to `mkt_usage_logs`.
+8. **Veo is async:** Returns `operation_name` for polling (5s interval). Imagen is sync.
+9. **`parseAiJson()`** must always be used to parse Gemini responses (strips markdown code blocks).
+10. **Zod schemas:** Use `.optional()` NOT `.default()` to avoid zodResolver type mismatch.
+11. **PersonGeneration:** `PersonGeneration.DONT_ALLOW` for images, `"allow_all"` for text-to-video (required for person content). Veo 3.1 also uses `generateAudio: true` by default.
+12. **Resolution:** Veo supports `720p`, `1080p`, `4k`. Note: 1080p/4k only supports 8s duration per clip.
 
 ## Two Workflow Systems
 
@@ -53,6 +54,19 @@
 | Gemini 2.5 Flash | Prompts, captions, context, insights | $0.075/$0.60 per 1M tokens |
 | Veo 3.1 | Video generation (async) | $0.40/sec (standard), $0.15/sec (fast) |
 | Imagen 4 | Image generation (sync) | $0.04/image (standard), $0.02 (fast) |
+
+## API Routes (26 total)
+
+| Path | Purpose |
+|------|---------|
+| `/api/ai/*` | AI generation (strategy, scenes, captions, insights, refine, optimize-prompt) |
+| `/api/generate/*` | Media generation (image, video, video/extend, video/retry, video/status, mockup, voiceover) |
+| `/api/process/*` | Post-production (caption-embed, export, stitch, watermark) |
+| `/api/ads/*` | Ad distribution (publish, sync-performance, [deploymentId]/status) |
+| `/api/campaigns/*` | Campaign analytics ([campaignId]/performance) |
+| `/api/context/fetch` | Brand context fetching |
+| `/api/code-context/*` | Code context (upload, github, [id]) |
+| `/api/newbee/insights` | Newbee data insights (read-only cross-DB) |
 
 ## Build & Deploy
 

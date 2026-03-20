@@ -7,8 +7,19 @@
 
 import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
 
-// SECURITY: Startup validation - warn if encryption key is missing in server context
-if (typeof window === "undefined" && !process.env.ENCRYPTION_KEY) {
+// SECURITY: Startup validation
+// Skip during build phase (NEXT_PHASE is set by `next build`)
+if (
+  typeof window === "undefined" &&
+  !process.env.ENCRYPTION_KEY &&
+  process.env.NEXT_PHASE !== "phase-production-build"
+) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "[Security] ENCRYPTION_KEY is required in production. " +
+      "Set a 64-character hex string (32 bytes) in environment variables."
+    );
+  }
   console.warn(
     "[Security] ENCRYPTION_KEY not configured. Ad platform key storage will be disabled."
   );

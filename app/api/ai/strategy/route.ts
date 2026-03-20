@@ -7,7 +7,7 @@ import { strategyResponseSchema, abStrategyResponseSchema, parseAiJson } from "@
 import { fetchNewbeeInsights } from "@/lib/newbee/insights";
 import { scrapeUrl, scrapeGithubRepo, isGithubUrl } from "@/lib/scraping/url-scraper";
 import { summarizeContext } from "@/lib/scraping/context-summarizer";
-import type { Project, BrandKit, CampaignPerformance, CodeAnalysis } from "@/types/database";
+import type { Project, BrandKit, CampaignPerformance, CodeAnalysis, Json } from "@/types/database";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { z } from "zod";
@@ -65,13 +65,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Fetch brand kit if linked
+    // Fetch brand kit if linked (with user_id check for defense-in-depth)
     let brandKit: BrandKit | null = null;
     if (project.brand_kit_id) {
       const { data } = await serviceClient
         .from("mkt_brand_kit")
         .select("*")
         .eq("id", project.brand_kit_id)
+        .eq("user_id", user.id)
         .single();
       brandKit = data as BrandKit | null;
     }
@@ -164,7 +165,7 @@ export async function POST(request: NextRequest) {
       await serviceClient
         .from("mkt_projects")
         .update({
-          strategy: JSON.parse(JSON.stringify(abStrategy.version_a)),
+          strategy: structuredClone(abStrategy.version_a),
           status: "strategy_ready" as const,
           current_step: 2,
         })
@@ -185,7 +186,7 @@ export async function POST(request: NextRequest) {
         await serviceClient
           .from("mkt_projects")
           .update({
-            strategy: JSON.parse(JSON.stringify(abStrategy.version_b)),
+            strategy: structuredClone(abStrategy.version_b),
             status: "strategy_ready" as const,
             current_step: 2,
           })
@@ -208,7 +209,7 @@ export async function POST(request: NextRequest) {
             additional_notes: project.additional_notes,
             source_url: project.source_url,
             code_context_id: project.code_context_id,
-            strategy: JSON.parse(JSON.stringify(abStrategy.version_b)),
+            strategy: structuredClone(abStrategy.version_b),
             status: "strategy_ready" as const,
             current_step: 2,
             is_ab_variant: true,
@@ -259,7 +260,7 @@ export async function POST(request: NextRequest) {
       await serviceClient
         .from("mkt_projects")
         .update({
-          strategy: JSON.parse(JSON.stringify(strategy)),
+          strategy: structuredClone(strategy),
           status: "strategy_ready" as const,
           current_step: 2,
         })
@@ -296,7 +297,7 @@ async function saveVersion(
     project_id: projectId,
     step: "strategy",
     version_number: (count ?? 0) + 1,
-    snapshot: JSON.parse(JSON.stringify(strategy)),
+    snapshot: structuredClone(strategy) as Json,
     change_description: description,
   });
 }

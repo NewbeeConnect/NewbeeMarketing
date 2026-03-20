@@ -8,7 +8,7 @@ import {
 import { buildBrandContext } from "@/lib/ai/prompts/brand-context";
 import { promptOptimizeResponseSchema, parseAiJson } from "@/lib/ai/response-schemas";
 import { VEO_PROMPT_EXAMPLES } from "@/lib/ai/few-shot-examples";
-import type { Project, BrandKit, Scene } from "@/types/database";
+import type { Project, BrandKit, Scene, Json } from "@/types/database";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { aiCache } from "@/lib/ai-cache";
@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
       project_id: projectId,
       step: "prompts",
       version_number: (count ?? 0) + 1,
-      snapshot: JSON.parse(JSON.stringify({ prompts: [{ sceneId: scene.id, optimized_prompt: optimized.optimized_prompt, negative_prompt: optimized.negative_prompt }] })),
+      snapshot: structuredClone({ prompts: [{ sceneId: scene.id, optimized_prompt: optimized.optimized_prompt, negative_prompt: optimized.negative_prompt }] }) as Json,
       change_description: `AI optimized prompt for scene "${scene.title}"`,
     });
 

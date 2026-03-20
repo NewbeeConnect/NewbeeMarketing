@@ -45,7 +45,7 @@ export function useUpdateProject() {
       }>;
     }) => {
       const updatePayload = data.strategy
-        ? { ...data, strategy: JSON.parse(JSON.stringify(data.strategy)) }
+        ? { ...data, strategy: structuredClone(data.strategy) }
         : data;
       const { data: updated, error } = await supabase
         .from("mkt_projects")

@@ -3,7 +3,7 @@ import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server
 import { ai, COST_ESTIMATES } from "@/lib/google-ai";
 import { checkBudget } from "@/lib/budget-guard";
 import { GenerateVideosOperation } from "@google/genai";
-import type { Generation } from "@/types/database";
+import type { Generation, Json } from "@/types/database";
 
 const MAX_GENERATION_TIME_MS = 15 * 60 * 1000; // 15 minutes
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000; // Veo video retention limit
@@ -138,12 +138,10 @@ export async function GET(request: NextRequest) {
         .update({
           status: "failed",
           error_message: "Video expired (2-day Veo retention limit exceeded). Please retry generation.",
-          output_metadata: JSON.parse(
-            JSON.stringify({
+          output_metadata: {
               expired_video_uri: storedVideoUri,
               expired_at: new Date().toISOString(),
-            })
-          ),
+            } as unknown as Json,
           completed_at: new Date().toISOString(),
         })
         .eq("id", generation.id);
@@ -205,9 +203,7 @@ export async function GET(request: NextRequest) {
             .update({
               status: "failed",
               error_message: `Veo error [${errorCode}]: ${errorMessage}`,
-              output_metadata: JSON.parse(
-                JSON.stringify({ operation_error: operation.error })
-              ),
+              output_metadata: { operation_error: operation.error } as unknown as Json,
               completed_at: new Date().toISOString(),
             })
             .eq("id", generation.id);
@@ -234,12 +230,10 @@ export async function GET(request: NextRequest) {
             .update({
               status: "failed",
               error_message: `Content blocked by safety filter: ${reasonText}`,
-              output_metadata: JSON.parse(
-                JSON.stringify({
+              output_metadata: {
                   rai_filtered_count: raiFilteredCount,
                   rai_filtered_reasons: raiFilteredReasons,
-                })
-              ),
+                } as unknown as Json,
               completed_at: new Date().toISOString(),
             })
             .eq("id", generation.id);
@@ -338,12 +332,10 @@ export async function GET(request: NextRequest) {
           retry_count: newRetryCount,
           error_message: `Retry ${newRetryCount}/${maxRetries}: ${errorMsg}`,
           ...(errorInfo.retryAfterMs && {
-            output_metadata: JSON.parse(
-              JSON.stringify({
+            output_metadata: {
                 ...((generation.output_metadata as object) || {}),
                 next_retry_after_ms: errorInfo.retryAfterMs,
-              })
-            ),
+              } as unknown as Json,
           }),
         })
         .eq("id", generation.id);
@@ -393,9 +385,7 @@ async function handleVideoUpload(
         .update({
           status: "failed",
           error_message: `Video file too large (${fileSizeMB.toFixed(1)}MB). Consider using lower resolution or compression.`,
-          output_metadata: JSON.parse(
-            JSON.stringify({ veo_video_uri: videoUri, file_size_mb: fileSizeMB })
-          ),
+          output_metadata: { veo_video_uri: videoUri, file_size_mb: fileSizeMB } as unknown as Json,
           completed_at: new Date().toISOString(),
         })
         .eq("id", generation.id);
@@ -422,7 +412,7 @@ async function handleVideoUpload(
       await serviceClient
         .from("mkt_generations")
         .update({
-          output_metadata: JSON.parse(JSON.stringify({ veo_video_uri: videoUri })),
+          output_metadata: { veo_video_uri: videoUri } as unknown as Json,
           error_message: "Storage upload failed, will retry on next poll",
           retry_count: (generation.retry_count || 0) + 1,
         })
@@ -448,13 +438,11 @@ async function handleVideoUpload(
       .update({
         status: "completed",
         output_url: outputUrl,
-        output_metadata: JSON.parse(
-          JSON.stringify({
+        output_metadata: {
             file_size_mb: Math.round(fileSizeMB * 100) / 100,
             uploaded_at: new Date().toISOString(),
             source_uri: videoUri,
-          })
-        ),
+          } as unknown as Json,
         actual_cost_usd: actualCost,
         error_message: null,
         completed_at: new Date().toISOString(),
@@ -501,7 +489,7 @@ async function handleVideoUpload(
     await serviceClient
       .from("mkt_generations")
       .update({
-        output_metadata: JSON.parse(JSON.stringify({ veo_video_uri: videoUri })),
+        output_metadata: { veo_video_uri: videoUri } as unknown as Json,
         error_message: `Download/upload error: ${downloadError instanceof Error ? downloadError.message : "Unknown"}`,
         retry_count: (generation.retry_count || 0) + 1,
       })

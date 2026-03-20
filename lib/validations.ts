@@ -42,7 +42,15 @@ export const campaignSchema = z.object({
   status: z
     .enum(["draft", "active", "paused", "completed", "archived"])
     .optional(),
-});
+}).refine(
+  (data) => {
+    if (data.start_date && data.end_date) {
+      return new Date(data.end_date) >= new Date(data.start_date);
+    }
+    return true;
+  },
+  { message: "End date must be after start date", path: ["end_date"] }
+);
 
 export const projectBriefSchema = z.object({
   title: z.string().min(1, "Project title is required").max(200),

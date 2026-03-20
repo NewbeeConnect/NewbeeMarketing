@@ -1,7 +1,7 @@
 /**
  * DB-backed token bucket rate limiter for Vercel Serverless.
- * Uses Supabase `mkt_rate_limits` table instead of in-memory state,
- * so rate limits are shared across all serverless instances.
+ * Uses Supabase `mkt_rate_limits` table with an atomic RPC function,
+ * so rate limits are shared across all serverless instances without race conditions.
  *
  * Usage:
  *   const result = await checkRateLimit(serviceClient, userId, "ai-gemini");
@@ -37,56 +37,30 @@ export async function checkRateLimit(
 ): Promise<{ allowed: boolean; error?: string; retryAfterSeconds?: number }> {
   const config = RATE_LIMITS[category];
   const maxTokens = overrideMax ?? config.maxTokens;
-  const now = new Date();
 
-  // Upsert: get or create bucket
-  const { data: bucket, error: fetchError } = await serviceClient
-    .from("mkt_rate_limits")
-    .select("id, tokens, last_refill_at")
-    .eq("user_id", userId)
-    .eq("category", category)
-    .single();
+  const { data, error } = await serviceClient.rpc("mkt_check_rate_limit", {
+    p_user_id: userId,
+    p_category: category,
+    p_max_tokens: maxTokens,
+    p_refill_rate: config.refillRate,
+  });
 
-  if (fetchError && fetchError.code !== "PGRST116") {
-    // PGRST116 = no rows found (expected for new users)
-    console.error("Rate limit check failed:", fetchError);
+  if (error) {
+    console.error("Rate limit RPC failed:", error);
     // Fail open for rate limiting (unlike budget which fails closed)
     return { allowed: true };
   }
 
-  if (!bucket) {
-    // First request — create bucket with tokens - 1
-    await serviceClient.from("mkt_rate_limits").insert({
-      user_id: userId,
-      category,
-      tokens: maxTokens - 1,
-      last_refill_at: now.toISOString(),
-    });
+  const result = Array.isArray(data) ? data[0] : data;
+
+  if (!result || result.allowed) {
     return { allowed: true };
   }
 
-  // Refill tokens based on elapsed time
-  const lastRefill = new Date(bucket.last_refill_at);
-  const elapsedSeconds = (now.getTime() - lastRefill.getTime()) / 1000;
-  const refilledTokens = Math.min(maxTokens, bucket.tokens + elapsedSeconds * config.refillRate);
-
-  if (refilledTokens < 1) {
-    const waitSeconds = Math.ceil((1 - refilledTokens) / config.refillRate);
-    return {
-      allowed: false,
-      error: `Rate limit exceeded. Try again in ${waitSeconds}s.`,
-      retryAfterSeconds: waitSeconds,
-    };
-  }
-
-  // Consume one token
-  await serviceClient
-    .from("mkt_rate_limits")
-    .update({
-      tokens: refilledTokens - 1,
-      last_refill_at: now.toISOString(),
-    })
-    .eq("id", bucket.id);
-
-  return { allowed: true };
+  const waitSeconds = result.retry_after_seconds ?? Math.ceil(1 / config.refillRate);
+  return {
+    allowed: false,
+    error: `Rate limit exceeded. Try again in ${waitSeconds}s.`,
+    retryAfterSeconds: waitSeconds,
+  };
 }

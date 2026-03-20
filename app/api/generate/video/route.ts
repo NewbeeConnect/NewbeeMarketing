@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, MODELS, COST_ESTIMATES } from "@/lib/google-ai";
 import { VideoGenerationReferenceType } from "@google/genai";
-import type { Project, Scene } from "@/types/database";
+import type { Project, Scene, Json } from "@/types/database";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { z } from "zod";
@@ -153,8 +153,7 @@ export async function POST(request: NextRequest) {
         type: "video",
         prompt,
         model,
-        config: JSON.parse(
-          JSON.stringify({
+        config: {
             duration_seconds: resolvedDuration,
             aspect_ratio: finalAspectRatio,
             resolution: finalResolution,
@@ -165,8 +164,7 @@ export async function POST(request: NextRequest) {
             ...(firstFrameImageUrl && { first_frame_image_url: firstFrameImageUrl }),
             ...(referenceImages && { reference_image_count: referenceImages.length }),
             generate_audio: shouldGenerateAudio,
-          })
-        ),
+          } as unknown as Json,
         language: language || null,
         platform: platform || null,
         aspect_ratio: finalAspectRatio,
@@ -244,14 +242,15 @@ export async function POST(request: NextRequest) {
       console.error("Veo API error:", JSON.stringify(errorDetail, null, 2));
       console.error("Veo request config:", { model, prompt: "[REDACTED]", aspectRatio: finalAspectRatio, duration: resolvedDuration, resolution: finalResolution });
 
-      const errorMsg = veoError instanceof Error ? veoError.message : "Veo generation failed";
+      // Store detailed error server-side, return generic message to client
+      const detailedError = veoError instanceof Error ? veoError.message : "Veo generation failed";
 
-      // Update generation as failed
+      // Update generation as failed (detailed error stored in DB for debugging)
       await serviceClient
         .from("mkt_generations")
         .update({
           status: "failed",
-          error_message: errorMsg,
+          error_message: detailedError,
           completed_at: new Date().toISOString(),
         })
         .eq("id", generation.id);
@@ -260,7 +259,7 @@ export async function POST(request: NextRequest) {
         {
           generationId: generation.id,
           status: "failed",
-          error: errorMsg,
+          error: "Video generation failed. Please try again or adjust your prompt.",
         },
         { status: 500 }
       );
