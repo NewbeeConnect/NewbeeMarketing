@@ -68,3 +68,4 @@ next-env.d.ts
 
 # MCP config (contains tokens)
 .mcp.json
+.env*.local

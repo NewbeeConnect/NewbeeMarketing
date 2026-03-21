@@ -55,6 +55,8 @@ export async function createGoogleAdsCampaign(
     platform: "google",
     external_campaign_id: generateStubId("gads_camp"),
     external_ad_id: generateStubId("gads_ad"),
+    external_adset_id: null,
+    external_creative_id: null,
     status: "pending_review",
     message: `Google Ads campaign "${config.campaign_name}" created successfully (stub). Review typically takes 1-2 business days.`,
   };
@@ -79,6 +81,8 @@ export async function pauseGoogleAdsCampaign(
     platform: "google",
     external_campaign_id: externalCampaignId,
     external_ad_id: null,
+    external_adset_id: null,
+    external_creative_id: null,
     status: "paused",
     message: `Google Ads campaign ${externalCampaignId} paused successfully (stub).`,
   };

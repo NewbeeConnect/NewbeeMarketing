@@ -43,6 +43,8 @@ export interface AdPublishResult {
   platform: AdPlatform;
   external_campaign_id: string | null;
   external_ad_id: string | null;
+  external_adset_id: string | null;
+  external_creative_id: string | null;
   status: AdStatus;
   message: string;
 }
@@ -70,6 +72,9 @@ export interface MetaAdsKeys {
   app_id: string;
   app_secret: string;
   access_token: string;
+  ad_account_id: string; // act_XXXXXXXXX
+  page_id: string; // Facebook Page ID linked to Instagram
+  instagram_account_id: string; // Instagram Business Account ID
 }
 
 export type PlatformKeys = GoogleAdsKeys | MetaAdsKeys;
@@ -96,12 +101,43 @@ export interface AdDeploymentRow {
   platform: AdPlatform;
   external_campaign_id: string | null;
   external_ad_id: string | null;
+  external_adset_id: string | null;
+  external_creative_id: string | null;
   creative_urls: string[];
   budget_daily_usd: number | null;
   budget_total_usd: number | null;
   targeting: AdTargeting | null;
   status: AdStatus;
+  objective: string | null;
+  instagram_positions: string[] | null;
+  ad_caption: string | null;
+  call_to_action_type: string | null;
+  call_to_action_link: string | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// ─── Instagram-specific types ───────────────────────────────────────────────
+export type InstagramPosition = "stream" | "story" | "reels" | "explore";
+
+export type AdObjective =
+  | "OUTCOME_TRAFFIC"
+  | "OUTCOME_AWARENESS"
+  | "OUTCOME_ENGAGEMENT"
+  | "OUTCOME_SALES";
+
+export type CallToActionType =
+  | "LEARN_MORE"
+  | "SHOP_NOW"
+  | "SIGN_UP"
+  | "DOWNLOAD"
+  | "INSTALL_MOBILE_APP";
+
+export interface PublishAdRequestExtended extends PublishAdRequest {
+  objective?: AdObjective;
+  instagram_positions?: InstagramPosition[];
+  ad_caption?: string;
+  call_to_action_type?: CallToActionType;
+  call_to_action_link?: string;
 }

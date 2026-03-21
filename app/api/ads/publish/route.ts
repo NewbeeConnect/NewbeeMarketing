@@ -3,6 +3,7 @@ import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server
 import { publishToAds } from "@/lib/ads/publisher";
 import { getUserAdKeys } from "@/lib/ads/key-store";
 import type { AdCampaignConfig } from "@/lib/ads/types";
+import type { MetaAdCampaignConfig } from "@/lib/ads/meta-ads";
 import { z } from "zod";
 
 const publishSchema = z.object({
@@ -21,6 +22,12 @@ const publishSchema = z.object({
   creative_urls: z.array(z.string().url()).min(1, "At least one creative URL is required"),
   project_id: z.string().uuid(),
   campaign_id: z.string().uuid().optional(),
+  // Instagram-specific fields
+  objective: z.enum(["OUTCOME_TRAFFIC", "OUTCOME_AWARENESS", "OUTCOME_ENGAGEMENT", "OUTCOME_SALES"]).optional(),
+  instagram_positions: z.array(z.enum(["stream", "story", "reels", "explore"])).optional(),
+  ad_caption: z.string().max(2200).optional(),
+  call_to_action_type: z.enum(["LEARN_MORE", "SHOP_NOW", "SIGN_UP", "DOWNLOAD", "INSTALL_MOBILE_APP"]).optional(),
+  call_to_action_link: z.string().url().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -57,6 +64,11 @@ export async function POST(request: NextRequest) {
       creative_urls,
       project_id,
       campaign_id,
+      objective,
+      instagram_positions,
+      ad_caption,
+      call_to_action_type,
+      call_to_action_link,
     } = parsed.data;
 
     const serviceClient = createServiceClient();
@@ -81,7 +93,7 @@ export async function POST(request: NextRequest) {
     const userKeys = await getUserAdKeys(serviceClient, user.id, platformSlug);
 
     // ── Build campaign config ─────────────────────────────────────────────
-    const config: AdCampaignConfig = {
+    const baseConfig: AdCampaignConfig = {
       platform,
       campaign_name,
       budget_daily_usd,
@@ -98,6 +110,19 @@ export async function POST(request: NextRequest) {
       project_id,
     };
 
+    // Extend with Instagram-specific fields for Meta platform
+    const config: AdCampaignConfig | MetaAdCampaignConfig =
+      platform === "meta"
+        ? {
+            ...baseConfig,
+            objective,
+            instagram_positions,
+            ad_caption,
+            call_to_action_type,
+            call_to_action_link,
+          }
+        : baseConfig;
+
     // ── Call the publisher ─────────────────────────────────────────────────
     const result = await publishToAds(config, userKeys);
 
@@ -111,12 +136,21 @@ export async function POST(request: NextRequest) {
         platform,
         external_campaign_id: result.external_campaign_id,
         external_ad_id: result.external_ad_id,
+        external_adset_id: result.external_adset_id,
+        external_creative_id: result.external_creative_id,
         creative_urls,
         budget_daily_usd,
         budget_total_usd: config.budget_total_usd,
         targeting: config.targeting,
         status: result.success ? "pending_review" : "draft",
         published_at: result.success ? new Date().toISOString() : null,
+        ...(platform === "meta" && {
+          objective: objective ?? "OUTCOME_TRAFFIC",
+          instagram_positions: instagram_positions ?? ["stream"],
+          ad_caption: ad_caption ?? null,
+          call_to_action_type: call_to_action_type ?? null,
+          call_to_action_link: call_to_action_link ?? null,
+        }),
       })
       .select()
       .single();

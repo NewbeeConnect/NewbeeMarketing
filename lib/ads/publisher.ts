@@ -48,6 +48,8 @@ export async function publishToAds(
         platform: exhaustiveCheck,
         external_campaign_id: null,
         external_ad_id: null,
+        external_adset_id: null,
+        external_creative_id: null,
         status: "rejected",
         message: `Unsupported ad platform: ${exhaustiveCheck}`,
       };

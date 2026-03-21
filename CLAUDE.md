@@ -88,6 +88,41 @@ Vercel auto-deploys from `main` branch. Required env vars: see `.env.example` or
 | Skill | Usage | Description |
 |-------|-------|-------------|
 | `/deploy` | `/deploy` | Lint + build + Vercel production deploy |
-| `/cost-report` | `/cost-report` | AI usage cost summary |
+| `/cost-report` | `/cost-report [today\|week\|month]` | AI usage cost summary |
 | `/monitor-budget` | `/monitor-budget` | Check remaining Google Cloud credit |
 | `/audit-api` | `/audit-api` | Audit API routes for security/logging |
+| `/db-check` | `/db-check` | mkt_ tablolari RLS + schema kontrolu |
+| `/test-api` | `/test-api <route>` | Tek API route test (auth, validation) |
+| `/perf-check` | `/perf-check` | Bundle size + Core Web Vitals analizi |
+| `/new-feature` | `/new-feature <name>` | Hook + API + page + types scaffold |
+
+## Agents
+
+| Agent | Description |
+|-------|-------------|
+| `ai-cost-analyzer` | AI harcama pattern analizi ve optimizasyon onerileri |
+| `seo-analyzer` | SEO metadata, sitemap, OG tag kontrolu |
+| `security-auditor` | OWASP Top 10 guvenlik taramasi |
+| `prompt-optimizer` | AI prompt token verimliligi ve maliyet optimizasyonu |
+| `migration-planner` | Supabase migration planlama (RLS + rollback) |
+| `component-reviewer` | React component kalite, a11y, performans incelemesi |
+
+## Hooks (Otomatik)
+
+| Hook | Tetikleyici | Eylem | Bloklama |
+|------|-------------|-------|----------|
+| shadcn guard | `components/ui/` duzenleme | Edit'i engeller | Evet |
+| Lint + tsc | Her dosya duzenleme sonrasi | ESLint fix + TypeScript kontrol | Hayir |
+| API route checklist | `app/api/*/route.ts` duzenleme | 10-adim pattern hatirlatma | Hayir |
+| Butce uyarisi | AI dosyalari duzenleme | Maliyet etkisi uyarisi | Hayir |
+| SQL guvenlik | `.sql` dosya duzenleme | RLS hatirlatma | Hayir |
+| Pre-commit guard | `git commit` komutu | Lint + tsc zorunlu kontrol | Evet |
+
+## Scheduled Tasks
+
+| Task | Zamanlama | Aciklama |
+|------|-----------|----------|
+| `daily-cost-report` | Her gun 09:03 | /cost-report today + butce uyarisi |
+| `weekly-seo-check` | Pazartesi 10:07 | seo-analyzer agent ile SEO kontrolu |
+
+> Not: Scheduled tasks session bazlidir (max 3 gun). Yeni session'da otomatik yeniden olusturulmazlar.
