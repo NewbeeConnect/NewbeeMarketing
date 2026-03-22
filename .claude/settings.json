@@ -37,6 +37,42 @@
             "command": "case \"$TOOL_INPUT_FILE_PATH\" in */components/ui/*) echo 'BLOCKED: components/ui/ is shadcn-generated. Use npx shadcn@latest add <component>'; exit 2;; esac"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "case \"$TOOL_INPUT_FILE_PATH\" in */app/api/*/route.ts) echo '📋 API Route Checklist: 1)Auth(createSupabaseServer+getUser) 2)AI null check 3)Rate limit 4)Budget guard 5)Zod validation 6)Data fetch 7)AI call+parseAiJson 8)Save results 9)Log to mkt_usage_logs 10)Return response';; esac"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "case \"$TOOL_INPUT_FILE_PATH\" in */lib/ai/*|*/app/api/ai/*|*/app/api/generate/*) echo '💰 AI dosyasi duzenleniyor. Degisiklikler maliyet etkisi olabilir. /monitor-budget ile butce durumunu kontrol edin.';; esac"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "case \"$TOOL_INPUT_FILE_PATH\" in *.sql) echo '🔒 SQL Migration: mkt_ prefix kullanin, RLS aktif edin (ENABLE ROW LEVEL SECURITY), auth.uid()=user_id policy ekleyin, rollback plani hazirlayin.';; esac"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "case \"$TOOL_INPUT\" in *'git commit'*) cd \"/Volumes/SSD 2TB/APP/Newbee/NewbeeMarketing\" && echo '🔍 Pre-commit kontrol...' && npm run lint --silent 2>&1 | tail -5 && npx tsc --noEmit 2>&1 | tail -10; if [ $? -ne 0 ]; then echo 'BLOCKED: Lint veya TypeScript hatalari var. Commit yapilamaz.'; exit 2; fi;; esac"
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -46,6 +82,10 @@
           {
             "type": "command",
             "command": "npx eslint --fix \"$TOOL_INPUT_FILE_PATH\" 2>/dev/null || true"
+          },
+          {
+            "type": "command",
+            "command": "npx tsc --noEmit --pretty 2>&1 | head -20"
           }
         ]
       }

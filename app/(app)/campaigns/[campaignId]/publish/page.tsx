@@ -54,6 +54,13 @@ export default function PublishPage() {
   const [publishing, setPublishing] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
+  // Instagram-specific state
+  const [objective, setObjective] = useState("OUTCOME_TRAFFIC");
+  const [instagramPositions, setInstagramPositions] = useState<string[]>(["stream"]);
+  const [adCaption, setAdCaption] = useState("");
+  const [ctaType, setCtaType] = useState("LEARN_MORE");
+  const [ctaLink, setCtaLink] = useState("");
+
   // Load completed generations from linked projects via React Query
   const { data: completedGenerations = [] } = useQuery({
     queryKey: ["completed-generations", projects?.map((p) => p.id)],
@@ -153,6 +160,14 @@ export default function PublishPage() {
             targeting,
             creative_urls: selectedCreatives,
             project_id: projectId,
+            // Instagram-specific fields (only for Meta)
+            ...(platform === "meta" && {
+              objective,
+              instagram_positions: instagramPositions,
+              ad_caption: adCaption || undefined,
+              call_to_action_type: ctaType,
+              call_to_action_link: ctaLink || undefined,
+            }),
           }),
         });
 
@@ -241,6 +256,115 @@ export default function PublishPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Instagram Settings (visible when Meta is selected) */}
+        {selectedPlatforms.includes("meta") && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Instagram Ayarları</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Kampanya Hedefi</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: "OUTCOME_TRAFFIC", label: "Trafik" },
+                    { value: "OUTCOME_AWARENESS", label: "Bilinirlik" },
+                    { value: "OUTCOME_ENGAGEMENT", label: "Etkileşim" },
+                    { value: "OUTCOME_SALES", label: "Satış" },
+                  ].map((opt) => (
+                    <Button
+                      key={opt.value}
+                      variant={objective === opt.value ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setObjective(opt.value)}
+                    >
+                      {opt.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Instagram Yerleşimi</Label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: "stream", label: "Feed" },
+                    { value: "story", label: "Stories" },
+                    { value: "reels", label: "Reels" },
+                    { value: "explore", label: "Explore" },
+                  ].map((pos) => {
+                    const active = instagramPositions.includes(pos.value);
+                    return (
+                      <Button
+                        key={pos.value}
+                        variant={active ? "default" : "outline"}
+                        size="sm"
+                        onClick={() =>
+                          setInstagramPositions((prev) =>
+                            active
+                              ? prev.filter((p) => p !== pos.value)
+                              : [...prev, pos.value]
+                          )
+                        }
+                      >
+                        {active && <Check className="h-3 w-3 mr-1" />}
+                        {pos.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+                {(instagramPositions.includes("story") || instagramPositions.includes("reels")) && (
+                  <p className="text-xs text-amber-600">
+                    Stories/Reels için 9:16 (dikey) video önerilir
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ad_caption">Reklam Metni</Label>
+                <textarea
+                  id="ad_caption"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="Instagram reklam metni (max 2200 karakter)"
+                  maxLength={2200}
+                  value={adCaption}
+                  onChange={(e) => setAdCaption(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {adCaption.length}/2200
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>CTA Butonu</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    value={ctaType}
+                    onChange={(e) => setCtaType(e.target.value)}
+                  >
+                    <option value="LEARN_MORE">Daha Fazla Bilgi</option>
+                    <option value="SHOP_NOW">Şimdi Alışveriş Yap</option>
+                    <option value="SIGN_UP">Kaydol</option>
+                    <option value="DOWNLOAD">İndir</option>
+                    <option value="INSTALL_MOBILE_APP">Uygulamayı Yükle</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cta_link">CTA Link</Label>
+                  <Input
+                    id="cta_link"
+                    type="url"
+                    placeholder="https://newbeeapp.com"
+                    value={ctaLink}
+                    onChange={(e) => setCtaLink(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Budget Settings */}
         <Card>

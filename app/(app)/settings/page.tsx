@@ -63,9 +63,16 @@ export default function SettingsPage() {
     const mk = apiKeys?.find((k) => k.platform === "meta_ads");
     if (mk?.keys_encrypted) {
       const keys = mk.keys_encrypted as Record<string, string>;
-      return { app_id: keys.app_id || "", app_secret: keys.app_secret || "", access_token: keys.access_token || "" };
+      return {
+        app_id: keys.app_id || "",
+        app_secret: keys.app_secret || "",
+        access_token: keys.access_token || "",
+        ad_account_id: keys.ad_account_id || "",
+        page_id: keys.page_id || "",
+        instagram_account_id: keys.instagram_account_id || "",
+      };
     }
-    return { app_id: "", app_secret: "", access_token: "" };
+    return { app_id: "", app_secret: "", access_token: "", ad_account_id: "", page_id: "", instagram_account_id: "" };
   }, [apiKeys]);
 
   const [googleForm, setGoogleForm] = useState(googleFormDefault);
@@ -282,16 +289,31 @@ export default function SettingsPage() {
               </div>
               <div className="sm:col-span-2 space-y-1">
                 <Label className="text-xs">Access Token *</Label>
-                <Input size={1} type="password" placeholder="Long-lived Access Token" value={metaForm.access_token} onChange={(e) => setMetaForm((p) => ({ ...p, access_token: e.target.value }))} />
+                <Input size={1} type="password" placeholder="Long-lived System User Token" value={metaForm.access_token} onChange={(e) => setMetaForm((p) => ({ ...p, access_token: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Ad Account ID *</Label>
+                <Input size={1} placeholder="act_XXXXXXXXX" value={metaForm.ad_account_id} onChange={(e) => setMetaForm((p) => ({ ...p, ad_account_id: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Facebook Page ID *</Label>
+                <Input size={1} placeholder="Page ID (linked to Instagram)" value={metaForm.page_id} onChange={(e) => setMetaForm((p) => ({ ...p, page_id: e.target.value }))} />
+              </div>
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-xs">Instagram Account ID *</Label>
+                <Input size={1} placeholder="Instagram Business Account ID" value={metaForm.instagram_account_id} onChange={(e) => setMetaForm((p) => ({ ...p, instagram_account_id: e.target.value }))} />
               </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Ad Account ID, Page ID ve Instagram Account ID Meta Business Manager&apos;dan bulunabilir.
+            </p>
             <div className="flex gap-2 justify-end">
               {metaConfigured && (
-                <Button variant="outline" size="sm" onClick={async () => { await deleteKeys.mutateAsync("meta_ads"); setMetaForm({ app_id: "", app_secret: "", access_token: "" }); toast.success("Meta Ads keys removed"); }}>
+                <Button variant="outline" size="sm" onClick={async () => { await deleteKeys.mutateAsync("meta_ads"); setMetaForm({ app_id: "", app_secret: "", access_token: "", ad_account_id: "", page_id: "", instagram_account_id: "" }); toast.success("Meta Ads keys removed"); }}>
                   <Trash2 className="h-3 w-3 mr-1" /> Remove
                 </Button>
               )}
-              <Button size="sm" onClick={async () => { if (!metaForm.app_id || !metaForm.access_token) { toast.error("App ID and Access Token required"); return; } await saveKeys.mutateAsync({ platform: "meta_ads", keys: metaForm }); toast.success("Meta Ads keys saved"); }} disabled={saveKeys.isPending}>
+              <Button size="sm" onClick={async () => { if (!metaForm.app_id || !metaForm.access_token || !metaForm.ad_account_id || !metaForm.page_id || !metaForm.instagram_account_id) { toast.error("App ID, Access Token, Ad Account ID, Page ID ve Instagram Account ID gerekli"); return; } await saveKeys.mutateAsync({ platform: "meta_ads", keys: metaForm }); toast.success("Meta Ads keys saved"); }} disabled={saveKeys.isPending}>
                 {saveKeys.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Save
               </Button>
             </div>

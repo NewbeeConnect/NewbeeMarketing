@@ -9,13 +9,13 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 
   // CSP: allow self, Supabase, and inline styles (required by Next.js/Tailwind)
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').trim();
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' 'unsafe-eval'`,
-    `style-src 'self' 'unsafe-inline'`,
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "style-src 'self' 'unsafe-inline'",
     `img-src 'self' ${supabaseUrl} data: blob:`,
-    `font-src 'self' data:`,
+    "font-src 'self' data:",
     `connect-src 'self' ${supabaseUrl} https://generativelanguage.googleapis.com`,
     "frame-ancestors 'none'",
     "base-uri 'self'",
