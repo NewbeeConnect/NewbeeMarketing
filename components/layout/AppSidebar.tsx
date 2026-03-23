@@ -14,6 +14,10 @@ import {
   Settings,
   LogOut,
   Plus,
+  Share2,
+  TrendingUp,
+  Bot,
+  MessageSquare,
 } from "lucide-react";
 import {
   Sidebar,
@@ -52,7 +56,10 @@ const NAV_GROUPS = [
     label: "Distribute",
     items: [
       { title: "Campaigns", url: "/campaigns", icon: Megaphone },
+      { title: "Social Hub", url: "/social", icon: Share2 },
       { title: "Calendar", url: "/calendar", icon: CalendarDays },
+      { title: "Trends", url: "/trends", icon: TrendingUp },
+      { title: "Autopilot", url: "/autopilot", icon: Bot },
     ],
   },
   {
@@ -60,6 +67,7 @@ const NAV_GROUPS = [
     items: [
       { title: "Gallery", url: "/gallery", icon: Images },
       { title: "Templates", url: "/templates", icon: FileStack },
+      { title: "Prompts", url: "/prompts", icon: MessageSquare },
     ],
   },
 ] as const;

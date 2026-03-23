@@ -3,6 +3,22 @@
     {
       "path": "/api/cron/sync-performance",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/autopilot",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/trend-scan",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/ab-test-check",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/social-metrics-sync",
+      "schedule": "0 */4 * * *"
     }
   ]
 }

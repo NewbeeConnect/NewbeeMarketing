@@ -20,8 +20,11 @@ if (
       "Set a 64-character hex string (32 bytes) in environment variables."
     );
   }
+  // In development, warn loudly but allow startup for non-encryption features
   console.warn(
-    "[Security] ENCRYPTION_KEY not configured. Ad platform key storage will be disabled."
+    "\x1b[33m[Security] WARNING: ENCRYPTION_KEY not configured.\x1b[0m\n" +
+    "  OAuth tokens and API keys CANNOT be stored without encryption.\n" +
+    "  Generate one: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
   );
 }
 

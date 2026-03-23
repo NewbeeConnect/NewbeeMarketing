@@ -67,9 +67,13 @@ export const NAV_ITEMS = [
   { title: "Projects", url: "/projects", icon: "Film", group: "create" },
   { title: "Brand Kit", url: "/brand", icon: "Palette", group: "create" },
   { title: "Campaigns", url: "/campaigns", icon: "Megaphone", group: "distribute" },
+  { title: "Social Hub", url: "/social", icon: "Share2", group: "distribute" },
   { title: "Calendar", url: "/calendar", icon: "CalendarDays", group: "distribute" },
+  { title: "Trends", url: "/trends", icon: "TrendingUp", group: "distribute" },
+  { title: "Autopilot", url: "/autopilot", icon: "Bot", group: "distribute" },
   { title: "Gallery", url: "/gallery", icon: "Images", group: "library" },
   { title: "Templates", url: "/templates", icon: "FileStack", group: "library" },
+  { title: "Prompts", url: "/prompts", icon: "MessageSquare", group: "library" },
   { title: "Analytics", url: "/analytics", icon: "BarChart3", group: "footer" },
   { title: "Settings", url: "/settings", icon: "Settings", group: "footer" },
 ] as const;

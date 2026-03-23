@@ -25,6 +25,14 @@ export const RATE_LIMITS = {
   "ai-media": { maxTokens: veoMediaLimit, refillRate: veoMediaLimit / 60 },
   /** General API: 60 req/min */
   "api-general": { maxTokens: 60, refillRate: 1 },
+  /** Social media publishing: 25 req/hour (shared across platforms) */
+  "social-publish": { maxTokens: 25, refillRate: 25 / 3600 },
+  /** Social metrics sync: 100 req/hour */
+  "social-metrics": { maxTokens: 100, refillRate: 100 / 3600 },
+  /** Trend scanning: 30 req/hour */
+  "social-trends": { maxTokens: 30, refillRate: 30 / 3600 },
+  /** Autopilot runs: 5 req/hour */
+  "autopilot": { maxTokens: 5, refillRate: 5 / 3600 },
 } as const;
 
 export type RateLimitCategory = keyof typeof RATE_LIMITS;
@@ -47,8 +55,8 @@ export async function checkRateLimit(
 
   if (error) {
     console.error("Rate limit RPC failed:", error);
-    // Fail open for rate limiting (unlike budget which fails closed)
-    return { allowed: true };
+    // Fail closed — deny requests when rate limit system is unavailable
+    return { allowed: false, error: "Rate limit check temporarily unavailable. Try again later." };
   }
 
   const result = Array.isArray(data) ? data[0] : data;

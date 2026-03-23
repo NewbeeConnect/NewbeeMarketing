@@ -15,6 +15,7 @@
     "@supabase/supabase-js": "^2.97.0",
     "@tanstack/react-query": "^5.90.21",
     "@types/sharp": "^0.31.1",
+    "@workflow/ai": "^4.1.0-beta.57",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -31,6 +32,7 @@
     "sharp": "^0.34.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
+    "workflow": "^4.2.0-beta.71",
     "zod": "^4.3.6"
   },
   "devDependencies": {
