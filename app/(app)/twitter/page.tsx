@@ -13,7 +13,7 @@ import {
   Loader2,
   Twitter,
 } from "lucide-react";
-import { useTweets, usePostTweet } from "@/hooks/useTweets";
+import { useTweets, usePostTweet, useScheduleTweet, useDeleteTweet } from "@/hooks/useTweets";
 import { TweetCard } from "@/components/twitter/TweetCard";
 import { GenerateTweetsDialog } from "@/components/twitter/GenerateTweetsDialog";
 import { toast } from "sonner";
@@ -24,6 +24,8 @@ export default function TwitterPage() {
 
   const { data: tweetsData, isLoading } = useTweets(activeTab === "all" ? undefined : activeTab);
   const postMutation = usePostTweet();
+  const scheduleMutation = useScheduleTweet();
+  const deleteMutation = useDeleteTweet();
 
   const tweets = tweetsData?.data ?? [];
   const total = tweetsData?.meta?.total ?? 0;
@@ -45,9 +47,22 @@ export default function TwitterPage() {
     }
   };
 
+  const handleSchedule = async (tweetId: string, action: "approve" | "schedule" | "draft", scheduledFor?: string) => {
+    try {
+      await scheduleMutation.mutateAsync({ tweetId, action, scheduledFor });
+      toast.success(action === "schedule" ? "Tweet scheduled!" : action === "draft" ? "Moved to drafts" : "Tweet approved");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update");
+    }
+  };
+
   const handleDelete = async (tweetId: string) => {
-    // TODO: implement delete API
-    toast.info("Delete coming soon");
+    try {
+      await deleteMutation.mutateAsync({ tweetId });
+      toast.success("Tweet deleted");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete");
+    }
   };
 
   return (
@@ -110,6 +125,7 @@ export default function TwitterPage() {
                   tweet={tweet}
                   onPost={handlePost}
                   onDelete={handleDelete}
+                  onSchedule={handleSchedule}
                   isPosting={postingId === tweet.id}
                 />
               ))}

@@ -47,10 +47,11 @@ interface TweetCardProps {
   tweet: Tweet;
   onPost?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onSchedule?: (id: string, action: "approve" | "schedule" | "draft", scheduledFor?: string) => void;
   isPosting?: boolean;
 }
 
-export function TweetCard({ tweet, onPost, onDelete, isPosting }: TweetCardProps) {
+export function TweetCard({ tweet, onPost, onDelete, onSchedule, isPosting }: TweetCardProps) {
   const statusConfig = STATUS_CONFIG[tweet.status] ?? STATUS_CONFIG.draft;
   const StatusIcon = statusConfig.icon;
 
@@ -130,7 +131,7 @@ export function TweetCard({ tweet, onPost, onDelete, isPosting }: TweetCardProps
             <Copy className="h-3.5 w-3.5" />
           </Button>
 
-          {tweet.status === "draft" && onDelete && (
+          {(tweet.status === "draft" || tweet.status === "failed") && onDelete && (
             <Button
               variant="ghost"
               size="icon"
@@ -139,6 +140,40 @@ export function TweetCard({ tweet, onPost, onDelete, isPosting }: TweetCardProps
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
+          )}
+
+          {tweet.status === "draft" && onSchedule && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => {
+                const date = prompt("Schedule for (YYYY-MM-DDTHH:mm):");
+                if (date) onSchedule(tweet.id, "schedule", new Date(date).toISOString());
+              }}
+            >
+              <Clock className="h-3.5 w-3.5 mr-1" />
+              Schedule
+            </Button>
+          )}
+
+          {tweet.status === "scheduled" && onSchedule && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => onSchedule(tweet.id, "draft")}
+            >
+              Unschedule
+            </Button>
+          )}
+
+          {tweet.scheduled_for && tweet.status === "scheduled" && (
+            <span className="text-xs text-muted-foreground">
+              {new Date(tweet.scheduled_for).toLocaleDateString("en-GB", {
+                day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+              })}
+            </span>
           )}
 
           {(tweet.status === "draft" || tweet.status === "approved" || tweet.status === "failed") && onPost && (

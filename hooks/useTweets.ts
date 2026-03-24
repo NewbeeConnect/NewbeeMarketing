@@ -91,3 +91,47 @@ export function usePostTweet() {
     },
   });
 }
+
+export function useScheduleTweet() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { tweetId: string; action: "approve" | "schedule" | "draft"; scheduledFor?: string }) => {
+      const res = await fetch("/api/twitter/schedule", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Schedule failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tweets"] });
+    },
+  });
+}
+
+export function useDeleteTweet() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { tweetId: string; deleteFromX?: boolean }) => {
+      const res = await fetch("/api/twitter/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Delete failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tweets"] });
+    },
+  });
+}
