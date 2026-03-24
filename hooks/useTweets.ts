@@ -131,6 +131,23 @@ export function useReplySuggest() {
   });
 }
 
+export function useSendReply() {
+  return useMutation({
+    mutationFn: async (input: { tweetUrl: string; replyText: string }) => {
+      const res = await fetch("/api/twitter/reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to send reply");
+      }
+      return res.json() as Promise<{ data: { replyId: string; replyUrl: string; inReplyTo: string } }>;
+    },
+  });
+}
+
 export function useDeleteTweet() {
   const queryClient = useQueryClient();
 

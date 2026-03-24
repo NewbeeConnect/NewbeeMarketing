@@ -16,7 +16,7 @@ import {
   Sparkles,
   Check,
 } from "lucide-react";
-import { useReplySuggest } from "@/hooks/useTweets";
+import { useReplySuggest, useSendReply } from "@/hooks/useTweets";
 import { toast } from "sonner";
 
 // ─── Search Queries (30+) ────────────────────────────────────────────
@@ -104,11 +104,14 @@ function shuffle<T>(arr: T[]): T[] {
 
 // ─── Reply Generator Component ──────────────────────────────────────
 function ReplyGenerator() {
+  const [tweetUrl, setTweetUrl] = useState("");
   const [tweetText, setTweetText] = useState("");
   const [tweetAuthor, setTweetAuthor] = useState("");
   const [replies, setReplies] = useState<string[]>([]);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [sentIdx, setSentIdx] = useState<number | null>(null);
   const suggestMutation = useReplySuggest();
+  const sendReplyMutation = useSendReply();
 
   const handleGenerate = async (style: string = "helpful") => {
     if (!tweetText.trim()) return;
@@ -119,6 +122,7 @@ function ReplyGenerator() {
         style,
       });
       setReplies(result.data);
+      setSentIdx(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to generate");
     }
@@ -127,8 +131,30 @@ function ReplyGenerator() {
   const copyReply = (text: string, idx: number) => {
     navigator.clipboard.writeText(text);
     setCopiedIdx(idx);
-    toast.success("Copied! Paste it as a reply on X");
+    toast.success("Copied!");
     setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  const sendReply = async (text: string, idx: number) => {
+    if (!tweetUrl.trim()) {
+      toast.error("Tweet URL required to send reply");
+      return;
+    }
+    try {
+      const result = await sendReplyMutation.mutateAsync({
+        tweetUrl: tweetUrl.trim(),
+        replyText: text,
+      });
+      setSentIdx(idx);
+      toast.success("Reply sent!", {
+        action: {
+          label: "View",
+          onClick: () => window.open(result.data.replyUrl, "_blank"),
+        },
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send reply");
+    }
   };
 
   return (
@@ -139,17 +165,24 @@ function ReplyGenerator() {
           AI Reply Generator
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Paste a tweet below → AI generates reply options → copy & paste on X
+          Paste tweet URL + text → AI generates replies → click Send to reply directly
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
+        <input
+          type="text"
+          placeholder="Tweet URL (https://x.com/user/status/...)"
+          value={tweetUrl}
+          onChange={(e) => setTweetUrl(e.target.value)}
+          className="w-full rounded-md border bg-transparent px-3 py-1.5 text-sm font-mono"
+        />
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder="@username (optional)"
+            placeholder="@username"
             value={tweetAuthor}
             onChange={(e) => setTweetAuthor(e.target.value)}
-            className="w-32 shrink-0 rounded-md border bg-transparent px-2 py-1.5 text-sm"
+            className="w-28 shrink-0 rounded-md border bg-transparent px-2 py-1.5 text-sm"
           />
           <Textarea
             placeholder="Paste tweet text here..."
@@ -177,20 +210,41 @@ function ReplyGenerator() {
         {replies.length > 0 && (
           <div className="space-y-2 pt-2 border-t">
             {replies.map((reply, idx) => (
-              <div key={idx} className="flex items-start gap-2 p-2 rounded-md bg-muted/50">
+              <div key={idx} className={`flex items-start gap-2 p-2 rounded-md ${sentIdx === idx ? "bg-green-500/10 border border-green-500/20" : "bg-muted/50"}`}>
                 <p className="text-sm flex-1">{reply}</p>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 shrink-0"
-                  onClick={() => copyReply(reply, idx)}
-                >
-                  {copiedIdx === idx ? (
-                    <Check className="h-3.5 w-3.5 text-green-500" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
+                <div className="flex flex-col gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => copyReply(reply, idx)}
+                  >
+                    {copiedIdx === idx ? (
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                  {tweetUrl && sentIdx !== idx && (
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => sendReply(reply, idx)}
+                      disabled={sendReplyMutation.isPending}
+                    >
+                      {sendReplyMutation.isPending ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        "Send"
+                      )}
+                    </Button>
                   )}
-                </Button>
+                  {sentIdx === idx && (
+                    <Badge variant="default" className="text-xs">
+                      <Check className="h-3 w-3 mr-0.5" /> Sent
+                    </Badge>
+                  )}
+                </div>
               </div>
             ))}
           </div>
