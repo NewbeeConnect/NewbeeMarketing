@@ -16,6 +16,7 @@ import {
 import { useTweets, usePostTweet, useScheduleTweet, useDeleteTweet } from "@/hooks/useTweets";
 import { TweetCard } from "@/components/twitter/TweetCard";
 import { GenerateTweetsDialog } from "@/components/twitter/GenerateTweetsDialog";
+import { ReplyTargets } from "@/components/twitter/ReplyTargets";
 import { toast } from "sonner";
 
 export default function TwitterPage() {
@@ -97,41 +98,48 @@ export default function TwitterPage() {
           <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
           <TabsTrigger value="failed">Failed</TabsTrigger>
           <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="replies">Reply Targets</TabsTrigger>
         </TabsList>
 
-        <TabsContent value={activeTab} className="mt-4">
-          {isLoading ? (
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-40 rounded-lg" />
-              ))}
-            </div>
-          ) : tweets.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                <Twitter className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-1">No tweets yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Generate AI-powered tweets to get started
-                </p>
-                <GenerateTweetsDialog />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {tweets.map((tweet) => (
-                <TweetCard
-                  key={tweet.id}
-                  tweet={tweet}
-                  onPost={handlePost}
-                  onDelete={handleDelete}
-                  onSchedule={handleSchedule}
-                  isPosting={postingId === tweet.id}
-                />
-              ))}
-            </div>
-          )}
+        <TabsContent value="replies" className="mt-4">
+          <ReplyTargets />
         </TabsContent>
+
+        {activeTab !== "replies" && (
+          <TabsContent value={activeTab} className="mt-4">
+            {isLoading ? (
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton key={i} className="h-40 rounded-lg" />
+                ))}
+              </div>
+            ) : tweets.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <Twitter className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-1">No tweets yet</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Generate AI-powered tweets to get started
+                  </p>
+                  <GenerateTweetsDialog />
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {tweets.map((tweet) => (
+                  <TweetCard
+                    key={tweet.id}
+                    tweet={tweet}
+                    onPost={handlePost}
+                    onDelete={handleDelete}
+                    onSchedule={handleSchedule}
+                    isPosting={postingId === tweet.id}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
