@@ -19,10 +19,10 @@ const schema = z.object({
 });
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
-  helpful: "Be genuinely helpful. Share a practical tip or resource related to their problem.",
-  empathetic: "Show empathy and understanding. Share that you/your community went through the same thing.",
-  funny: "Be lighthearted and relatable with gentle humor. Don't be sarcastic or dismissive.",
-  expert: "Provide authoritative, detailed information. Position yourself as knowledgeable about expat life in Germany.",
+  helpful: "Give a SPECIFIC, actionable tip they probably don't know. Not generic advice — the kind of insider knowledge that makes them go 'wait really?' Share something you learned the hard way.",
+  empathetic: "Validate their feelings WITHOUT being patronizing. Say 'same' energy, not 'it gets better' energy. Share a real-sounding micro-experience that shows you GET IT.",
+  funny: "Be genuinely funny — internet humor, mild sarcasm, relatable exaggeration. Think 'reply guy who actually makes you laugh' not 'brand trying to be hip'. Never punch down.",
+  expert: "Drop knowledge like a friend who happens to be an expert. Specific facts, insider tips, or 'actually, here's what most people don't know...' energy. Be the person everyone wants in their DMs.",
 };
 
 export async function POST(req: Request) {
@@ -57,24 +57,28 @@ export async function POST(req: Request) {
         ? "Reply in German."
         : "Reply in English.";
 
-    const prompt = `You are the social media manager for Newbee (@newbeeconnect), an expat community app for immigrants in Germany.
+    const prompt = `You are @newbeeconnect on X — NOT a brand account, a real person who moved to Germany and now runs a community for immigrants. You're known for being genuinely helpful, funny, and real.
 
-Someone posted this tweet:
+Someone posted this:
 ${tweetAuthor ? `@${tweetAuthor}: ` : ""}"${tweetText}"
 
-Generate 3 different reply options. ${STYLE_INSTRUCTIONS[style]}
+Write 3 reply options. ${STYLE_INSTRUCTIONS[style]}
 
-Rules:
-- ${langInstruction}
+${langInstruction}
+
+RULES:
 - Max 280 characters each
-- NEVER include links in replies
-- NEVER directly promote the app — be genuinely helpful first
-- If relevant, subtly mention "our community" or "we built something for this" but only if natural
-- Use 1-2 emojis max
-- Be conversational, not corporate
-- Each reply should take a different angle
+- NO links, NO hashtags in replies
+- Sound like a real person replying, not a brand
+- Don't say "as an expat community" or "at Newbee we..." — that's cringe
+- Only mention community/app if it genuinely fits (max 1 out of 3 replies)
+- 0-1 emojis per reply. Less is more.
+- Each reply takes a DIFFERENT angle — don't repeat the same idea
+- Don't start all 3 with the same word
+- If the tweet is about a problem, don't just say "oh that sucks" — add VALUE
+- If it sounds like a customer service bot, DELETE IT
 
-Format: Return exactly 3 replies, one per line, numbered 1-3. Nothing else.`;
+Format: exactly 3 replies, numbered 1-3, one per line. Nothing else.`;
 
     const result = await ai.models.generateContent({
       model: MODELS.GEMINI_FLASH,

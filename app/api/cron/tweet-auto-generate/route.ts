@@ -15,12 +15,61 @@ import { buildTweetPrompt, type TweetCategory, type TweetLanguage } from "@/lib/
 
 // 5 tweets/day with varied categories and times (UTC hours → CET = UTC+1)
 const DAILY_SCHEDULE: Array<{ hour: number; minute: number; category: TweetCategory }> = [
-  { hour: 7, minute: 0, category: "value_content" },     // 08:00 CET
-  { hour: 9, minute: 0, category: "engagement" },         // 10:00 CET
-  { hour: 11, minute: 0, category: "did_you_know" },      // 12:00 CET
-  { hour: 14, minute: 0, category: "community_story" },   // 15:00 CET
-  { hour: 17, minute: 0, category: "motivation" },        // 18:00 CET
+  { hour: 7, minute: 0, category: "value_content" },     // 08:00 CET — morning tip
+  { hour: 9, minute: 0, category: "engagement" },         // 10:00 CET — start a debate
+  { hour: 11, minute: 0, category: "did_you_know" },      // 12:00 CET — lunch scroll-stopper
+  { hour: 14, minute: 0, category: "community_story" },   // 15:00 CET — afternoon feels
+  { hour: 17, minute: 0, category: "motivation" },        // 18:00 CET — evening real talk
 ];
+
+// Random specific topics to prevent repetition — AI picks from these for variety
+const TOPIC_POOL: Record<TweetCategory, string[]> = {
+  value_content: [
+    "Anmeldung hacks", "Schufa score from zero", "Kündigung rules employees don't know",
+    "free German courses nobody mentions", "how to actually get a Termin at Ausländerbehörde",
+    "Elterngeld tips for expats", "GEZ fee and how to deal with it", "Nebenkostenabrechnung traps",
+    "best banking apps for expats", "how to read a German payslip", "apartment Bewerbungsmappe secrets",
+    "health insurance switching deadlines", "tax class for married couples", "Rundfunkbeitrag exemptions",
+    "how to get a Wohnberechtigungsschein", "Kindergeld application mistakes",
+  ],
+  engagement: [
+    "worst German bureaucracy experience", "German habits you accidentally adopted",
+    "what you miss most from home", "most confusing German rule", "is Germany worth it",
+    "Berlin vs Munich debate", "German directness - rude or refreshing?",
+    "dating in Germany as a foreigner", "Sunday Ruhetag - love it or hate it?",
+    "your most embarrassing German language fail", "pfand system - genius or annoying?",
+    "Karneval vs Halloween", "German work culture shock", "supermarket checkout speed trauma",
+  ],
+  did_you_know: [
+    "German immigration statistics", "how many languages are spoken in Berlin",
+    "Turkish population in Germany history", "Blue Card vs normal work visa numbers",
+    "average time for Einbürgerung", "how many people leave Germany each year",
+    "German dual citizenship new law", "percentage of immigrants in German workforce",
+    "history of Gastarbeiter program", "refugee integration success stories data",
+  ],
+  community_story: [
+    "first day alone in Germany", "making your first German friend", "food you can't find here",
+    "calling home and pretending everything's fine", "first Weihnachtsmarkt experience",
+    "when German bureaucracy actually worked", "culture shock moment", "apartment hunting horror",
+    "moment you felt like you belonged", "learning to say no in German culture",
+    "your German neighbor interaction", "first summer in Germany vs back home",
+  ],
+  motivation: [
+    "the loneliness nobody talks about", "missing family celebrations back home",
+    "identity crisis between two cultures", "the day it finally clicked",
+    "building a life from zero", "when you realize Germany is home now",
+    "for everyone who cried at the Ausländerbehörde", "strength in being different",
+  ],
+  product_cta: [],
+  trend_hack: [],
+  thread_guide: [],
+};
+
+function pickRandomTopic(category: TweetCategory): string | undefined {
+  const pool = TOPIC_POOL[category];
+  if (!pool || pool.length === 0) return undefined;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 // Rotate languages: mostly English, some Turkish and German
 function pickLanguage(dayOfWeek: number, slotIndex: number): TweetLanguage {
@@ -81,16 +130,18 @@ export async function GET(request: NextRequest) {
       const slot = DAILY_SCHEDULE[i];
       const language = pickLanguage(dayOfWeek, i);
 
+      const topic = pickRandomTopic(slot.category);
       const prompt = buildTweetPrompt({
         category: slot.category,
         language,
+        topic,
       });
 
       const result = await ai.models.generateContent({
         model: MODELS.GEMINI_FLASH,
         contents: prompt,
         config: {
-          temperature: 0.9,
+          temperature: 1.0,
           maxOutputTokens: 500,
         },
       });

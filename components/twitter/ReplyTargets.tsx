@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,10 @@ import {
   Loader2,
   Sparkles,
   Check,
+  History,
+  Send,
+  Clock,
+  Target,
 } from "lucide-react";
 import { useReplySuggest, useSendReply } from "@/hooks/useTweets";
 import { toast } from "sonner";
@@ -102,6 +106,86 @@ function shuffle<T>(arr: T[]): T[] {
   return shuffled;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────
+function extractAuthorFromUrl(url: string): string {
+  const match = url.match(/(?:x|twitter)\.com\/([A-Za-z0-9_]+)\/status\//);
+  return match ? match[1] : "";
+}
+
+function extractTweetIdFromUrl(url: string): string | null {
+  const match = url.match(/(?:x|twitter)\.com\/\w+\/status\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+// ─── Tweet Embed Component ──────────────────────────────────────────
+function TweetEmbed({ url }: { url: string }) {
+  const embedRef = useRef<HTMLDivElement>(null);
+  const tweetId = extractTweetIdFromUrl(url);
+
+  useEffect(() => {
+    if (!tweetId || !embedRef.current) return;
+
+    // Clear previous embed
+    embedRef.current.innerHTML = "";
+
+    // Create blockquote for Twitter widget
+    const blockquote = document.createElement("blockquote");
+    blockquote.className = "twitter-tweet";
+    blockquote.setAttribute("data-theme", "dark");
+    blockquote.setAttribute("data-width", "100%");
+    const link = document.createElement("a");
+    link.href = url;
+    blockquote.appendChild(link);
+    embedRef.current.appendChild(blockquote);
+
+    // Load/reload Twitter widget
+    const w = window as unknown as { twttr?: { widgets?: { load: (el?: HTMLElement) => void } } };
+    if (w.twttr?.widgets) {
+      w.twttr.widgets.load(embedRef.current);
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://platform.twitter.com/widgets.js";
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, [tweetId, url]);
+
+  if (!tweetId) return null;
+
+  return (
+    <div ref={embedRef} className="max-w-full overflow-hidden rounded-lg [&_iframe]:!max-w-full" />
+  );
+}
+
+// ─── Reply History (localStorage) ───────────────────────────────────
+interface ReplyRecord {
+  tweetUrl: string;
+  author: string;
+  replyText: string;
+  sentAt: string;
+  replyUrl?: string;
+}
+
+function getReplyHistory(): ReplyRecord[] {
+  try {
+    return JSON.parse(localStorage.getItem("newbee_reply_history") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function addReplyToHistory(record: ReplyRecord) {
+  const history = getReplyHistory();
+  history.unshift(record);
+  // Keep last 100
+  localStorage.setItem("newbee_reply_history", JSON.stringify(history.slice(0, 100)));
+}
+
+function getTodayReplyCount(): number {
+  const today = new Date().toISOString().split("T")[0];
+  return getReplyHistory().filter((r) => r.sentAt.startsWith(today)).length;
+}
+
 // ─── Reply Generator Component ──────────────────────────────────────
 function ReplyGenerator() {
   const [tweetUrl, setTweetUrl] = useState("");
@@ -110,8 +194,26 @@ function ReplyGenerator() {
   const [replies, setReplies] = useState<string[]>([]);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [sentIdx, setSentIdx] = useState<number | null>(null);
+  const [todayCount, setTodayCount] = useState(0);
+  const [showEmbed, setShowEmbed] = useState(false);
   const suggestMutation = useReplySuggest();
   const sendReplyMutation = useSendReply();
+
+  useEffect(() => {
+    setTodayCount(getTodayReplyCount());
+  }, []);
+
+  // Auto-extract author from URL
+  const handleUrlChange = useCallback((url: string) => {
+    setTweetUrl(url);
+    const author = extractAuthorFromUrl(url);
+    if (author) setTweetAuthor(author);
+    // Show embed if valid URL
+    setShowEmbed(!!extractTweetIdFromUrl(url));
+    // Reset previous replies when URL changes
+    setReplies([]);
+    setSentIdx(null);
+  }, []);
 
   const handleGenerate = async (style: string = "helpful") => {
     if (!tweetText.trim()) return;
@@ -146,6 +248,17 @@ function ReplyGenerator() {
         replyText: text,
       });
       setSentIdx(idx);
+
+      // Save to history
+      addReplyToHistory({
+        tweetUrl: tweetUrl.trim(),
+        author: tweetAuthor,
+        replyText: text,
+        sentAt: new Date().toISOString(),
+        replyUrl: result.data.replyUrl,
+      });
+      setTodayCount(getTodayReplyCount());
+
       toast.success("Reply sent!", {
         action: {
           label: "View",
@@ -157,58 +270,100 @@ function ReplyGenerator() {
     }
   };
 
+  const clearForm = () => {
+    setTweetUrl("");
+    setTweetText("");
+    setTweetAuthor("");
+    setReplies([]);
+    setSentIdx(null);
+    setCopiedIdx(null);
+    setShowEmbed(false);
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Sparkles className="h-4 w-4" />
-          AI Reply Generator
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            AI Reply Generator
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Badge variant={todayCount >= 20 ? "default" : "secondary"} className="text-xs">
+              <Send className="h-3 w-3 mr-1" />
+              {todayCount}/20 today
+            </Badge>
+            {(tweetUrl || tweetText) && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearForm}>
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
         <p className="text-xs text-muted-foreground">
-          Paste tweet URL + text → AI generates replies → click Send to reply directly
+          Paste tweet URL → author auto-fills → paste text → generate → Send
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
-        <input
-          type="text"
-          placeholder="Tweet URL (https://x.com/user/status/...)"
-          value={tweetUrl}
-          onChange={(e) => setTweetUrl(e.target.value)}
-          className="w-full rounded-md border bg-transparent px-3 py-1.5 text-sm font-mono"
-        />
-        <div className="flex gap-2">
+        {/* Step 1: Tweet URL */}
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground font-medium">1. Tweet URL</label>
           <input
             type="text"
-            placeholder="@username"
-            value={tweetAuthor}
-            onChange={(e) => setTweetAuthor(e.target.value)}
-            className="w-28 shrink-0 rounded-md border bg-transparent px-2 py-1.5 text-sm"
+            placeholder="https://x.com/user/status/..."
+            value={tweetUrl}
+            onChange={(e) => handleUrlChange(e.target.value)}
+            className="w-full rounded-md border bg-transparent px-3 py-1.5 text-sm font-mono"
           />
-          <Textarea
-            placeholder="Paste tweet text here..."
-            value={tweetText}
-            onChange={(e) => setTweetText(e.target.value)}
-            className="min-h-[60px] text-sm"
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button size="sm" onClick={() => handleGenerate("helpful")} disabled={suggestMutation.isPending || !tweetText.trim()}>
-            {suggestMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <MessageSquare className="h-3.5 w-3.5 mr-1" />}
-            Helpful
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => handleGenerate("empathetic")} disabled={suggestMutation.isPending || !tweetText.trim()}>
-            Empathetic
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => handleGenerate("expert")} disabled={suggestMutation.isPending || !tweetText.trim()}>
-            Expert
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => handleGenerate("funny")} disabled={suggestMutation.isPending || !tweetText.trim()}>
-            Funny
-          </Button>
         </div>
 
+        {/* Tweet Embed Preview */}
+        {showEmbed && <TweetEmbed url={tweetUrl} />}
+
+        {/* Step 2: Author + Text */}
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground font-medium">2. Tweet content</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="@username"
+              value={tweetAuthor}
+              onChange={(e) => setTweetAuthor(e.target.value)}
+              className="w-28 shrink-0 rounded-md border bg-transparent px-2 py-1.5 text-sm"
+            />
+            <Textarea
+              placeholder="Paste tweet text here..."
+              value={tweetText}
+              onChange={(e) => setTweetText(e.target.value)}
+              className="min-h-[60px] text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Step 3: Generate */}
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground font-medium">3. Generate reply</label>
+          <div className="flex gap-2 flex-wrap">
+            <Button size="sm" onClick={() => handleGenerate("helpful")} disabled={suggestMutation.isPending || !tweetText.trim()}>
+              {suggestMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <MessageSquare className="h-3.5 w-3.5 mr-1" />}
+              Helpful
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => handleGenerate("empathetic")} disabled={suggestMutation.isPending || !tweetText.trim()}>
+              Empathetic
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => handleGenerate("expert")} disabled={suggestMutation.isPending || !tweetText.trim()}>
+              Expert
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => handleGenerate("funny")} disabled={suggestMutation.isPending || !tweetText.trim()}>
+              Funny
+            </Button>
+          </div>
+        </div>
+
+        {/* Generated Replies */}
         {replies.length > 0 && (
           <div className="space-y-2 pt-2 border-t">
+            <label className="text-xs text-muted-foreground font-medium">4. Pick & send</label>
             {replies.map((reply, idx) => (
               <div key={idx} className={`flex items-start gap-2 p-2 rounded-md ${sentIdx === idx ? "bg-green-500/10 border border-green-500/20" : "bg-muted/50"}`}>
                 <p className="text-sm flex-1">{reply}</p>
@@ -235,7 +390,10 @@ function ReplyGenerator() {
                       {sendReplyMutation.isPending ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
-                        "Send"
+                        <>
+                          <Send className="h-3 w-3 mr-0.5" />
+                          Send
+                        </>
                       )}
                     </Button>
                   )}
@@ -254,18 +412,99 @@ function ReplyGenerator() {
   );
 }
 
+// ─── Reply History Component ──────────────────────────────────────────
+function ReplyHistory() {
+  const [history, setHistory] = useState<ReplyRecord[]>([]);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    setHistory(getReplyHistory());
+  }, []);
+
+  if (history.length === 0) return null;
+
+  const displayed = showAll ? history.slice(0, 50) : history.slice(0, 5);
+  const today = new Date().toISOString().split("T")[0];
+  const todayReplies = history.filter((r) => r.sentAt.startsWith(today));
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Reply History
+          </CardTitle>
+          <Badge variant="secondary" className="text-xs">
+            {todayReplies.length} today / {history.length} total
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {displayed.map((record, idx) => {
+          const time = new Date(record.sentAt);
+          const isToday = record.sentAt.startsWith(today);
+          return (
+            <div key={idx} className="flex items-start gap-2 p-2 rounded-md bg-muted/30 text-sm">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-0.5">
+                  {record.author && (
+                    <span className="text-xs text-muted-foreground">@{record.author}</span>
+                  )}
+                  <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                    <Clock className="h-3 w-3" />
+                    {isToday
+                      ? time.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })
+                      : time.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}
+                  </span>
+                </div>
+                <p className="text-xs truncate">{record.replyText}</p>
+              </div>
+              {record.replyUrl && (
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" asChild>
+                  <a href={record.replyUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </Button>
+              )}
+            </div>
+          );
+        })}
+        {history.length > 5 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-xs"
+            onClick={() => setShowAll(!showAll)}
+          >
+            {showAll ? "Show less" : `Show all (${history.length})`}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────────────────
 export function ReplyTargets() {
   const [queries, setQueries] = useState(() => shuffle(ALL_SEARCH_QUERIES).slice(0, 10));
+  const [filterLang, setFilterLang] = useState<"all" | "en" | "tr" | "de">("all");
 
   const refreshQueries = () => {
     setQueries(shuffle(ALL_SEARCH_QUERIES).slice(0, 10));
   };
 
+  const filteredAccounts = filterLang === "all"
+    ? TARGET_ACCOUNTS
+    : TARGET_ACCOUNTS; // All accounts are relevant for all languages
+
   return (
     <div className="space-y-4">
       {/* AI Reply Generator */}
       <ReplyGenerator />
+
+      {/* Reply History */}
+      <ReplyHistory />
 
       {/* Search Queries */}
       <Card>
@@ -281,7 +520,7 @@ export function ReplyTargets() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Click to search X → find a tweet → paste it above for AI reply
+            Click to search X → find a tweet → copy URL + text → paste above → Send reply
           </p>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -312,15 +551,15 @@ export function ReplyTargets() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Users className="h-4 w-4" />
+            <Target className="h-4 w-4" />
             Target Accounts ({TARGET_ACCOUNTS.length})
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Reply to their recent tweets — high priority accounts first
+            Visit their profiles → find recent tweets → reply with AI-generated responses
           </p>
         </CardHeader>
         <CardContent className="space-y-2">
-          {TARGET_ACCOUNTS.map((account) => (
+          {filteredAccounts.map((account) => (
             <div key={account.handle} className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <Badge variant={PRIORITY_COLORS[account.priority]} className="text-xs shrink-0">
@@ -354,13 +593,15 @@ export function ReplyTargets() {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm space-y-2 text-muted-foreground">
-          <p>1. <strong>Search</strong> — Click a query above, find a recent tweet</p>
-          <p>2. <strong>Paste</strong> — Copy tweet text into the AI Reply Generator</p>
-          <p>3. <strong>Generate</strong> — Pick a style, get 3 reply options</p>
-          <p>4. <strong>Copy & Reply</strong> — Copy the best one, paste as reply on X</p>
+          <p>1. <strong>Search</strong> — Click a query above to open X search (latest tab)</p>
+          <p>2. <strong>Copy URL</strong> — Find a good tweet, copy its URL from browser or share button</p>
+          <p>3. <strong>Paste URL</strong> — Paste into Reply Generator, author auto-fills + tweet preview shows</p>
+          <p>4. <strong>Paste Text</strong> — Copy the tweet text and paste it (AI needs the text to generate a good reply)</p>
+          <p>5. <strong>Generate & Send</strong> — Pick a style, get 3 options, click Send to reply directly via API</p>
           <p className="pt-2 border-t">
             <strong>Daily target:</strong> 20 replies across different queries.
             Focus on tweets from the last 6 hours for max visibility.
+            Mix of Helpful (50%), Expert (25%), Empathetic (25%).
           </p>
         </CardContent>
       </Card>
