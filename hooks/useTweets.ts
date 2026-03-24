@@ -114,6 +114,23 @@ export function useScheduleTweet() {
   });
 }
 
+export function useReplySuggest() {
+  return useMutation({
+    mutationFn: async (input: { tweetText: string; tweetAuthor?: string; style?: string; language?: string }) => {
+      const res = await fetch("/api/twitter/reply-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to generate reply");
+      }
+      return res.json() as Promise<{ data: string[] }>;
+    },
+  });
+}
+
 export function useDeleteTweet() {
   const queryClient = useQueryClient();
 
