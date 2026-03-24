@@ -74,6 +74,13 @@ export type StrategyWithPersona = z.infer<typeof strategyWithPersonaSchema>;
  * Parse AI response that might contain JSON wrapped in markdown code blocks
  * or mixed with explanatory text.
  */
+/**
+ * Extract raw JSON (object or array) from an AI response without schema validation.
+ */
+export function extractAiJson(text: string): unknown {
+  return parseAiJson(text, z.unknown());
+}
+
 export function parseAiJson<T>(text: string, schema: z.ZodType<T>): T {
   let cleaned = text.trim();
 
