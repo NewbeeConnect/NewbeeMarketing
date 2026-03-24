@@ -32,6 +32,7 @@
     "sharp": "^0.34.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
+    "twitter-api-v2": "^1.29.0",
     "workflow": "^4.2.0-beta.71",
     "zod": "^4.3.6"
   },

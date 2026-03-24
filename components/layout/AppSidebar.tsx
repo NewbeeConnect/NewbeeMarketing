@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Bot,
   MessageSquare,
+  Twitter,
 } from "lucide-react";
 import {
   Sidebar,
@@ -55,6 +56,7 @@ const NAV_GROUPS = [
   {
     label: "Distribute",
     items: [
+      { title: "Twitter Hub", url: "/twitter", icon: Twitter },
       { title: "Campaigns", url: "/campaigns", icon: Megaphone },
       { title: "Social Hub", url: "/social", icon: Share2 },
       { title: "Calendar", url: "/calendar", icon: CalendarDays },
