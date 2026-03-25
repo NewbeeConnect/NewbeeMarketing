@@ -1,6 +1,71 @@
 import type { BrandKit, CampaignPerformance, CodeAnalysis } from "@/types/database";
 import type { SummarizedContext } from "@/lib/scraping/context-summarizer";
 
+/**
+ * Default Newbee product context — injected automatically when product description
+ * is missing or empty. This platform exclusively produces content for Newbee,
+ * so this context ensures AI always has accurate product knowledge.
+ */
+export const NEWBEE_DEFAULT_PRODUCT_CONTEXT = `## Newbee Product Identity (Default Context)
+App Name: Newbee — Living Abroad? Simplified.
+Description: Newbee is the all-in-one mobile community app for immigrants and expats worldwide. It helps people navigate life in a new country by connecting them with local communities, events, and expert advice.
+
+### Core Features
+- **Event Discovery & Creation**: Browse and create local events (coffee chats, language practice, game nights, yoga, networking, city walks, etc.)
+- **Interest-Based Communities**: Join or create communities around shared interests, nationalities, or neighborhoods
+- **Expert Q&A**: Get answers from verified experienced expats on topics like visa, housing, banking, healthcare, culture
+- **Real-Time Chat & Messaging**: Direct communication between users
+- **Multilingual Support**: English, German, Turkish — with language-based matching
+- **City-Based Discovery**: Geolocation-aware content and recommendations
+
+### Target Audience
+- Immigrants and expats relocating to a new country
+- International students
+- Digital nomads
+- Anyone seeking community and local knowledge abroad
+
+### Brand Identity
+- **Colors**: Warm amber/yellow (#F5B800 primary) — represents optimism and new beginnings
+- **Fonts**: Pacifico (headings, friendly accent), Inter (body, clean and modern)
+- **Tone**: Warm, welcoming, inclusive, energetic, solutions-focused
+- **Visual Style**: Modern, clean UI with warm amber accents, time-based contextual backgrounds
+
+### Key Value Propositions
+- "You're not alone in a new country"
+- Find your tribe through shared interests and local events
+- Get real answers from people who've been through it
+- Simplify the complexity of living abroad
+
+### Available Platforms
+- iOS (App Store)
+- Android (Google Play)
+- Web (app.newbeeapp.com)
+
+### App UI Description (for accurate video scenes)
+- **Home Screen**: Clean white background with Newbee bee logo (top-left), city name shown prominently (e.g., "FRANKFURT"), contextual greeting banner with warm illustrations, search bar, three action buttons (Ask Question, Create Event, Start Community) in amber/yellow, Discover section with Events/Communities/Feed tabs, event cards with cover images showing date, venue and attendee count
+- **Feed Screen**: Tabs for All/Expert/New, Top Experts carousel with profile photos and expertise badges (Tax & Finance, Insurance, etc.), social-style posts with Like/Comment/Share buttons, floating "Post" button in amber
+- **Events Screen**: Tabs for All/Online, city-based filtering, Featured events section with large cover images, event cards showing date, time, location, price, remaining spots, "Add Event" button in amber
+- **Communities Screen**: Tabs for All/My Communities, list view with community logos, WhatsApp integration badges, Local/Online tags, member counts, "Add Community" button in amber
+- **Profile Screen**: User photo with Co-Founder/Experienced badges, city info showing "Originally from → Now in" journey, social links, About Me section
+- **Overall UI Theme**: White background, amber/yellow (#F5B800) accent buttons and highlights, rounded corners, clean Inter font, warm and welcoming feel, bottom tab navigation (Home, Feed, Events, Communities, Profile)
+
+### Marketing Angles
+- Emotional: The loneliness of moving abroad → finding community → belonging
+- Practical: Navigating bureaucracy, language barriers, cultural differences → expert help
+- Social: Making friends in a new city → events and communities
+- Discovery: Finding hidden gems, local tips, authentic experiences`;
+
+/**
+ * Returns Newbee product context when product description is missing.
+ * Use this to ensure AI always has product knowledge.
+ */
+export function getDefaultProductContext(productDescription?: string | null): string {
+  if (productDescription && productDescription.trim().length > 20) {
+    return ""; // User provided sufficient description
+  }
+  return `\n${NEWBEE_DEFAULT_PRODUCT_CONTEXT}`;
+}
+
 export function buildBrandContext(brandKit: BrandKit | null): string {
   if (!brandKit) return "";
 

@@ -1,6 +1,21 @@
+import { getDefaultProductContext } from "./brand-context";
+
 export const SCENES_SYSTEM_PROMPT = `You are a professional video director, cinematographer, and storyboard artist specializing in short-form and long-form marketing videos generated with Google Veo 3.1.
 
 Your role is to break down a marketing strategy into individual scenes that produce cinematic, professional-quality video output. You work as an ASSISTANT - you suggest scene compositions, the user approves.
+
+## CRITICAL: Newbee Product Accuracy
+- This platform produces marketing videos for Newbee, a community app for immigrants and expats.
+- Every scene MUST clearly relate to Newbee's actual features and user experience.
+- Show SPECIFIC scenarios, not generic "person using phone" scenes:
+  - An expat browsing local events on Newbee (coffee chat, language exchange, city walk)
+  - Someone posting a question to an expert about visa/housing/healthcare
+  - A newcomer joining a community group for their nationality or interest
+  - Friends meeting at a Newbee event in a new city
+  - A verified expert answering questions and helping newcomers
+- The video must tell a cohesive story with a clear narrative thread across ALL scenes.
+- Every scene must build on the previous one — no disconnected random lifestyle shots.
+- Brand colors: warm amber/yellow (#F5B800), clean modern UI, welcoming atmosphere.
 
 ## Scene Design Principles
 - Each scene should be a self-contained visual moment (4, 6, or 8 seconds)
@@ -99,6 +114,8 @@ export function buildScenesUserPrompt(params: {
     ? `Aspect Ratio: ${params.aspectRatio}`
     : "";
 
+  const defaultContext = getDefaultProductContext(params.productDescription);
+
   return `Based on the approved strategy, create a scene breakdown:
 
 ## Approved Strategy
@@ -115,6 +132,7 @@ ${aspectHint}
 ## Product
 Name: ${params.productName}
 ${params.productDescription ? `Description: ${params.productDescription}` : ""}
+${defaultContext}
 
 ## Style
 Visual Style: ${params.style}

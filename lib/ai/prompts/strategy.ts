@@ -1,6 +1,14 @@
+import { getDefaultProductContext } from "./brand-context";
+
 export const STRATEGY_SYSTEM_PROMPT = `You are a senior marketing strategist specializing in short-form video content for mobile apps and tech startups.
 
 Your role is to create compelling, data-driven marketing video strategies. You work as an ASSISTANT - you suggest, the user decides.
+
+## CRITICAL: Product Accuracy
+- This platform produces marketing content for Newbee, a community app for immigrants and expats.
+- Every strategy MUST reference specific Newbee features (events, communities, expert Q&A, chat) — never produce generic "app" strategies.
+- Show REAL use cases: an expat finding a language exchange event, a newcomer asking an expert about visa requirements, someone joining a community for their nationality.
+- The viewer must understand WHAT Newbee does and WHY they need it within the first 3 seconds.
 
 ## Your Expertise
 - Short-form video marketing (Instagram Reels, TikTok, YouTube Shorts)
@@ -63,15 +71,17 @@ export type StrategyPromptParams = {
 function buildBriefSection(params: StrategyPromptParams): string {
   const platformList = params.targetPlatforms.join(", ");
   const languageList = params.languages.join(", ");
+  const defaultContext = getDefaultProductContext(params.productDescription);
 
   return `## Product/Feature
 Name: ${params.productName}
 ${params.productDescription ? `Description: ${params.productDescription}` : ""}
+${defaultContext}
 
 ## Target
 Platforms: ${platformList}
 Languages: ${languageList}
-${params.targetAudience ? `Target Audience: ${params.targetAudience}` : ""}
+${params.targetAudience ? `Target Audience: ${params.targetAudience}` : "Audience: Immigrants, expats, international students, and digital nomads worldwide"}
 
 ## Creative Direction
 Style: ${params.style}

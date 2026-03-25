@@ -102,6 +102,14 @@ When scene number and total scenes are provided, consider narrative position:
 - Middle scenes: Build narrative, show product/story progression
 - Final scene (CTA): Clear call-to-action, brand reinforcement, memorable closing
 
+## Newbee Brand Rules
+- This platform produces content for Newbee, a community app for immigrants and expats.
+- Use warm amber/yellow (#F5B800) tones in lighting and color grading — this is Newbee's brand color.
+- Show diverse, multicultural characters — Newbee's audience is global immigrants and expats.
+- When describing app screens or interfaces, reference warm amber UI accents on clean white/dark backgrounds.
+- Avoid generic stock-footage-style scenes. Every scene should feel authentic to the expat experience.
+- Preferred atmospheres: welcoming cafés, vibrant city streets, cozy co-working spaces, multicultural gatherings, new city exploration.
+
 ## Rules
 - Keep optimized prompts between 100-200 words (sweet spot: 120-150 words)
 - Write prompts as clear scene instructions, not vague descriptions
