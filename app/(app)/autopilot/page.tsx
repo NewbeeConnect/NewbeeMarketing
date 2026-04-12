@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAutopilotConfig, useUpdateAutopilotConfig, useAutopilotRuns, useTriggerAutopilot } from "@/hooks/useAutopilot";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,23 +19,11 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { RUN_STATUS_COLORS } from "@/lib/social/status-colors";
 
-export default function AutopilotPage() {
-  const { data: config, isLoading: configLoading } = useAutopilotConfig();
+function ConfigForm({ config }: { config: { frequency: string; monthly_budget_usd: number; auto_generate: boolean; is_enabled: boolean; id?: string } }) {
   const updateConfig = useUpdateAutopilotConfig();
-  const { data: runs, isLoading: runsLoading } = useAutopilotRuns();
-  const trigger = useTriggerAutopilot();
-
-  const [frequency, setFrequency] = useState<string>(config?.frequency ?? "daily");
-  const [budget, setBudget] = useState(String(config?.monthly_budget_usd ?? 100));
-  const [autoGen, setAutoGen] = useState(config?.auto_generate ?? false);
-
-  useEffect(() => {
-    if (config) {
-      setFrequency(config.frequency);
-      setBudget(String(config.monthly_budget_usd));
-      setAutoGen(config.auto_generate);
-    }
-  }, [config]);
+  const [frequency, setFrequency] = useState<string>(config.frequency);
+  const [budget, setBudget] = useState(String(config.monthly_budget_usd));
+  const [autoGen, setAutoGen] = useState(config.auto_generate);
 
   const handleToggle = async (enabled: boolean) => {
     try {
@@ -54,6 +42,65 @@ export default function AutopilotPage() {
       toast.success("Configuration saved");
     } catch { toast.error("Failed to save"); }
   };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Bot className="h-5 w-5" /> Configuration
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label>Enable Autopilot</Label>
+            <p className="text-sm text-muted-foreground">Run daily to generate content suggestions</p>
+          </div>
+          <Switch
+            checked={config.is_enabled}
+            onCheckedChange={handleToggle}
+            disabled={updateConfig.isPending}
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3 pt-2">
+          <div>
+            <Label className="flex items-center gap-1.5 mb-1.5"><Clock className="h-3.5 w-3.5" /> Frequency</Label>
+            <Select value={frequency} onValueChange={setFrequency}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="biweekly">Biweekly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="flex items-center gap-1.5 mb-1.5"><DollarSign className="h-3.5 w-3.5" /> Monthly Budget ($)</Label>
+            <Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} min={0} max={10000} />
+          </div>
+          <div className="flex items-end">
+            <div className="flex-1">
+              <Label className="flex items-center gap-1.5 mb-1.5"><Zap className="h-3.5 w-3.5" /> Auto-generate content</Label>
+              <div className="flex items-center gap-2 h-9">
+                <Switch checked={autoGen} onCheckedChange={setAutoGen} />
+                <span className="text-sm text-muted-foreground">{autoGen ? "On" : "Off"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <Button onClick={handleSaveConfig} disabled={updateConfig.isPending} variant="outline" size="sm">
+          <Save className="h-3.5 w-3.5 mr-1.5" /> Save Configuration
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function AutopilotPage() {
+  const { data: config, isLoading: configLoading } = useAutopilotConfig();
+  const { data: runs, isLoading: runsLoading } = useAutopilotRuns();
+  const trigger = useTriggerAutopilot();
 
   const handleTrigger = async () => {
     try {
@@ -82,58 +129,9 @@ export default function AutopilotPage() {
         {/* Config */}
         {configLoading ? (
           <Skeleton className="h-48" />
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Bot className="h-5 w-5" /> Configuration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Enable Autopilot</Label>
-                  <p className="text-sm text-muted-foreground">Run daily to generate content suggestions</p>
-                </div>
-                <Switch
-                  checked={config?.is_enabled ?? false}
-                  onCheckedChange={handleToggle}
-                  disabled={updateConfig.isPending}
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3 pt-2">
-                <div>
-                  <Label className="flex items-center gap-1.5 mb-1.5"><Clock className="h-3.5 w-3.5" /> Frequency</Label>
-                  <Select value={frequency} onValueChange={setFrequency}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="biweekly">Biweekly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="flex items-center gap-1.5 mb-1.5"><DollarSign className="h-3.5 w-3.5" /> Monthly Budget ($)</Label>
-                  <Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} min={0} max={10000} />
-                </div>
-                <div className="flex items-end">
-                  <div className="flex-1">
-                    <Label className="flex items-center gap-1.5 mb-1.5"><Zap className="h-3.5 w-3.5" /> Auto-generate content</Label>
-                    <div className="flex items-center gap-2 h-9">
-                      <Switch checked={autoGen} onCheckedChange={setAutoGen} />
-                      <span className="text-sm text-muted-foreground">{autoGen ? "On" : "Off"}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <Button onClick={handleSaveConfig} disabled={updateConfig.isPending} variant="outline" size="sm">
-                <Save className="h-3.5 w-3.5 mr-1.5" /> Save Configuration
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        ) : config ? (
+          <ConfigForm key={config.id ?? "default"} config={config} />
+        ) : null}
 
         {/* Run History */}
         <div>

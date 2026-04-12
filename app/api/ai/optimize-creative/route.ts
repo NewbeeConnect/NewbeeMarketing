@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         : 0;
 
     // Fetch analysis insights if available
-    let analysisInsights: string[] = [];
+    const analysisInsights: string[] = [];
     if (analysis_id) {
       // mkt_performance_analyses is a new table not yet in generated types
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

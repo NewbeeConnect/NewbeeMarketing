@@ -116,7 +116,7 @@ export const twitterAdapter: SocialPlatformAdapter = {
       const text = (post.metadata.text as string) ?? post.text;
 
       // Upload media first if present
-      let mediaIds: string[] = [];
+      const mediaIds: string[] = [];
       if (post.mediaUrls.length > 0) {
         for (const url of post.mediaUrls.slice(0, post.mediaType === "video" ? 1 : 4)) {
           const upload = await twitterAdapter.uploadMedia(

@@ -28,7 +28,7 @@ export default function SocialAccountsPage() {
   const connectedPlatforms = new Set(accounts?.filter(a => a.is_active).map(a => a.platform as string));
 
   const handleConnect = (platform: string) => {
-    window.location.href = `/api/social/auth/${platform}`;
+    window.location.assign(`/api/social/auth/${platform}`);
   };
 
   const handleDisconnect = async (accountId: string) => {
