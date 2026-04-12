@@ -194,14 +194,10 @@ function ReplyGenerator() {
   const [replies, setReplies] = useState<string[]>([]);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [sentIdx, setSentIdx] = useState<number | null>(null);
-  const [todayCount, setTodayCount] = useState(0);
+  const [todayCount, setTodayCount] = useState(() => getTodayReplyCount());
   const [showEmbed, setShowEmbed] = useState(false);
   const suggestMutation = useReplySuggest();
   const sendReplyMutation = useSendReply();
-
-  useEffect(() => {
-    setTodayCount(getTodayReplyCount());
-  }, []);
 
   // Auto-extract author from URL
   const handleUrlChange = useCallback((url: string) => {
@@ -414,12 +410,8 @@ function ReplyGenerator() {
 
 // ─── Reply History Component ──────────────────────────────────────────
 function ReplyHistory() {
-  const [history, setHistory] = useState<ReplyRecord[]>([]);
+  const [history, setHistory] = useState<ReplyRecord[]>(() => getReplyHistory());
   const [showAll, setShowAll] = useState(false);
-
-  useEffect(() => {
-    setHistory(getReplyHistory());
-  }, []);
 
   if (history.length === 0) return null;
 
