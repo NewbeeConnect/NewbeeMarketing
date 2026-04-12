@@ -167,6 +167,7 @@ interface ReplyRecord {
 }
 
 function getReplyHistory(): ReplyRecord[] {
+  if (typeof window === "undefined") return [];
   try {
     return JSON.parse(localStorage.getItem("newbee_reply_history") || "[]");
   } catch {
@@ -175,6 +176,7 @@ function getReplyHistory(): ReplyRecord[] {
 }
 
 function addReplyToHistory(record: ReplyRecord) {
+  if (typeof window === "undefined") return;
   const history = getReplyHistory();
   history.unshift(record);
   // Keep last 100
