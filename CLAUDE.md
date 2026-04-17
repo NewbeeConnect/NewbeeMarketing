@@ -1,5 +1,6 @@
 # Newbee Marketing Hub - AI Video Ad Platform
 
+> **Last Updated:** April 17, 2026
 > Enterprise AI marketing platform using Google AI (Gemini, Veo, Imagen) for video/image ad generation.
 > GitHub: `NewbeeConnect/newbeemarketing` | Hosting: Vercel | Language: Turkish
 
@@ -98,14 +99,16 @@ Vercel auto-deploys from `main` branch. Required env vars: see `.env.example` or
 
 ## Agents
 
-| Agent | Description |
-|-------|-------------|
-| `ai-cost-analyzer` | AI harcama pattern analizi ve optimizasyon onerileri |
-| `seo-analyzer` | SEO metadata, sitemap, OG tag kontrolu |
-| `security-auditor` | OWASP Top 10 guvenlik taramasi |
-| `prompt-optimizer` | AI prompt token verimliligi ve maliyet optimizasyonu |
-| `migration-planner` | Supabase migration planlama (RLS + rollback) |
-| `component-reviewer` | React component kalite, a11y, performans incelemesi |
+All agents are manually invoked via the `Agent` tool (`subagent_type: <name>`). None trigger automatically — use when you want a dedicated pass on a specific concern without bloating the main context.
+
+| Agent | Purpose | When to invoke |
+|-------|---------|----------------|
+| `ai-cost-analyzer` | AI harcama pattern analizi ve optimizasyon onerileri | Before model migration or when monthly cost spikes |
+| `seo-analyzer` | SEO metadata, sitemap, OG tag kontrolu | Before major page redesign; weekly via `/weekly-seo-check` scheduled task |
+| `security-auditor` | OWASP Top 10 guvenlik taramasi | Before production deploy of new API route |
+| `prompt-optimizer` | AI prompt token verimliligi ve maliyet optimizasyonu | When a prompt builder touches a high-volume endpoint |
+| `migration-planner` | Supabase migration planlama (RLS + rollback) | Before writing any non-trivial schema change |
+| `component-reviewer` | React component kalite, a11y, performans incelemesi | After new user-facing component or major refactor |
 
 ## Hooks (Otomatik)
 
