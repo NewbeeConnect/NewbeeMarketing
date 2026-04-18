@@ -39,31 +39,20 @@ function LoginForm() {
 
     try {
       const supabase = createClient();
-      const { data: signInData, error } =
-        await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
       if (error) {
         toast.error(error.message);
         return;
       }
 
-      // Verify admin role before sending to dashboard.
-      // Middleware also enforces this, but an early client-side check
-      // gives a faster error toast and avoids a bounce through /dashboard.
-      if (signInData.user) {
-        const { data: roles, error: rolesError } =
-          await supabase.rpc("get_my_roles");
-
-        const roleArr = (roles ?? []) as Array<{ role: string }>;
-        const isAdmin = !rolesError && roleArr.some((r) => r.role === "admin");
-
-        if (!isAdmin) {
-          await supabase.auth.signOut();
-          toast.error("Access denied. This portal is for admins only.");
-          return;
-        }
-      }
-
+      // Role enforcement is in middleware. If user isn't admin, middleware
+      // signs them out and redirects here with ?error=not_admin (handled
+      // above). Avoid a client-side RPC check — it races with the session
+      // cookie write on fresh sign-ins and can incorrectly return empty.
       const redirectTo = searchParams.get("redirect") ?? "/dashboard";
       router.push(redirectTo);
       router.refresh();
