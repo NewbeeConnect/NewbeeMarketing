@@ -2,7 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import type { Notification } from "@/types/database";
+import type { Database } from "@/types/database";
+
+type Notification = Database["public"]["Tables"]["mkt_notifications"]["Row"];
 
 const NOTIFICATIONS_KEY = ["notifications"];
 

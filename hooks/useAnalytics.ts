@@ -17,10 +17,9 @@ interface AnalyticsData {
     failed: number;
     videoCount: number;
     imageCount: number;
-    voiceoverCount: number;
+    stitchedCount: number;
   };
-  projectCount: number;
-  campaignCount: number;
+  storyCount: number;
   monthlySpend: { month: string; amount: number }[];
 }
 
@@ -30,9 +29,9 @@ export function useAnalytics() {
   return useQuery({
     queryKey: ["analytics"],
     queryFn: async (): Promise<AnalyticsData> => {
-      // Fetch usage logs for cost breakdown (last 12 months, max 5000 rows)
       const twelveMonthsAgo = new Date();
       twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
       const { data: usageLogs, error: usageError } = await supabase
         .from("mkt_usage_logs")
         .select("api_service, estimated_cost_usd, created_at")
@@ -43,7 +42,6 @@ export function useAnalytics() {
 
       const logs = usageLogs ?? [];
 
-      // Cost by service
       const costByService = { gemini: 0, veo: 0, imagen: 0, tts: 0 };
       let totalSpent = 0;
       const monthlyMap = new Map<string, number>();
@@ -57,16 +55,17 @@ export function useAnalytics() {
           costByService[service] += cost;
         }
 
-        // Monthly aggregation
-        const month = log.created_at.substring(0, 7); // "2026-02"
-        monthlyMap.set(month, (monthlyMap.get(month) ?? 0) + cost);
+        const createdAt = log.created_at ?? "";
+        if (createdAt) {
+          const month = createdAt.substring(0, 7);
+          monthlyMap.set(month, (monthlyMap.get(month) ?? 0) + cost);
+        }
       }
 
       const monthlySpend = Array.from(monthlyMap.entries())
         .map(([month, amount]) => ({ month, amount }))
         .sort((a, b) => a.month.localeCompare(b.month));
 
-      // Generation stats (last 12 months, max 5000 rows)
       const { data: generations, error: genError } = await supabase
         .from("mkt_generations")
         .select("type, status")
@@ -79,31 +78,24 @@ export function useAnalytics() {
         total: gens.length,
         completed: gens.filter((g) => g.status === "completed").length,
         failed: gens.filter((g) => g.status === "failed").length,
-        videoCount: gens.filter((g) => g.type === "video" || g.type === "stitched").length,
+        videoCount: gens.filter((g) => g.type === "video").length,
         imageCount: gens.filter((g) => g.type === "image").length,
-        voiceoverCount: gens.filter((g) => g.type === "voiceover").length,
+        stitchedCount: gens.filter((g) => g.type === "stitched").length,
       };
 
-      // Counts
-      const { count: projectCount, error: projectCountError } = await supabase
-        .from("mkt_projects")
+      const { count: storyCount, error: storyCountError } = await supabase
+        .from("mkt_stories")
         .select("*", { count: "exact", head: true });
-      if (projectCountError) throw projectCountError;
-
-      const { count: campaignCount, error: campaignCountError } = await supabase
-        .from("mkt_campaigns")
-        .select("*", { count: "exact", head: true });
-      if (campaignCountError) throw campaignCountError;
+      if (storyCountError) throw storyCountError;
 
       return {
         totalSpent,
         costByService,
         generationStats,
-        projectCount: projectCount ?? 0,
-        campaignCount: campaignCount ?? 0,
+        storyCount: storyCount ?? 0,
         monthlySpend,
       };
     },
-    staleTime: 60_000, // 1 minute cache
+    staleTime: 60_000,
   });
 }

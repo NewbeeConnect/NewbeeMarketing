@@ -2,7 +2,10 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import type { ApiKey, ApiKeyPlatform } from "@/types/database";
+import type { Database } from "@/types/database";
+
+type ApiKey = Database["public"]["Tables"]["mkt_api_keys"]["Row"];
+type ApiKeyPlatform = ApiKey["platform"];
 
 const API_KEYS_KEY = ["api-keys"];
 

@@ -1,12 +1,11 @@
 import type { NextConfig } from "next";
-import { withWorkflow } from "workflow/next";
 
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "cydcvnzcaapbgtvbbqpw.supabase.co",
+        hostname: "dwwkcfunctykemwsrkkr.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
     ],
@@ -16,6 +15,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "1mb",
     },
   },
+  outputFileTracingIncludes: {
+    "/api/stories/[storyId]/stitch": ["./node_modules/ffmpeg-static/ffmpeg"],
+  },
 };
 
-export default withWorkflow(nextConfig);
+export default nextConfig;

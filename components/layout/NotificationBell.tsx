@@ -9,20 +9,20 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, CheckCircle2, XCircle, AlertTriangle, Check, Clock, Share2, TrendingUp, Bot } from "lucide-react";
+import { Bell, CheckCircle2, XCircle, AlertTriangle, Check, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import type { NotificationType } from "@/types/database";
+
+type NotificationType =
+  | "generation_complete"
+  | "generation_failed"
+  | "budget_alert"
+  | "content_pending_review";
 
 const ICON_MAP: Record<NotificationType, typeof CheckCircle2> = {
   generation_complete: CheckCircle2,
   generation_failed: XCircle,
   budget_alert: AlertTriangle,
   content_pending_review: Clock,
-  content_published: Share2,
-  content_failed: XCircle,
-  ab_test_winner: CheckCircle2,
-  trend_detected: TrendingUp,
-  autopilot_complete: Bot,
 };
 
 const COLOR_MAP: Record<NotificationType, string> = {
@@ -30,11 +30,6 @@ const COLOR_MAP: Record<NotificationType, string> = {
   generation_failed: "text-red-500",
   budget_alert: "text-yellow-500",
   content_pending_review: "text-blue-500",
-  content_published: "text-green-500",
-  content_failed: "text-red-500",
-  ab_test_winner: "text-purple-500",
-  trend_detected: "text-orange-500",
-  autopilot_complete: "text-cyan-500",
 };
 
 export function NotificationBell() {
@@ -84,8 +79,9 @@ export function NotificationBell() {
           ) : (
             <div className="divide-y">
               {notifications.map((notification) => {
-                const Icon = ICON_MAP[notification.type] || Bell;
-                const color = COLOR_MAP[notification.type] || "text-muted-foreground";
+                const notifType = notification.type as NotificationType;
+                const Icon = ICON_MAP[notifType] || Bell;
+                const color = COLOR_MAP[notifType] || "text-muted-foreground";
 
                 return (
                   <button
@@ -107,9 +103,11 @@ export function NotificationBell() {
                           {notification.message}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {formatDistanceToNow(new Date(notification.created_at), {
-                            addSuffix: true,
-                          })}
+                          {notification.created_at
+                            ? formatDistanceToNow(new Date(notification.created_at), {
+                                addSuffix: true,
+                              })
+                            : ""}
                         </p>
                       </div>
                       {!notification.is_read && (

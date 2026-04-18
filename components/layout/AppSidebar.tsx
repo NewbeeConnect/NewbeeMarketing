@@ -2,90 +2,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Palette,
-  Megaphone,
-  Film,
-  Images,
-  FileStack,
-  CalendarDays,
-  BarChart3,
-  Settings,
-  LogOut,
-  Plus,
-  Share2,
-  TrendingUp,
-  Bot,
-  MessageSquare,
-  Twitter,
-} from "lucide-react";
+import { Film, BarChart3, Settings, LogOut } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useProjects } from "@/hooks/useProjects";
 
-const NAV_GROUPS = [
-  {
-    label: "Home",
-    items: [
-      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-    ],
-  },
-  {
-    label: "Create",
-    items: [
-      { title: "Projects", url: "/projects", icon: Film, showBadge: true },
-      { title: "Brand Kit", url: "/brand", icon: Palette },
-    ],
-  },
-  {
-    label: "Distribute",
-    items: [
-      { title: "Twitter Hub", url: "/twitter", icon: Twitter },
-      { title: "Campaigns", url: "/campaigns", icon: Megaphone },
-      { title: "Social Hub", url: "/social", icon: Share2 },
-      { title: "Calendar", url: "/calendar", icon: CalendarDays },
-      { title: "Trends", url: "/trends", icon: TrendingUp },
-      { title: "Autopilot", url: "/autopilot", icon: Bot },
-    ],
-  },
-  {
-    label: "Library",
-    items: [
-      { title: "Gallery", url: "/gallery", icon: Images },
-      { title: "Templates", url: "/templates", icon: FileStack },
-      { title: "Prompts", url: "/prompts", icon: MessageSquare },
-    ],
-  },
-] as const;
-
-const footerItems = [
+const NAV_ITEMS = [
+  { title: "Generate", url: "/generate", icon: Film },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: Settings },
-];
+] as const;
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: projects } = useProjects();
-
-  const activeProjectCount =
-    projects?.filter((p) => p.status !== "completed").length ?? 0;
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -95,8 +35,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b border-sidebar-border px-4 py-3 space-y-3">
-        <Link href="/dashboard" className="flex items-center gap-2">
+      <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
+        <Link href="/generate" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
             N
           </div>
@@ -105,67 +45,33 @@ export function AppSidebar() {
             <p className="text-xs text-muted-foreground">Hub</p>
           </div>
         </Link>
-        <Button asChild size="sm" className="w-full">
-          <Link href="/projects/new">
-            <Plus className="h-4 w-4 mr-1.5" />
-            New Project
-          </Link>
-        </Button>
       </SidebarHeader>
 
       <SidebarContent>
-        {NAV_GROUPS.map((group, gi) => (
-          <div key={group.label}>
-            {gi > 0 && <SidebarSeparator />}
-            <SidebarGroup>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {group.items.map((item) => {
-                    const isActive =
-                      pathname === item.url ||
-                      (item.url !== "/dashboard" &&
-                        pathname.startsWith(item.url));
-                    return (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild isActive={isActive}>
-                          <Link href={item.url}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                        {"showBadge" in item &&
-                          item.showBadge &&
-                          activeProjectCount > 0 && (
-                            <SidebarMenuBadge>
-                              {activeProjectCount}
-                            </SidebarMenuBadge>
-                          )}
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </div>
-        ))}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {NAV_ITEMS.map((item) => {
+                const isActive =
+                  pathname === item.url || pathname.startsWith(item.url);
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive}>
+                      <Link href={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
-          {footerItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname === item.url || pathname.startsWith(item.url)}
-              >
-                <Link href={item.url}>
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleLogout}>
               <LogOut className="h-4 w-4" />

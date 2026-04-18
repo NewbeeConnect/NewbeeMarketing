@@ -13,7 +13,6 @@ import {
   Mic,
   Zap,
   Film,
-  Megaphone,
   AlertTriangle,
 } from "lucide-react";
 import { TOTAL_CREDIT_USD, BUDGET_THRESHOLDS } from "@/lib/constants";
@@ -73,7 +72,7 @@ export default function AnalyticsPage() {
     failed: 0,
     videoCount: 0,
     imageCount: 0,
-    voiceoverCount: 0,
+    stitchedCount: 0,
   };
   const successRate =
     stats.total > 0
@@ -236,15 +235,15 @@ export default function AnalyticsPage() {
                   <div className="flex gap-4 text-sm">
                     <span className="flex items-center gap-1.5">
                       <Film className="h-3.5 w-3.5 text-muted-foreground" />
-                      {stats.videoCount} videos
+                      {stats.videoCount} clips
                     </span>
                     <span className="flex items-center gap-1.5">
                       <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                      {stats.imageCount} images
+                      {stats.imageCount} frames
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <Mic className="h-3.5 w-3.5 text-muted-foreground" />
-                      {stats.voiceoverCount} voiceovers
+                      <Video className="h-3.5 w-3.5 text-muted-foreground" />
+                      {stats.stitchedCount} final videos
                     </span>
                   </div>
                 </div>
@@ -259,26 +258,19 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          {/* Project Overview */}
+          {/* Story Overview */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Film className="h-4 w-4" />
-                Project Overview
+                Stories
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <Film className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-2xl font-bold">{data?.projectCount ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">Projects</p>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <Megaphone className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-2xl font-bold">{data?.campaignCount ?? 0}</p>
-                  <p className="text-xs text-muted-foreground">Campaigns</p>
-                </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <Film className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-2xl font-bold">{data?.storyCount ?? 0}</p>
+                <p className="text-xs text-muted-foreground">Stories generated</p>
               </div>
 
               {/* Monthly Spend Chart */}
