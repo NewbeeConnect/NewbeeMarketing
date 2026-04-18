@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { postTweet, postThread } from "@/lib/twitter/client";
 
 const postSchema = z.union([
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     const serviceClient = createServiceClient();
     const rateCheck = await checkRateLimit(serviceClient, user.id, "social-publish");
     if (!rateCheck.allowed) {
-      return NextResponse.json({ error: rateCheck.error }, { status: 429 });
+      return rateLimitResponse(rateCheck);
     }
 
     // Validate input

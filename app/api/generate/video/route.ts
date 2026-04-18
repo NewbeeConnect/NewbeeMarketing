@@ -3,7 +3,7 @@ import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server
 import { ai, MODELS, COST_ESTIMATES } from "@/lib/google-ai";
 import { VideoGenerationReferenceType } from "@google/genai";
 import type { Project, Scene, Json } from "@/types/database";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { z } from "zod";
 
@@ -47,18 +47,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Google AI not configured" }, { status: 503 });
     }
 
-    // Rate limit with Retry-After header
     const serviceClient = createServiceClient();
 
     const rl = await checkRateLimit(serviceClient, user.id, "ai-media");
     if (!rl.allowed) {
-      return NextResponse.json(
-        { error: rl.error },
-        {
-          status: 429,
-          headers: { "Retry-After": String(rl.retryAfterSeconds ?? 60) },
-        }
-      );
+      return rateLimitResponse(rl);
     }
 
     // Budget guard

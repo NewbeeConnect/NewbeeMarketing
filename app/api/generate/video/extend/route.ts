@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, COST_ESTIMATES } from "@/lib/google-ai";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import type { Generation } from "@/types/database";
 import { z } from "zod";
@@ -31,10 +31,7 @@ export async function POST(request: NextRequest) {
 
     const rl = await checkRateLimit(serviceClient, user.id, "ai-media");
     if (!rl.allowed) {
-      return NextResponse.json(
-        { error: rl.error },
-        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds ?? 60) } }
-      );
+      return rateLimitResponse(rl);
     }
 
     const budget = await checkBudget(serviceClient, user.id);

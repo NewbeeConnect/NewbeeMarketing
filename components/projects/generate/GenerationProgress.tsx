@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCheckVideoStatus } from "@/hooks/useVideoGeneration";
-import { Video, Image, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle } from "lucide-react";
+import { Video, Image as ImageIcon, Loader2, CheckCircle2, XCircle, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Generation } from "@/types/database";
 
@@ -111,7 +111,7 @@ export function GenerationProgress({
                 {gen.type === "video" ? (
                   <Video className="h-4 w-4 text-blue-500" />
                 ) : gen.type === "image" ? (
-                  <Image className="h-4 w-4 text-purple-500" />
+                  <ImageIcon className="h-4 w-4 text-purple-500" />
                 ) : gen.status === "completed" ? (
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
                 ) : gen.status === "failed" ? (

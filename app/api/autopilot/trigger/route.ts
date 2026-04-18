@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { createServiceClient } from "@/lib/supabase/server";
 import { start } from "workflow/api";
 import { autopilotDailyRun } from "@/workflows/autopilot-agent";
@@ -14,7 +14,7 @@ export async function POST() {
 
     const serviceClient = createServiceClient();
     const rl = await checkRateLimit(serviceClient, user.id, "autopilot");
-    if (!rl.allowed) return NextResponse.json({ error: rl.error }, { status: 429 });
+    if (!rl.allowed) return rateLimitResponse(rl);
 
     const run = await start(autopilotDailyRun, [user.id]);
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,11 +15,23 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error === "not_admin") {
+      toast.error(
+        "Access denied. This portal is for admins only."
+      );
+    } else if (error === "auth_failed") {
+      toast.error("Authentication failed. Please try again.");
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,17 +39,33 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data: signInData, error } =
+        await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
         toast.error(error.message);
         return;
       }
 
-      router.push("/dashboard");
+      // Verify admin role before sending to dashboard.
+      // Middleware also enforces this, but an early client-side check
+      // gives a faster error toast and avoids a bounce through /dashboard.
+      if (signInData.user) {
+        const { data: roles, error: rolesError } =
+          await supabase.rpc("get_my_roles");
+
+        const roleArr = (roles ?? []) as Array<{ role: string }>;
+        const isAdmin = !rolesError && roleArr.some((r) => r.role === "admin");
+
+        if (!isAdmin) {
+          await supabase.auth.signOut();
+          toast.error("Access denied. This portal is for admins only.");
+          return;
+        }
+      }
+
+      const redirectTo = searchParams.get("redirect") ?? "/dashboard";
+      router.push(redirectTo);
       router.refresh();
     } catch {
       toast.error("An unexpected error occurred");
@@ -54,7 +82,7 @@ export default function LoginPage() {
         </div>
         <CardTitle className="text-2xl">Newbee Marketing Hub</CardTitle>
         <CardDescription>
-          Sign in to manage your marketing campaigns
+          Admin-only portal — sign in to manage marketing campaigns
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -84,7 +112,18 @@ export default function LoginPage() {
             {loading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Only admins can log in. No public sign-up.
+        </p>
       </CardContent>
     </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

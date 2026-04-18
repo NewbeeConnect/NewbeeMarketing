@@ -7,7 +7,7 @@ import {
 } from "@/lib/ai/prompts/caption-generator";
 import { captionResponseSchema, parseAiJson } from "@/lib/ai/response-schemas";
 import type { Project, Scene } from "@/types/database";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { z } from "zod";
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const rl = await checkRateLimit(serviceClient, user.id, "ai-gemini");
     if (!rl.allowed) {
-      return NextResponse.json({ error: rl.error }, { status: 429 });
+      return rateLimitResponse(rl);
     }
 
     // Budget guard

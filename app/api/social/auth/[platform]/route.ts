@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { buildAuthorizationUrl, OAUTH_CONFIGS } from "@/lib/social/oauth-manager";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import type { SocialPlatform } from "@/lib/social/types";
 import { randomBytes } from "crypto";
 
@@ -23,7 +23,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     // Rate limit OAuth initiation
     const serviceClient = createServiceClient();
     const rl = await checkRateLimit(serviceClient, user.id, "api-general");
-    if (!rl.allowed) return NextResponse.json({ error: rl.error }, { status: 429 });
+    if (!rl.allowed) return rateLimitResponse(rl);
 
     const state = randomBytes(32).toString("hex");
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";

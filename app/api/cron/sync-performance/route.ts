@@ -1,28 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { verifyCronAuth } from "@/lib/cron-auth";
 import { syncAllActiveDeployments } from "@/lib/ads/performance-syncer";
 
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify Vercel cron secret
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authError = verifyCronAuth(request);
+    if (authError) return authError;
 
     const serviceClient = createServiceClient();
 
-    // Sync all active deployments across all users
     const results = await syncAllActiveDeployments(serviceClient);
 
     const successful = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
-
-    console.log(
-      `[CronSync] Completed: ${successful} synced, ${failed} failed, ${results.length} total`
-    );
 
     return NextResponse.json({
       success: failed === 0,

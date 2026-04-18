@@ -8,7 +8,7 @@ import { fetchNewbeeInsights } from "@/lib/newbee/insights";
 import { scrapeUrl, scrapeGithubRepo, isGithubUrl } from "@/lib/scraping/url-scraper";
 import { summarizeContext } from "@/lib/scraping/context-summarizer";
 import type { Project, BrandKit, CampaignPerformance, CodeAnalysis, Json } from "@/types/database";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { z } from "zod";
 
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const rl = await checkRateLimit(serviceClient, user.id, "ai-gemini");
     if (!rl.allowed) {
-      return NextResponse.json({ error: rl.error }, { status: 429 });
+      return rateLimitResponse(rl);
     }
 
     // Budget guard

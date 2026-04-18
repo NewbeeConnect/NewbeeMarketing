@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { start } from "workflow/api";
 import { contentApprovalWorkflow } from "@/workflows/content-approval";
 import { z } from "zod";
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     const serviceClient = createServiceClient();
     const rl = await checkRateLimit(serviceClient, user.id, "api-general");
-    if (!rl.allowed) return NextResponse.json({ error: rl.error }, { status: 429 });
+    if (!rl.allowed) return rateLimitResponse(rl);
 
     const body = await request.json();
     const parsed = createSchema.safeParse(body);

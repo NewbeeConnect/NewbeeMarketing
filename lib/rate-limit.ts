@@ -9,6 +9,27 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
+
+export type RateLimitResult = {
+  allowed: boolean;
+  error?: string;
+  retryAfterSeconds?: number;
+};
+
+/**
+ * Standard 429 response for rate-limited requests. Always includes a
+ * `Retry-After` header so clients know how long to back off.
+ */
+export function rateLimitResponse(result: RateLimitResult) {
+  return NextResponse.json(
+    { error: result.error ?? "Rate limit exceeded" },
+    {
+      status: 429,
+      headers: { "Retry-After": String(result.retryAfterSeconds ?? 60) },
+    }
+  );
+}
 
 // Import at runtime to determine environment-aware limits
 const veoEnv = process.env.VEO_ENVIRONMENT === "production" ? "production" : "preview";
@@ -42,7 +63,7 @@ export async function checkRateLimit(
   userId: string,
   category: RateLimitCategory,
   overrideMax?: number
-): Promise<{ allowed: boolean; error?: string; retryAfterSeconds?: number }> {
+): Promise<RateLimitResult> {
   const config = RATE_LIMITS[category];
   const maxTokens = overrideMax ?? config.maxTokens;
 

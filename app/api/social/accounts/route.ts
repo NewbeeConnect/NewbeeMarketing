@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { listSocialAccounts, disconnectSocialAccount } from "@/lib/social/oauth-manager";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 /** GET: List connected social accounts */
 export async function GET() {
@@ -12,7 +12,7 @@ export async function GET() {
 
     const serviceClient = createServiceClient();
     const rl = await checkRateLimit(serviceClient, user.id, "api-general");
-    if (!rl.allowed) return NextResponse.json({ error: rl.error }, { status: 429 });
+    if (!rl.allowed) return rateLimitResponse(rl);
 
     const accounts = await listSocialAccounts(serviceClient, user.id);
 

@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, MODELS, COST_ESTIMATES } from "@/lib/google-ai";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const schema = z.object({
   tweetText: z.string().min(1).max(2000),
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     const serviceClient = createServiceClient();
     const rateCheck = await checkRateLimit(serviceClient, user.id, "ai-gemini");
     if (!rateCheck.allowed) {
-      return NextResponse.json({ error: rateCheck.error }, { status: 429 });
+      return rateLimitResponse(rateCheck);
     }
 
     const body = await req.json();

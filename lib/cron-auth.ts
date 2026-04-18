@@ -2,6 +2,10 @@
  * Cron Job Authentication
  *
  * Timing-safe verification of CRON_SECRET to prevent timing attacks.
+ *
+ * CRON_SECRET must be cryptographically random (>= 32 bytes / 64 hex chars).
+ * Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+ * Set in Vercel project env + local .env.local. Never commit.
  */
 
 import { timingSafeEqual } from "crypto";

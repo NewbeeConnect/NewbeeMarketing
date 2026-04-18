@@ -223,7 +223,7 @@ export default function GalleryPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={selectedItem.output_url ?? undefined}
-                    alt="Generated"
+                    alt={selectedItem.prompt ?? "Generated image"}
                     className="w-full rounded-lg"
                   />
                 )}

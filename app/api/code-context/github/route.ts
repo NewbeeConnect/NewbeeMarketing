@@ -3,7 +3,7 @@ import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server
 import { analyzeCodeContext } from "@/lib/ai/code-analyzer";
 import { fetchRepoWithPat } from "@/lib/scraping/github-pat-fetcher";
 import { decrypt } from "@/lib/encryption";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { z } from "zod";
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     const rl = await checkRateLimit(serviceClient, user.id, "ai-gemini");
     if (!rl.allowed) {
-      return NextResponse.json({ error: rl.error }, { status: 429 });
+      return rateLimitResponse(rl);
     }
 
     // Budget guard

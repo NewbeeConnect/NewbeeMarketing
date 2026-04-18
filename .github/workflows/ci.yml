@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        env:
+          # Placeholder env vars — only needed so Next.js doesn't throw at parse time.
+          # Real secrets live in Vercel; CI build just validates the bundle compiles.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          SUPABASE_SERVICE_ROLE_KEY: placeholder
+          NEWBEE_SUPABASE_URL: https://placeholder.supabase.co
+          NEWBEE_SUPABASE_ANON_KEY: placeholder
+          GOOGLE_API_KEY: placeholder
+          GOOGLE_CLOUD_PROJECT: placeholder
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          CRON_SECRET: placeholder
+        run: npm run build

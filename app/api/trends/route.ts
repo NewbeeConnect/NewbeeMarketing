@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 /** GET: List trends for the current user */
 export async function GET(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     const serviceClient = createServiceClient();
     const rl = await checkRateLimit(serviceClient, user.id, "api-general");
-    if (!rl.allowed) return NextResponse.json({ error: rl.error }, { status: 429 });
+    if (!rl.allowed) return rateLimitResponse(rl);
 
     const url = new URL(request.url);
     const platform = url.searchParams.get("platform");
