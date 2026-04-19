@@ -1,6 +1,7 @@
 "use client";
 
-import { ImageIcon, Video as VideoIcon } from "lucide-react";
+import { Dices, ImageIcon, Loader2, Video as VideoIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +14,7 @@ import {
 import { FieldsEditor } from "./FieldsEditor";
 import { COPY } from "@/lib/generate/copy";
 import type { Intent } from "@/lib/generate/machine";
+import type { ProjectSlug } from "@/lib/projects";
 import type {
   ImagePromptFields,
   VideoPromptFields,
@@ -54,6 +56,7 @@ const VIDEO_FIELD_LABELS: {
  */
 export function BriefStage({
   intent,
+  project,
   brief,
   onBriefChange,
   imageFields,
@@ -67,8 +70,11 @@ export function BriefStage({
   videoReady,
   pipelineTab,
   onPipelineTabChange,
+  onRollDice,
+  diceLoading,
 }: {
   intent: Intent;
+  project: ProjectSlug;
   brief: string;
   onBriefChange: (v: string) => void;
   imageFields: ImagePromptFields;
@@ -82,13 +88,13 @@ export function BriefStage({
   videoReady: boolean;
   pipelineTab: "image" | "video";
   onPipelineTabChange: (t: "image" | "video") => void;
+  onRollDice: () => void;
+  diceLoading: boolean;
 }) {
-  const placeholder =
-    intent === "image"
-      ? COPY.brief.placeholderImage
-      : intent === "video"
-      ? COPY.brief.placeholderVideo
-      : COPY.brief.placeholderPipeline;
+  // Placeholder is project-aware: Newbee users should see Newbee examples,
+  // Atelier Sayın users should see jewelry examples. Always matches the
+  // selected project so the example reads as "this is what I could write".
+  const placeholder = COPY.briefPlaceholders[project][intent];
 
   return (
     <Card className="p-5 space-y-4">
@@ -98,7 +104,24 @@ export function BriefStage({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="brief">{COPY.brief.label}</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="brief">{COPY.brief.label}</Label>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onRollDice}
+            disabled={diceLoading}
+            className="text-xs h-7"
+          >
+            {diceLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+            ) : (
+              <Dices className="h-3 w-3 mr-1.5" />
+            )}
+            {diceLoading ? COPY.brief.rollingDice : COPY.brief.rollDiceButton}
+          </Button>
+        </div>
         <Textarea
           id="brief"
           rows={3}

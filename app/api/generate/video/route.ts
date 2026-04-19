@@ -26,10 +26,12 @@ const bodySchema = z
     prompt: z.string().min(3).max(5000),
     durationSeconds: z.union([z.literal(4), z.literal(6), z.literal(8)]).default(8),
     /**
-     * Veo input modes are mutually exclusive: either
-     *   (a) first-frame image-to-video (`firstFrameUrl`) for the 3-stage
-     *       pipeline where stage 2's image is handed to stage 3, OR
-     *   (b) up to 3 reference images (ASSET type) for subject consistency.
+     * Veo input modes are mutually exclusive (SDK constraint). Exactly ONE of:
+     *   (a) `firstFrameUrl`       — image-to-video, stage-2 image as first frame
+     *   (b) `referenceImages`     — up to 3 ASSET references for subject consistency
+     *   (c) `sourceGenerationId`  — extend a prior Veo-generated video from its
+     *                               last frame. Only valid within Google's 2-day
+     *                               retention window on the source URI.
      */
     firstFrameUrl: z.string().url().optional(),
     referenceImages: z
@@ -41,10 +43,21 @@ const bodySchema = z
       )
       .max(3)
       .optional(),
+    sourceGenerationId: z.string().uuid().optional(),
   })
   .refine(
-    (v) => !(v.firstFrameUrl && v.referenceImages && v.referenceImages.length),
-    { message: "firstFrameUrl and referenceImages cannot be combined" }
+    (v) => {
+      const modes = [
+        !!v.firstFrameUrl,
+        !!(v.referenceImages && v.referenceImages.length),
+        !!v.sourceGenerationId,
+      ].filter(Boolean).length;
+      return modes <= 1;
+    },
+    {
+      message:
+        "firstFrameUrl, referenceImages, and sourceGenerationId are mutually exclusive",
+    }
   );
 
 export async function POST(request: NextRequest) {
@@ -71,7 +84,47 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { project, ratio, prompt, durationSeconds, referenceImages, firstFrameUrl } = parsed.data;
+    const {
+      project,
+      ratio,
+      prompt,
+      durationSeconds,
+      referenceImages,
+      firstFrameUrl,
+      sourceGenerationId,
+    } = parsed.data;
+
+    // If this is an extension request, resolve the source Veo URI. It was
+    // persisted in mkt_generations.output_metadata.veo_video_uri by the status
+    // route when the parent video completed. Veo retains these for ~2 days —
+    // after that extension fails.
+    let extendFromVeoUri: string | null = null;
+    if (sourceGenerationId) {
+      const { data: sourceRow } = await serviceClient
+        .from("mkt_generations")
+        .select("output_metadata, user_id, type")
+        .eq("id", sourceGenerationId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!sourceRow || sourceRow.type !== "video") {
+        return NextResponse.json(
+          { error: "Source video not found" },
+          { status: 404 }
+        );
+      }
+      const uri = (sourceRow.output_metadata as { veo_video_uri?: string } | null)
+        ?.veo_video_uri;
+      if (!uri) {
+        return NextResponse.json(
+          {
+            error:
+              "Source video doesn't have a Veo URI stored (older than 2 days, or pre-upgrade). Re-generate the source to enable extension.",
+          },
+          { status: 410 }
+        );
+      }
+      extendFromVeoUri = uri;
+    }
 
     const estimatedCost = durationSeconds * COST_ESTIMATES.veo_per_second;
     const budget = await checkBudget(serviceClient, user.id, estimatedCost);
@@ -121,9 +174,10 @@ export async function POST(request: NextRequest) {
     const generationId = genRow.id as string;
 
     try {
-      // Two input modes, mutually exclusive:
-      //   firstFrameUrl  → image-to-video (pipeline stage 2 hands its image here)
-      //   referenceImages → subject-reference video (up to 3 ASSET)
+      // Three mutually-exclusive input modes:
+      //   (a) firstFrameUrl → image-to-video (pipeline stage 2 hands its image here)
+      //   (b) referenceImages → subject-reference video (up to 3 ASSET)
+      //   (c) extendFromVeoUri → continue from a prior Veo video
       let firstFrameImage:
         | { imageBytes: string; mimeType: string }
         | undefined;
@@ -140,7 +194,7 @@ export async function POST(request: NextRequest) {
       }
 
       const veoRefs =
-        !firstFrameImage && referenceImages && referenceImages.length > 0
+        !firstFrameImage && !extendFromVeoUri && referenceImages && referenceImages.length > 0
           ? referenceImages.slice(0, 3).map((ref) => ({
               image: { imageBytes: ref.imageBytes, mimeType: ref.mimeType },
               referenceType: VideoGenerationReferenceType.ASSET,
@@ -151,13 +205,16 @@ export async function POST(request: NextRequest) {
         model: MODELS.VEO,
         prompt,
         ...(firstFrameImage && { image: firstFrameImage }),
+        ...(extendFromVeoUri && { video: { uri: extendFromVeoUri } }),
         config: {
           aspectRatio: ratio,
           numberOfVideos: 1,
           durationSeconds,
           resolution: "720p",
-          // image-to-video needs allow_adult; text-to-video with refs stays allow_adult too
-          personGeneration: firstFrameImage || veoRefs ? "allow_adult" : "allow_all",
+          // Restrict to adults whenever we hand Veo any image/video input —
+          // extensions and image-to-video both imply real subjects.
+          personGeneration:
+            firstFrameImage || veoRefs || extendFromVeoUri ? "allow_adult" : "allow_all",
           ...(veoRefs && { referenceImages: veoRefs }),
         },
       });

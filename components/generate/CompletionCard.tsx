@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
+  FastForward,
   FolderOpen,
   RefreshCw,
   RotateCcw,
@@ -40,6 +41,7 @@ export function CompletionCard({
   videoUrl,
   onCreateVariant,
   onStartOver,
+  onExtendVideo,
 }: {
   intent: Intent;
   project: ProjectSlug;
@@ -48,6 +50,12 @@ export function CompletionCard({
   videoUrl: string | null;
   onCreateVariant: () => void;
   onStartOver: () => void;
+  /**
+   * Only provided when a video exists and is still within Veo's 2-day
+   * retention window. Starts a new cycle that extends from this video's
+   * last frame.
+   */
+  onExtendVideo?: () => void;
 }) {
   const [resetOpen, setResetOpen] = useState(false);
   const projectMeta = PROJECTS.find((p) => p.slug === project)!;
@@ -99,7 +107,16 @@ export function CompletionCard({
 
         {/* Next actions */}
         <div className="flex flex-wrap gap-2 pt-2">
-          <Button onClick={onCreateVariant}>
+          {onExtendVideo && videoUrl && (
+            <Button onClick={onExtendVideo}>
+              <FastForward className="h-3.5 w-3.5 mr-1.5" />
+              Extend this video
+            </Button>
+          )}
+          <Button
+            variant={onExtendVideo && videoUrl ? "outline" : "default"}
+            onClick={onCreateVariant}
+          >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
             {COPY.completion.variant}
           </Button>
@@ -115,7 +132,9 @@ export function CompletionCard({
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          {COPY.completion.variantHint}
+          {onExtendVideo && videoUrl
+            ? "Extend continues from the last frame of this clip (available for ~2 days after render)."
+            : COPY.completion.variantHint}
         </p>
       </Card>
 

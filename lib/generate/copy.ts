@@ -44,16 +44,35 @@ export const COPY = {
     heading: "Step 1 — Describe",
     sub: "Write a short brief. Gemini fills the exact fields each model needs; you can edit anything.",
     label: "Brief",
-    placeholderImage:
-      "e.g. A gold necklace on warm silk, soft morning light, editorial feel",
-    placeholderVideo:
-      "e.g. Slow dolly toward a candle-lit dinner scene, warm palette",
-    placeholderPipeline:
-      "e.g. Mother's Day ad for a gold necklace — warm, intimate, cinematic",
     draftButton: "Draft with Gemini",
     drafting: "Drafting…",
     needBrief: "Write a brief first, then Gemini can draft the blueprint.",
+    rollDiceButton: "Not sure? Roll the dice",
+    rollingDice: "Thinking…",
   },
+
+  /**
+   * Project-aware brief placeholders. Default project in the UI is Newbee, so
+   * these examples must match the brand the user sees selected.
+   */
+  briefPlaceholders: {
+    newbee: {
+      image:
+        "e.g. Hero shot of the Newbee app on a phone in a sunlit kitchen, warm honey palette, editorial product look",
+      video:
+        "e.g. Slow dolly onto a phone unlocking to the Newbee chat, amber highlights, upbeat ambient tone",
+      pipeline:
+        "e.g. 'Your daily Newbee' launch teaser — phone mockup hero frame, then gentle motion across the UI, honey/cream palette",
+    },
+    ateliersayin: {
+      image:
+        "e.g. Macro of a gold signet ring on burgundy velvet, editorial fashion photography, warm window light",
+      video:
+        "e.g. Slow dolly toward a candle-lit dinner scene where a gold necklace catches the light, rich palette",
+      pipeline:
+        "e.g. Mother's Day film — close-up on a gift box opening to reveal a gold pendant, warm cinematic grade",
+    },
+  } as const,
 
   blueprint: {
     imageTitle: "Image blueprint",

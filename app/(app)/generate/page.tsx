@@ -32,6 +32,7 @@ import {
   useGenerateImage,
   useGenerateVideo,
   useGeneratePromptBlueprint,
+  useSuggestBrief,
   useUploadToLibrary,
   useVideoStatus,
   assembleImagePrompt,
@@ -100,8 +101,13 @@ export default function GeneratePage() {
     { file: File; preview: string }[]
   >([]);
 
+  // Extend-from-previous-video state. When set, the next Veo generation
+  // passes `sourceGenerationId` and Veo continues from that clip's last frame.
+  const [extendFromId, setExtendFromId] = useState<string | null>(null);
+
   // ─── Mutations ────────────────────────────────────────────────────
   const promptMut = useGeneratePromptBlueprint();
+  const suggestMut = useSuggestBrief();
   const imageMut = useGenerateImage();
   const videoMut = useGenerateVideo();
   const uploadMut = useUploadToLibrary();
@@ -156,6 +162,7 @@ export default function GeneratePage() {
     setVideoFields(EMPTY_VIDEO_FIELDS);
     setImageUrl(null);
     setActiveVideoId(null);
+    setExtendFromId(null);
     setPipelineTab("image");
     // keep project + ratio as a user preference
     refFiles.forEach((r) => URL.revokeObjectURL(r.preview));
@@ -163,14 +170,39 @@ export default function GeneratePage() {
   }, [activeVideoId, qc, refFiles]);
 
   const createVariant = useCallback(() => {
-    // Keep intent/brief/blueprint/project/ratio; clear outputs
+    // Keep intent/brief/blueprint/project/ratio; clear outputs. Also clears
+    // any extend context so a variant is a fresh take on the same brief.
     if (activeVideoId) {
       qc.removeQueries({ queryKey: ["video-status", activeVideoId] });
     }
     setImageUrl(null);
     setActiveVideoId(null);
+    setExtendFromId(null);
     if (intent) setPhase(intent === "pipeline" ? "image" : intent === "image" ? "image" : "video");
   }, [intent, activeVideoId, qc]);
+
+  /**
+   * Start a new cycle that extends from the current video's last frame.
+   * Works for both "video" and "pipeline" intents — they both produced a
+   * Veo video in `activeVideoId`. The flow is a "video" intent from here on:
+   * the user writes a fresh brief for the next beat, Veo continues the story.
+   */
+  const extendVideo = useCallback(() => {
+    if (!activeVideoId) return;
+    // Save the source id BEFORE we clear activeVideoId
+    setExtendFromId(activeVideoId);
+    // Remove the stale polling query
+    qc.removeQueries({ queryKey: ["video-status", activeVideoId] });
+    // Reset outputs + blueprint + brief, keep project/ratio
+    setImageUrl(null);
+    setActiveVideoId(null);
+    setBrief("");
+    setVideoFields(EMPTY_VIDEO_FIELDS);
+    // Force into video intent (extension is always a video)
+    setIntent("video");
+    setPhase("brief");
+    toast.success("Continuing from your last video — write the next beat.");
+  }, [activeVideoId, qc]);
 
   // When intent changes and ratio is invalid, snap with toast
   const handleRatioChange = useCallback((r: AnyRatio) => setRatio(r), []);
@@ -178,6 +210,21 @@ export default function GeneratePage() {
   // Intent switch from ratio: no-op; ratio validity enforced by ProjectRatioBar options.
 
   // ─── Stage 1 handlers ─────────────────────────────────────────────
+  async function rollDice() {
+    if (!intent) return;
+    try {
+      const res = await suggestMut.mutateAsync({
+        project,
+        target: intent,
+        ratio,
+      });
+      setBrief(res.suggestion);
+      toast.success("New brief suggestion — roll again if you'd like.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Suggestion failed");
+    }
+  }
+
   async function fillBlueprintWithAI(target: "image" | "video") {
     if (!brief.trim()) {
       toast.error(COPY.toasts.briefNeeded);
@@ -300,14 +347,25 @@ export default function GeneratePage() {
 
     try {
       const prompt = assembleVideoPrompt(videoFields);
+      // Veo's SDK enforces mutual exclusion between firstFrame / refs /
+      // extend. We pick exactly one based on the current page state.
+      const usingExtend = !!extendFromId;
+      const usingPipelineFirstFrame =
+        !usingExtend && intent === "pipeline" && !!imageUrl;
+      const usingRefs =
+        !usingExtend &&
+        !usingPipelineFirstFrame &&
+        intent === "video" &&
+        refsBase64.length > 0;
+
       const res = await videoMut.mutateAsync({
         project,
         ratio: asVideoRatio(ratio),
         prompt,
         durationSeconds,
-        firstFrameUrl: intent === "pipeline" && imageUrl ? imageUrl : undefined,
-        referenceImages:
-          intent === "video" && refsBase64.length > 0 ? refsBase64 : undefined,
+        firstFrameUrl: usingPipelineFirstFrame ? imageUrl! : undefined,
+        referenceImages: usingRefs ? refsBase64 : undefined,
+        sourceGenerationId: usingExtend ? extendFromId! : undefined,
       });
       setActiveVideoId(res.generationId);
       toast.success(
@@ -405,11 +463,32 @@ export default function GeneratePage() {
         />
       </Card>
 
+      {/* Extend banner — shows on any phase once extendFromId is set */}
+      {extendFromId && (
+        <Card className="p-3 border-primary/50 bg-primary/5 flex items-center justify-between gap-3">
+          <p className="text-sm">
+            <span className="font-medium">Extending from your last video.</span>{" "}
+            <span className="text-muted-foreground">
+              Veo will continue from its final frame. Write the next beat in the brief below.
+            </span>
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExtendFromId(null)}
+            className="shrink-0"
+          >
+            Cancel extend
+          </Button>
+        </Card>
+      )}
+
       {/* Phase content */}
       {intent && phase === "brief" && (
         <>
           <BriefStage
             intent={intent}
+            project={project}
             brief={brief}
             onBriefChange={setBrief}
             imageFields={imageFields}
@@ -427,6 +506,8 @@ export default function GeneratePage() {
             videoReady={videoBlueprintReady}
             pipelineTab={pipelineTabEffective}
             onPipelineTabChange={setPipelineTab}
+            onRollDice={rollDice}
+            diceLoading={suggestMut.isPending}
           />
 
           <div className="flex justify-end">
@@ -491,6 +572,7 @@ export default function GeneratePage() {
           videoUrl={videoUrl}
           onCreateVariant={createVariant}
           onStartOver={resetAll}
+          onExtendVideo={videoUrl && activeVideoId ? extendVideo : undefined}
         />
       )}
     </div>

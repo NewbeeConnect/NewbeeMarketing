@@ -35,6 +35,29 @@ export function assembleVideoPrompt(f: VideoPromptFields): string {
 }
 
 /**
+ * POST /api/generate/suggest-brief — "Roll the dice". Returns one on-brand
+ * brief the user can drop into the Brief field. Uses Gemini 3 Pro with the
+ * project's description so each suggestion is actually on-brand.
+ */
+export function useSuggestBrief() {
+  return useMutation({
+    mutationFn: async (input: {
+      project: ProjectSlug;
+      target: "image" | "video" | "pipeline";
+      ratio: string;
+    }) => {
+      const res = await fetch("/api/generate/suggest-brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) throw new Error(await readApiError(res));
+      return (await res.json()) as { suggestion: string };
+    },
+  });
+}
+
+/**
  * POST /api/generate/prompt — brief → structured fields (AI fills what each
  * model needs; user edits any field before assembling).
  */
@@ -171,6 +194,8 @@ export function useGenerateVideo() {
       durationSeconds?: 4 | 6 | 8;
       firstFrameUrl?: string;
       referenceImages?: ReferenceImageInput[];
+      /** If set, Veo extends from this existing video's last frame. */
+      sourceGenerationId?: string;
     }) => {
       const res = await fetch("/api/generate/video", {
         method: "POST",

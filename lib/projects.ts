@@ -7,17 +7,25 @@
  * in migration 015.
  */
 
+/**
+ * `description` is used by the AI brief suggester and the prompt blueprint
+ * endpoint so Gemini knows what each brand actually is. Keep these concrete —
+ * vague descriptions produce vague briefs. Edit here when the product evolves.
+ */
 export const PROJECTS = [
   {
     slug: "newbee",
     name: "Newbee",
-    /** Display color for sidebar/badges. */
     color: "#FBBF24",
+    description:
+      "Newbee is an AI-powered mobile companion app (iOS + Android + Web, app.newbeeapp.com). It helps users with daily life tasks through an intelligent assistant — natural-language chat, goal tracking, habit support, and community features. Target audience: digitally-native adults 20–45 looking for a smart, approachable daily helper. Tone: warm, confident, modern, a little playful. Brand palette: honey yellow / amber / cream with clean white space. Reference look: Apple-style editorial product photography, soft daylight, crisp UI mockups on real phones.",
   },
   {
     slug: "ateliersayin",
     name: "Atelier Sayın",
     color: "#DC2626",
+    description:
+      "Atelier Sayın is a bespoke fine-jewelry atelier based in Istanbul specializing in gold and gemstones. Handcrafted statement pieces — necklaces, rings, earrings — with an editorial, heritage-craft sensibility. Target audience: discerning women 30–55 who value craftsmanship and gifting. Tone: elegant, intimate, timeless. Brand palette: deep burgundy, champagne gold, velvet black. Reference look: editorial fashion photography, macro detail shots, warm window light, silk and velvet textures.",
   },
 ] as const;
 

@@ -51,6 +51,10 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' ${supabaseUrl} https://*.supabase.co https://lh3.googleusercontent.com data: blob:`,
+    // media-src — required so <video src={supabase-storage-url}> can play
+    // inline. Without this the browser falls back to default-src 'self' and
+    // blocks the request silently (download link still works, inline does not).
+    `media-src 'self' ${supabaseUrl} https://*.supabase.co blob:`,
     "font-src 'self' data:",
     `connect-src 'self' ${supabaseUrl} https://generativelanguage.googleapis.com https://accounts.google.com`,
     "frame-ancestors 'none'",

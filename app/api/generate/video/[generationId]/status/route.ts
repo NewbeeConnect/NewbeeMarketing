@@ -282,6 +282,10 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
         actual_cost_usd: actualCost,
         output_metadata: {
           file_size_mb: videoBuffer.byteLength / (1024 * 1024),
+          // Keep Veo's source URI so the video can be used as input to
+          // another Veo call ("extend video"). Google retains these for ~2
+          // days, so extension only works within that window.
+          veo_video_uri: videoUri,
         },
         completed_at: new Date().toISOString(),
       })
