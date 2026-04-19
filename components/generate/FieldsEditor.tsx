@@ -107,7 +107,7 @@ export function FieldsEditor<T extends Record<string, string>>({
                     type="button"
                     onClick={() => onRegenerateField?.(f.key)}
                     disabled={aiLoading || isRegen}
-                    className="text-[12px] ink-3 hover:text-brand-ink flex items-center gap-1 disabled:opacity-40"
+                    className="text-[12px] ink-3 hover:text-brand-ink flex items-center gap-1 disabled:opacity-40 rotate-on-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/45 rounded transition-colors"
                     title={fe.regenerateTitle}
                   >
                     {isRegen ? (

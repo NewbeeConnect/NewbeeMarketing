@@ -29,7 +29,7 @@ export function AssembledPromptEditor({
           type="button"
           onClick={onResetFromBlueprint}
           title="Şema alanlarını tek bir prompt metnine dönüştür (elle yaptığın değişiklikleri siler)"
-          className="text-[13.5px] ink-3 hover:text-brand-ink flex items-center gap-1 transition"
+          className="text-[13.5px] ink-3 hover:text-brand-ink flex items-center gap-1 transition rotate-on-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/45 rounded"
         >
           <RefreshCw className="h-2.5 w-2.5" /> {s.rebuildFromBlueprint}
         </button>

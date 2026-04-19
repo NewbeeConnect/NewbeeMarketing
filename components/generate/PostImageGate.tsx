@@ -30,7 +30,7 @@ export function PostImageGate({
           type="button"
           onClick={onStop}
           title="Videoya geçme, sadece görseli kaydet"
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
+          className="btn btn-md btn-secondary"
         >
           <Check className="h-3 w-3" />
           {s.stopAtImage}
@@ -39,7 +39,7 @@ export function PostImageGate({
           type="button"
           onClick={onContinue}
           title="Bu görseli ilk kare yapıp Veo 3.1 ile 4-8 saniyelik klibe dönüştür"
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 transition"
+          className="btn btn-md btn-primary"
         >
           <Film className="h-3 w-3" />
           {s.continueAnimate}

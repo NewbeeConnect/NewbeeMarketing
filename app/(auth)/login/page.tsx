@@ -118,7 +118,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-10 rounded-lg inline-flex items-center justify-center gap-1.5 text-[15.5px] font-semibold bg-brand text-brand-ink hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="btn btn-lg btn-primary w-full"
             >
               {loading ? (
                 <Loader2 className="h-3.5 w-3.5 nb-spin" />

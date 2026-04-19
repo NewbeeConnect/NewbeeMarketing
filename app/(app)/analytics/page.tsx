@@ -66,7 +66,7 @@ export default function AnalyticsPage() {
   const maxTrend = Math.max(1, ...trend.map((t) => t.amount));
 
   return (
-    <div className="max-w-[1100px] mx-auto px-6 py-6">
+    <div className="max-w-[1400px] mx-auto px-6 py-6">
       <div className="flex items-start justify-between mb-5">
         <div>
           <div className="serif text-[34px] ink">

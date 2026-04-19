@@ -155,10 +155,10 @@ export function AppSidebar() {
             <Link
               key={href}
               href={href}
-              className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-lg text-[15px] transition ${
+              className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-lg text-[15px] chip-pressable focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/45 ${
                 active
-                  ? "bg-brand-soft text-brand-ink font-medium"
-                  : "ink-2 hover:bg-soft"
+                  ? "bg-brand-soft text-brand-ink font-medium shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--nb-brand)_35%,transparent)]"
+                  : "ink-2 hover:bg-soft hover:ink"
               }`}
               title={compact ? `${label} — ${title}` : title}
             >

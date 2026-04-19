@@ -106,10 +106,10 @@ export function LibraryPickerDialog({
                     type="button"
                     onClick={() => setSelected(item.output_url)}
                     title={item.filename}
-                    className={`text-left rounded-lg overflow-hidden border-2 transition ${
+                    className={`text-left rounded-lg overflow-hidden border-2 tile-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/45 ${
                       isSelected
                         ? "border-brand ring-brand"
-                        : "border-transparent hover:border-muted-foreground/30"
+                        : "border-transparent hover:border-[color-mix(in_oklch,var(--nb-brand)_40%,var(--nb-line))]"
                     }`}
                   >
                     <div className="relative aspect-square bg-soft">
@@ -140,7 +140,7 @@ export function LibraryPickerDialog({
           <button
             type="button"
             onClick={close}
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
+            className="btn btn-md btn-secondary"
           >
             {s.libraryCancel}
           </button>
@@ -154,7 +154,7 @@ export function LibraryPickerDialog({
               }
             }}
             title="Seçili görseli bu adım için kullan (yeni maliyet yok)"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="btn btn-md btn-primary"
           >
             {s.libraryUse}
           </button>

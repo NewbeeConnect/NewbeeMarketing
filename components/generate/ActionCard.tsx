@@ -37,10 +37,10 @@ export function ActionCard({
       onClick={onClick}
       disabled={loading || disabled}
       title={titleAttr}
-      className={`group text-left rounded-xl border p-4 transition disabled:opacity-50 disabled:cursor-not-allowed ${
+      className={`group text-left rounded-xl border p-4 tile-interactive disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/45 ${
         primary
-          ? "bg-brand text-brand-ink border-brand hover:brightness-95"
-          : "bg-panel border-line hover:border-brand ink"
+          ? "bg-brand text-brand-ink border-brand hover:brightness-[1.03] hover:saturate-[1.05]"
+          : "bg-panel border-line hover:border-brand/60 ink"
       }`}
     >
       <div

@@ -119,7 +119,7 @@ export default function SettingsPage() {
   const githubOk = apiKeys?.some((k) => k.platform === "github");
 
   return (
-    <div className="max-w-[760px] mx-auto px-6 py-6">
+    <div className="max-w-[960px] mx-auto px-6 py-6">
       <div className="mb-5">
         <div className="serif text-[34px] ink">
           {COPY.settings.pageTitle}
@@ -559,7 +559,7 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={loading}
-      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
+      className="btn btn-md btn-primary"
     >
       {loading && <Loader2 className="h-3 w-3 nb-spin" />}
       {children}
@@ -578,7 +578,7 @@ function GhostButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
+      className="btn btn-md btn-secondary"
     >
       {children}
     </button>

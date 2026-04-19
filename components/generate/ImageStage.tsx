@@ -76,7 +76,7 @@ export function ImageStage({
             type="button"
             onClick={onRedo}
             title="Bu görseli atıp yenisini üret"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
+            className="btn btn-md btn-secondary"
           >
             <RefreshCw className="h-3 w-3" />
             {s.redo}
@@ -85,7 +85,7 @@ export function ImageStage({
             href={imageUrl}
             download
             title="Bilgisayarına PNG olarak indir"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
+            className="btn btn-md btn-secondary"
           >
             <Download className="h-3 w-3" />
             {s.download}
@@ -99,7 +99,7 @@ export function ImageStage({
                   ? "Videoyu canlandır adımına geç"
                   : "Tamamlama ekranına geç"
               }
-              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 transition"
+              className="btn btn-md btn-primary"
             >
               {intent === "pipeline" ? s.continueButtonPipeline : s.continueButton}
               <ArrowRight className="h-3 w-3" />

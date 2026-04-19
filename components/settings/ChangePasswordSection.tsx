@@ -131,7 +131,7 @@ export function ChangePasswordSection() {
             type="submit"
             disabled={saving || !current || !next || !confirm}
             title="Mevcut şifreni doğrulayıp yenisini kaydeder"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="btn btn-md btn-primary"
           >
             {saving && <Loader2 className="h-3 w-3 nb-spin" />}
             {saving ? s.submitting : s.submit}

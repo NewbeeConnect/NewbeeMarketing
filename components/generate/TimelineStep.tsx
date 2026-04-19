@@ -61,8 +61,10 @@ export function TimelineStep({
     <div
       ref={ref}
       data-step-active={active || undefined}
-      className={`rounded-xl border transition slideFade ${
-        active ? "bg-panel border-brand ring-brand" : "bg-panel border-line"
+      className={`rounded-xl border slideFade transition-[border-color,box-shadow,background-color] duration-300 ${
+        active
+          ? "bg-panel border-brand ring-brand"
+          : "bg-panel border-line hover:border-brand/35"
       }`}
     >
       <div
@@ -106,7 +108,7 @@ export function TimelineStep({
         {visual === "completed" && onEdit && (
           <button
             onClick={onEdit}
-            className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[14px] ink-2 hover:bg-soft hover:ink transition"
+            className="btn btn-sm btn-ghost"
             title={`${editLabel}: bu adıma geri dön`}
           >
             <Pencil className="h-3 w-3" />

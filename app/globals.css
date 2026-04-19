@@ -282,6 +282,250 @@
   animation: nb-slideFade 0.28s ease-out both;
 }
 
+/*
+ * ── Polish layer: button affordance + card elevation + micro-interactions
+ *
+ * Apple HIG priorities baked into this layer:
+ *   1. Every interactive element has an obvious hit target (≥ 40 pt / 2.5rem).
+ *   2. Each state (rest → hover → active → focus → disabled) is visually
+ *      distinct without relying on color alone.
+ *   3. Motion is subtle and fast (< 200 ms) so it feels responsive.
+ *
+ * Uses standardized cubic-bezier easing tokens + custom translate/scale
+ * transforms instead of Tailwind's `transition-transform` because we want
+ * sub-pixel control over duration and easing for a "native" feel.
+ */
+@keyframes nb-press {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(0) scale(0.97);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@layer utilities {
+  :root {
+    --nb-ease-snap: cubic-bezier(0.2, 0.9, 0.3, 1);
+    --nb-shadow-brand: 0 1px 2px color-mix(in oklch, var(--nb-brand) 30%, transparent),
+      0 8px 20px -8px color-mix(in oklch, var(--nb-brand) 45%, transparent);
+  }
+
+  /* ── Button base ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: 0.625rem;
+    font-weight: 600;
+    white-space: nowrap;
+    user-select: none;
+    transition:
+      transform 160ms var(--nb-ease-snap),
+      box-shadow 160ms var(--nb-ease-snap),
+      background-color 140ms var(--nb-ease-snap),
+      border-color 140ms var(--nb-ease-snap),
+      color 140ms var(--nb-ease-snap),
+      filter 140ms var(--nb-ease-snap);
+    will-change: transform, box-shadow;
+    cursor: pointer;
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .btn:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 3px color-mix(in oklch, var(--nb-brand) 45%, transparent);
+  }
+  .btn:active {
+    transform: translateY(0) scale(0.97);
+  }
+
+  /* Sizes — hit target floor is 36px (h-9), lg is 40px (h-10). */
+  .btn-sm {
+    height: 2rem;
+    padding-inline: 0.75rem;
+    font-size: 0.8125rem;
+    border-radius: 0.5rem;
+  }
+  .btn-md {
+    height: 2.25rem;
+    padding-inline: 0.875rem;
+    font-size: 0.875rem;
+  }
+  .btn-lg {
+    height: 2.5rem;
+    padding-inline: 1rem;
+    font-size: 0.9375rem;
+  }
+
+  /* ── Variants ── */
+
+  /* Primary — filled brand + tinted shadow (Apple "prominent" button vibe) */
+  .btn-primary {
+    background: var(--nb-brand);
+    color: var(--nb-brand-ink);
+    box-shadow: var(--nb-shadow-brand);
+  }
+  .btn-primary:hover {
+    filter: brightness(1.03) saturate(1.05);
+    transform: translateY(-1px);
+    box-shadow:
+      0 2px 4px color-mix(in oklch, var(--nb-brand) 35%, transparent),
+      0 12px 28px -10px color-mix(in oklch, var(--nb-brand) 55%, transparent);
+  }
+
+  /* Secondary — outlined panel, border turns brand on hover */
+  .btn-secondary {
+    background: var(--nb-panel);
+    color: var(--nb-ink);
+    border: 1px solid var(--nb-line);
+  }
+  .btn-secondary:hover {
+    background: var(--nb-soft);
+    border-color: color-mix(in oklch, var(--nb-brand) 70%, var(--nb-line));
+    transform: translateY(-1px);
+    box-shadow: 0 1px 2px rgba(60, 40, 20, 0.06);
+  }
+
+  /* Ghost — text-only, bg wash on hover */
+  .btn-ghost {
+    background: transparent;
+    color: var(--nb-ink-2);
+  }
+  .btn-ghost:hover {
+    background: var(--nb-soft);
+    color: var(--nb-ink);
+  }
+
+  /* Danger — ghost-ish red, for destructive confirmations */
+  .btn-danger {
+    background: transparent;
+    color: var(--nb-danger);
+    border: 1px solid transparent;
+  }
+  .btn-danger:hover {
+    background: var(--nb-danger-soft);
+    border-color: color-mix(in oklch, var(--nb-danger) 40%, transparent);
+  }
+
+  /* Icon-only — square hit area */
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    color: var(--nb-ink-2);
+    background: transparent;
+    transition:
+      transform 160ms var(--nb-ease-snap),
+      background-color 140ms var(--nb-ease-snap),
+      color 140ms var(--nb-ease-snap);
+    cursor: pointer;
+  }
+  .btn-icon:hover {
+    background: var(--nb-soft);
+    color: var(--nb-ink);
+  }
+  .btn-icon:active {
+    transform: scale(0.9);
+  }
+  .btn-icon:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px
+      color-mix(in oklch, var(--nb-brand) 45%, transparent);
+  }
+
+  /* ── Card affordance ── */
+
+  /*
+   * Interactive card — any tile the user can click/tap. Hover lifts the
+   * card ~2px and adds a soft shadow; active releases it. Border shifts
+   * to brand so the affordance is visible even in dense grids.
+   */
+  .card-interactive {
+    background: var(--nb-panel);
+    border: 1px solid var(--nb-line);
+    border-radius: 0.75rem;
+    transition:
+      transform 180ms var(--nb-ease-snap),
+      box-shadow 180ms var(--nb-ease-snap),
+      border-color 160ms var(--nb-ease-snap),
+      background-color 140ms var(--nb-ease-snap);
+    cursor: pointer;
+  }
+  .card-interactive:hover {
+    border-color: color-mix(in oklch, var(--nb-brand) 65%, var(--nb-line));
+    transform: translateY(-2px);
+    box-shadow:
+      0 2px 4px rgba(60, 40, 20, 0.04),
+      0 12px 28px -12px rgba(60, 40, 20, 0.22);
+  }
+  .card-interactive:active {
+    transform: translateY(-1px) scale(0.995);
+    box-shadow:
+      0 1px 2px rgba(60, 40, 20, 0.06);
+  }
+  .card-interactive:focus-visible {
+    outline: none;
+    border-color: var(--nb-brand);
+    box-shadow: 0 0 0 3px
+      color-mix(in oklch, var(--nb-brand) 28%, transparent);
+  }
+
+  /* Small utility for "tile" cards that sit in grids — lighter lift */
+  .tile-interactive {
+    transition:
+      transform 180ms var(--nb-ease-snap),
+      box-shadow 180ms var(--nb-ease-snap),
+      border-color 160ms var(--nb-ease-snap);
+    cursor: pointer;
+  }
+  .tile-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px -14px rgba(60, 40, 20, 0.3);
+  }
+  .tile-interactive:active {
+    transform: translateY(-1px) scale(0.98);
+  }
+
+  /* Chip (small, non-button pills — still interactive in segmented
+     controls, tabs, etc.) */
+  .chip-pressable {
+    transition:
+      transform 120ms var(--nb-ease-snap),
+      background-color 140ms var(--nb-ease-snap),
+      color 140ms var(--nb-ease-snap);
+  }
+  .chip-pressable:active {
+    transform: scale(0.94);
+  }
+  .chip-pressable:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px
+      color-mix(in oklch, var(--nb-brand) 50%, transparent);
+    border-radius: 0.375rem;
+  }
+
+  /* Icon-rotate-on-hover utility for refresh/regenerate buttons */
+  .rotate-on-hover svg {
+    transition: transform 320ms var(--nb-ease-snap);
+  }
+  .rotate-on-hover:hover svg {
+    transform: rotate(-90deg);
+  }
+}
+
 ::selection {
   background: var(--nb-brand-soft);
 }

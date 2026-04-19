@@ -121,7 +121,7 @@ export function CompletionCard({
               type="button"
               onClick={onAnimateImage}
               title={s.animateImageHint}
-              className="col-span-1 sm:col-span-2 inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg bg-brand text-brand-ink text-[15.5px] font-semibold hover:brightness-95 transition"
+              className="btn btn-lg btn-primary col-span-1 sm:col-span-2"
             >
               <VideoIcon className="h-3.5 w-3.5" />
               {s.animateImage}
@@ -136,10 +136,8 @@ export function CompletionCard({
                   ? s.extendVideoStaleHint
                   : s.extendVideoHint
               }
-              className={`inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg text-[15.5px] font-semibold transition ${
-                extendStale
-                  ? "border border-line bg-panel ink hover:bg-soft"
-                  : "bg-brand text-brand-ink hover:brightness-95"
+              className={`btn btn-lg ${
+                extendStale ? "btn-secondary" : "btn-primary"
               }`}
             >
               <FastForward className="h-3.5 w-3.5" />
@@ -151,7 +149,7 @@ export function CompletionCard({
             type="button"
             onClick={onCreateVariant}
             title={s.createVariantHint}
-            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-line bg-panel ink text-[15.5px] hover:bg-soft transition"
+            className="btn btn-lg btn-secondary"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             {s.createVariant}
@@ -159,7 +157,7 @@ export function CompletionCard({
           <Link
             href="/library"
             title="Kütüphane sayfasına git"
-            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-line bg-panel ink text-[15.5px] hover:bg-soft transition"
+            className="btn btn-lg btn-secondary"
           >
             <FolderOpen className="h-3.5 w-3.5" />
             {s.openLibrary}
@@ -168,7 +166,7 @@ export function CompletionCard({
             type="button"
             onClick={() => setResetOpen(true)}
             title="Her şeyi temizle ve hedef seçim ekranına dön"
-            className="col-span-1 sm:col-span-2 inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg ink-2 text-[15.5px] hover:bg-soft transition"
+            className="btn btn-lg btn-ghost col-span-1 sm:col-span-2"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             {s.startOver}

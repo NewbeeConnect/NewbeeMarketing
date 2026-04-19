@@ -124,7 +124,7 @@ export default function LibraryPage() {
       video: stats.video.source + stats.video.generated,
     };
     return (
-      <div className="max-w-[960px] mx-auto px-6 py-6 space-y-4">
+      <div className="max-w-[1320px] mx-auto px-6 py-6 space-y-4">
         <div className="mb-1">
           <div className="serif text-[34px] ink">
             {COPY.library.pageTitle}
@@ -169,7 +169,7 @@ export default function LibraryPage() {
                   setSourceFilter("all");
                 }}
                 title={x.tooltip}
-                className="text-left rounded-xl border border-line bg-panel hover:border-brand hover:ring-brand transition p-5"
+                className="card-interactive text-left p-5"
               >
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-brand-soft text-brand-ink">
                   <x.Icon className="h-[18px] w-[18px]" />
@@ -212,7 +212,7 @@ export default function LibraryPage() {
   const bucket = stats[view.type];
 
   return (
-    <div className="max-w-[1100px] mx-auto px-6 py-6">
+    <div className="max-w-[1480px] mx-auto px-6 py-6">
       <Breadcrumb
         trail={[
           {
@@ -521,7 +521,7 @@ function AssetTile({
     <button
       type="button"
       onClick={onOpen}
-      className="text-left rounded-lg border border-line bg-panel hover:border-brand overflow-hidden transition"
+      className="text-left rounded-lg border border-line bg-panel overflow-hidden tile-interactive hover:border-brand/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/45"
     >
       <div className="relative aspect-[4/5] bg-soft">
         {item.status === "completed" && item.output_url ? (
@@ -696,7 +696,7 @@ function AssetPreview({
                 href={item.output_url}
                 download={item.filename}
                 title="Bilgisayarına indir"
-                className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 transition"
+                className="btn btn-md btn-primary w-full"
               >
                 <Download className="h-3 w-3" />
                 {COPY.library.preview.download}
@@ -706,7 +706,7 @@ function AssetPreview({
               <Link
                 href="/generate"
                 title={COPY.concepts.animate.long}
-                className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
+                className="w-full btn btn-md btn-secondary"
               >
                 <Film className="h-3 w-3" />
                 {COPY.library.preview.animate}
@@ -716,7 +716,7 @@ function AssetPreview({
               <Link
                 href="/generate"
                 title={COPY.concepts.extend.long}
-                className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
+                className="w-full btn btn-md btn-secondary"
               >
                 <FastForward className="h-3 w-3" />
                 {COPY.library.preview.extend}

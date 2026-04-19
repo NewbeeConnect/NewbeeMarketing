@@ -766,7 +766,7 @@ export default function GeneratePage() {
 
   // ─── Render ───────────────────────────────────────────────────────
   return (
-    <div className="max-w-[960px] mx-auto px-6 py-6 pb-24">
+    <div className="max-w-[1320px] mx-auto px-6 py-6 pb-24">
       {/* Top bar */}
       <div className="flex items-start justify-between mb-5 gap-3 flex-wrap">
         <div>
@@ -781,7 +781,7 @@ export default function GeneratePage() {
           <Link
             href="/library"
             title="Tüm üretimlerini gör"
-            className="text-[14.5px] ink-2 hover:ink flex items-center gap-1.5 transition"
+            className="btn btn-sm btn-ghost"
           >
             <LibraryIcon className="h-3.5 w-3.5" /> {COPY.generate.topbarLibrary}
           </Link>
@@ -790,7 +790,7 @@ export default function GeneratePage() {
               type="button"
               onClick={() => setStartOverOpen(true)}
               title="Her şeyi temizle ve hedef seçim ekranına dön"
-              className="text-[14.5px] ink-2 hover:ink transition"
+              className="btn btn-sm btn-ghost"
             >
               {COPY.generate.startOver}
             </button>
@@ -868,7 +868,7 @@ export default function GeneratePage() {
                   type="button"
                   onClick={() => advanceTo("brief")}
                   title="Brief ve şema adımına geç"
-                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 transition"
+                  className="btn btn-md btn-primary"
                 >
                   {COPY.generate.steps.goal.continueButton}{" "}
                   <ArrowRight className="h-3 w-3" />
@@ -933,7 +933,7 @@ export default function GeneratePage() {
                   type="button"
                   onClick={continueFromBrief}
                   title={COPY.generate.steps.brief.continueButtonHint}
-                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 transition"
+                  className="btn btn-md btn-primary"
                 >
                   {COPY.generate.steps.brief.continueButton}{" "}
                   <ArrowRight className="h-3 w-3" />
@@ -1027,7 +1027,7 @@ export default function GeneratePage() {
                       ? "Video üretim adımına geç"
                       : "Görsel üretim adımına geç"
                   }
-                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 transition"
+                  className="btn btn-md btn-primary"
                 >
                   {intent === "video"
                     ? COPY.generate.steps.prompt.continueButtonVideo
