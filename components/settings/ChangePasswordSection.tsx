@@ -4,20 +4,22 @@ import { useState } from "react";
 import { Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { COPY } from "@/lib/i18n/copy";
+import { WhatIsThis } from "@/components/ui/WhatIsThis";
 
 /**
- * Password change panel for the Settings page.
+ * Ayarlar sayfasındaki şifre değiştirme paneli.
  *
- * Flow:
- *   1. User fills current password + new password + confirmation.
- *   2. We re-verify the current password by calling signInWithPassword —
- *      this guards against session-hijack scenarios where a warm session
- *      lets a malicious page update credentials without knowing the old
- *      one. Supabase's `updateUser` alone wouldn't check.
- *   3. On match, we call `auth.updateUser({ password })` with the new value.
- *   4. Inputs clear on success.
+ * Akış:
+ *   1. Kullanıcı mevcut + yeni + yeni (tekrar) alanlarını doldurur.
+ *   2. Mevcut şifreyi `signInWithPassword` ile re-verify ederiz — Supabase'in
+ *      `updateUser` fonksiyonu tek başına eski şifreyi kontrol etmediği için,
+ *      aksi hâlde çalıntı bir session yeni şifre set edebilir.
+ *   3. Doğrulama geçerse `auth.updateUser({ password })` ile güncelleriz.
+ *   4. Başarılı olunca input'lar temizlenir.
  */
 export function ChangePasswordSection() {
+  const s = COPY.settings.password;
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -30,15 +32,15 @@ export function ChangePasswordSection() {
     if (saving) return;
 
     if (next.length < 8) {
-      toast.error("New password must be at least 8 characters.");
+      toast.error(s.errors.minLength);
       return;
     }
     if (next !== confirm) {
-      toast.error("New password and confirmation don't match.");
+      toast.error(s.errors.mismatch);
       return;
     }
     if (next === current) {
-      toast.error("New password must differ from the current one.");
+      toast.error(s.errors.sameAsOld);
       return;
     }
 
@@ -47,22 +49,19 @@ export function ChangePasswordSection() {
       const supabase = createClient();
       const { data: userRes, error: userErr } = await supabase.auth.getUser();
       if (userErr || !userRes.user?.email) {
-        toast.error("Not signed in. Please reload and try again.");
+        toast.error(s.errors.notSignedIn);
         return;
       }
 
-      // Step 1 — verify the OLD password. signInWithPassword returns an
-      // "Invalid login credentials" error if it doesn't match.
       const { error: verifyErr } = await supabase.auth.signInWithPassword({
         email: userRes.user.email,
         password: current,
       });
       if (verifyErr) {
-        toast.error("Current password is incorrect.");
+        toast.error(s.errors.wrongCurrent);
         return;
       }
 
-      // Step 2 — update to the new password.
       const { error: updateErr } = await supabase.auth.updateUser({
         password: next,
       });
@@ -71,12 +70,12 @@ export function ChangePasswordSection() {
         return;
       }
 
-      toast.success("Password updated.");
+      toast.success(s.success);
       setCurrent("");
       setNext("");
       setConfirm("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't change password");
+      toast.error(e instanceof Error ? e.message : s.errors.generic);
     } finally {
       setSaving(false);
     }
@@ -89,16 +88,22 @@ export function ChangePasswordSection() {
           <Lock className="h-4 w-4" />
         </div>
         <div>
-          <div className="text-[14px] font-semibold ink">Change password</div>
-          <div className="text-[12px] ink-3 mt-0.5">
-            Your current password is required for security. Minimum 8 characters.
-          </div>
+          <div className="text-[14px] font-semibold ink">{s.title}</div>
+          <div className="text-[12px] ink-3 mt-0.5">{s.sub}</div>
         </div>
+      </div>
+
+      <div className="mb-4">
+        <WhatIsThis
+          title={s.whatIsThis.title}
+          body={s.whatIsThis.body}
+          bullets={s.whatIsThis.bullets}
+        />
       </div>
 
       <form onSubmit={submit} className="space-y-3">
         <FieldRow
-          label="Current password"
+          label={s.fields.current}
           value={current}
           onChange={setCurrent}
           reveal={showCurrent}
@@ -106,7 +111,7 @@ export function ChangePasswordSection() {
           autoComplete="current-password"
         />
         <FieldRow
-          label="New password"
+          label={s.fields.next}
           value={next}
           onChange={setNext}
           reveal={showNext}
@@ -114,7 +119,7 @@ export function ChangePasswordSection() {
           autoComplete="new-password"
         />
         <FieldRow
-          label="Confirm new password"
+          label={s.fields.confirm}
           value={confirm}
           onChange={setConfirm}
           reveal={showNext}
@@ -125,10 +130,11 @@ export function ChangePasswordSection() {
           <button
             type="submit"
             disabled={saving || !current || !next || !confirm}
+            title="Mevcut şifreni doğrulayıp yenisini kaydeder"
             className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {saving && <Loader2 className="h-3 w-3 nb-spin" />}
-            {saving ? "Updating…" : "Update password"}
+            {saving ? s.submitting : s.submit}
           </button>
         </div>
       </form>
@@ -151,6 +157,7 @@ function FieldRow({
   onToggleReveal: () => void;
   autoComplete: string;
 }) {
+  const s = COPY.settings.password;
   return (
     <div className="space-y-1">
       <label className="text-[11.5px] font-medium ink-2">{label}</label>
@@ -168,7 +175,8 @@ function FieldRow({
           type="button"
           onClick={onToggleReveal}
           className="absolute right-2 top-1/2 -translate-y-1/2 ink-3 hover:ink transition"
-          aria-label={reveal ? "Hide" : "Show"}
+          aria-label={reveal ? s.hideLabel : s.revealLabel}
+          title={reveal ? s.hideLabel : s.revealLabel}
           tabIndex={-1}
         >
           {reveal ? (

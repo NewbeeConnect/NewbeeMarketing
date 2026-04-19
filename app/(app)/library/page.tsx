@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useDeleteGeneration, useLibrary } from "@/hooks/useLibrary";
 import type { GenerationRow } from "@/hooks/useGeneration";
+import { COPY } from "@/lib/i18n/copy";
+import { WhatIsThis } from "@/components/ui/WhatIsThis";
 
 /**
  * Single-tenant Library.
@@ -78,9 +80,11 @@ export default function LibraryPage() {
     try {
       await del.mutateAsync(id);
       if (preview?.id === id) setPreview(null);
-      toast.success("Deleted");
+      toast.success(COPY.library.toasts.deleted);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Delete failed");
+      toast.error(
+        e instanceof Error ? e.message : COPY.library.toasts.deleteFailed
+      );
     } finally {
       setPendingDelete(null);
     }
@@ -120,19 +124,39 @@ export default function LibraryPage() {
       video: stats.video.source + stats.video.generated,
     };
     return (
-      <div className="max-w-[960px] mx-auto px-6 py-6">
-        <div className="mb-5">
-          <div className="serif text-[26px] ink">Library</div>
+      <div className="max-w-[960px] mx-auto px-6 py-6 space-y-4">
+        <div className="mb-1">
+          <div className="serif text-[26px] ink">
+            {COPY.library.pageTitle}
+          </div>
           <div className="text-[12.5px] ink-3 mt-0.5">
-            Your uploaded sources and AI-generated outputs — grouped by type.
+            {COPY.library.pageSub}
           </div>
         </div>
+
+        <WhatIsThis
+          title={COPY.library.whatIsThis.title}
+          body={COPY.library.whatIsThis.body}
+          bullets={COPY.library.whatIsThis.bullets}
+          note={COPY.library.whatIsThis.note}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {(
             [
-              { kind: "image" as const, label: "Images", Icon: ImageIcon },
-              { kind: "video" as const, label: "Videos", Icon: VideoIcon },
+              {
+                kind: "image" as const,
+                label: COPY.library.typeCards.images,
+                Icon: ImageIcon,
+                tooltip:
+                  "Tüm görseller — AI üretimleri ve senin yüklediğin kaynak PNG/JPG'ler",
+              },
+              {
+                kind: "video" as const,
+                label: COPY.library.typeCards.videos,
+                Icon: VideoIcon,
+                tooltip: "Tüm videolar — AI üretimleri ve yüklediğin MP4/MOV'lar",
+              },
             ] as const
           ).map((x) => {
             const s = stats[x.kind];
@@ -144,6 +168,7 @@ export default function LibraryPage() {
                   setView({ kind: "grid", type: x.kind });
                   setSourceFilter("all");
                 }}
+                title={x.tooltip}
                 className="text-left rounded-xl border border-line bg-panel hover:border-brand hover:ring-brand transition p-5"
               >
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-brand-soft text-brand-ink">
@@ -153,17 +178,21 @@ export default function LibraryPage() {
                   <div>
                     <div className="serif text-[20px] ink">{x.label}</div>
                     <div className="text-[12.5px] ink-3 mt-0.5">
-                      {isLoading ? "Loading…" : `${totals[x.kind]} saved`}
+                      {isLoading
+                        ? COPY.library.typeCards.loading
+                        : COPY.library.typeCards.saved(totals[x.kind])}
                     </div>
                   </div>
                   <div className="text-right text-[11px] ink-3 leading-tight">
                     <div>
-                      <span className="ink font-medium mono">{s.generated}</span>{" "}
-                      generated
+                      <span className="ink font-medium mono">
+                        {s.generated}
+                      </span>{" "}
+                      {COPY.library.typeCards.generated}
                     </div>
                     <div className="mt-0.5">
                       <span className="ink font-medium mono">{s.source}</span>{" "}
-                      source
+                      {COPY.library.typeCards.source}
                     </div>
                   </div>
                 </div>
@@ -176,14 +205,20 @@ export default function LibraryPage() {
   }
 
   // ── Grid / list view ───────────────────────────────────────────────
-  const typeLabel = view.type === "image" ? "Images" : "Videos";
+  const typeLabel =
+    view.type === "image"
+      ? COPY.library.crumbImages
+      : COPY.library.crumbVideos;
   const bucket = stats[view.type];
 
   return (
     <div className="max-w-[1100px] mx-auto px-6 py-6">
       <Breadcrumb
         trail={[
-          { label: "Library", onClick: () => setView({ kind: "root" }) },
+          {
+            label: COPY.library.crumbRoot,
+            onClick: () => setView({ kind: "root" }),
+          },
           { label: typeLabel },
         ]}
       />
@@ -192,7 +227,9 @@ export default function LibraryPage() {
         <div>
           <div className="serif text-[24px] ink">{typeLabel}</div>
           <div className="text-[12.5px] ink-3 mt-0.5">
-            {isLoading ? "Loading…" : `${items.length} saved`}
+            {isLoading
+              ? COPY.library.typeCards.loading
+              : COPY.library.typeCards.saved(items.length)}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -201,7 +238,8 @@ export default function LibraryPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search…"
+              placeholder={COPY.library.searchPlaceholder}
+              title="Dosya adı veya prompt içinde ara"
               className="h-9 pl-8 pr-3 rounded-md border border-line bg-panel text-[12.5px] ink outline-none focus:border-brand w-[200px]"
             />
           </div>
@@ -215,6 +253,8 @@ export default function LibraryPage() {
                   : "ink-3 hover:ink"
               }`}
               aria-pressed={layout === "grid"}
+              title={COPY.library.layoutGridLabel}
+              aria-label={COPY.library.layoutGridLabel}
             >
               <Grid3x3 className="h-3 w-3" />
             </button>
@@ -227,6 +267,8 @@ export default function LibraryPage() {
                   : "ink-3 hover:ink"
               }`}
               aria-pressed={layout === "list"}
+              title={COPY.library.layoutListLabel}
+              aria-label={COPY.library.layoutListLabel}
             >
               <Rows3 className="h-3 w-3" />
             </button>
@@ -238,15 +280,31 @@ export default function LibraryPage() {
       <div className="flex items-center gap-1 border-b border-line-2 mb-4">
         {(
           [
-            { k: "all", label: "All", count: bucket.source + bucket.generated },
-            { k: "generated", label: "Generated", count: bucket.generated },
-            { k: "source", label: "Source", count: bucket.source },
+            {
+              k: "all",
+              label: COPY.library.tabs.all,
+              count: bucket.source + bucket.generated,
+              title: "Hepsi — yüklediklerin + AI üretimleri",
+            },
+            {
+              k: "generated",
+              label: COPY.library.tabs.generated,
+              count: bucket.generated,
+              title: COPY.concepts.generated.long,
+            },
+            {
+              k: "source",
+              label: COPY.library.tabs.source,
+              count: bucket.source,
+              title: COPY.concepts.source.long,
+            },
           ] as const
         ).map((t) => (
           <button
             key={t.k}
             type="button"
             onClick={() => setSourceFilter(t.k)}
+            title={t.title}
             className={`px-3 h-8 text-[12.5px] relative inline-flex items-center gap-1.5 ${
               sourceFilter === t.k ? "ink font-medium" : "ink-3 hover:ink"
             }`}
@@ -269,23 +327,22 @@ export default function LibraryPage() {
           <FolderOpen className="h-10 w-10 ink-3 mb-3 opacity-60" />
           <div className="text-[13px] ink-2">
             {search
-              ? "No matches."
+              ? COPY.library.emptyNoMatches
               : sourceFilter === "source"
-              ? `No ${view.type} sources uploaded yet.`
+              ? COPY.library.emptyNoSources(view.type)
               : sourceFilter === "generated"
-              ? `No ${view.type}s generated yet.`
-              : "No assets here yet."}
+              ? COPY.library.emptyNoGenerated(view.type)
+              : COPY.library.emptyGeneric}
           </div>
           <div className="text-[12px] ink-3 mt-0.5">
             {search ? (
-              "Try a different query."
+              COPY.library.emptyTryAgain
             ) : (
               <>
-                Head to the{" "}
                 <Link href="/generate" className="underline text-brand-ink">
-                  Generate
+                  {COPY.nav.generate}
                 </Link>{" "}
-                page to create one.
+                {COPY.library.emptyCreateCTA}
               </>
             )}
           </div>
@@ -300,10 +357,10 @@ export default function LibraryPage() {
         <div className="rounded-xl border border-line bg-panel overflow-hidden">
           <div className="text-[11px] ink-3 grid grid-cols-[60px_1fr_90px_80px_100px_40px] gap-2 px-3 py-2 border-b border-line-2 uppercase tracking-wide">
             <span />
-            <span>Name</span>
-            <span>Origin</span>
-            <span>Ratio</span>
-            <span>Date</span>
+            <span>{COPY.library.columns.name}</span>
+            <span>{COPY.library.columns.origin}</span>
+            <span>{COPY.library.columns.ratio}</span>
+            <span>{COPY.library.columns.date}</span>
             <span />
           </div>
           {filteredItems.map((it) => (
@@ -358,21 +415,25 @@ export default function LibraryPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this asset?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {COPY.library.deleteDialog.title}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingDelete?.filename
-                ? `"${pendingDelete.filename}" will be removed from your library and Supabase storage. This can't be undone.`
-                : "This asset will be removed from your library and Supabase storage. This can't be undone."}
+                ? COPY.library.deleteDialog.body(pendingDelete.filename)
+                : COPY.library.deleteDialog.bodyGeneric}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>
+              {COPY.library.deleteDialog.cancel}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (pendingDelete) performDelete(pendingDelete.id);
               }}
             >
-              Delete
+              {COPY.library.deleteDialog.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -408,8 +469,11 @@ function OriginChip({ item }: { item: GenerationRow }) {
               color: "var(--nb-brand-ink)",
             }
       }
+      title={
+        source ? COPY.concepts.source.short : COPY.concepts.generated.short
+      }
     >
-      {source ? "Source" : "AI"}
+      {source ? COPY.library.originSource : COPY.library.originAi}
     </span>
   );
 }
@@ -529,7 +593,7 @@ function AssetPreview({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`${item.filename} preview`}
+      aria-label={COPY.library.preview.ariaLabel(item.filename)}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(30,20,10,.55)" }}
       onClick={onClose}
@@ -554,12 +618,14 @@ function AssetPreview({
             />
           ) : item.status === "failed" ? (
             <div className="text-[13px] ink-2">
-              Failed: {item.error_message ?? "unknown error"}
+              {COPY.library.preview.failed(
+                item.error_message ?? COPY.library.preview.failedUnknown
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-2 text-[13px] ink-3">
               <Loader2 className="h-4 w-4 nb-spin" />
-              Still rendering…
+              {COPY.library.preview.stillRendering}
             </div>
           )}
         </div>
@@ -570,35 +636,56 @@ function AssetPreview({
               type="button"
               onClick={onClose}
               className="w-8 h-8 rounded-md inline-flex items-center justify-center ink-2 hover:bg-soft transition"
-              aria-label="Close"
+              aria-label={COPY.library.preview.close}
+              title={COPY.library.preview.close}
             >
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
           <div className="mt-3 space-y-2 text-[12px]">
-            <Row k="Origin" v={isSource(item) ? "User upload" : "AI"} />
-            <Row k="Ratio" v={item.ratio} />
             <Row
-              k="Created"
+              k={COPY.library.preview.origin}
+              v={
+                isSource(item)
+                  ? COPY.library.preview.originUser
+                  : COPY.library.preview.originAi
+              }
+            />
+            <Row k={COPY.library.preview.ratio} v={item.ratio} />
+            <Row
+              k={COPY.library.preview.created}
               v={new Date(item.created_at).toLocaleDateString()}
             />
             <Row
-              k="Model"
+              k={COPY.library.preview.model}
               v={
                 isSource(item)
-                  ? "—"
+                  ? COPY.library.preview.modelUserUpload
                   : item.type === "video"
-                  ? "Veo 3.1"
-                  : "Nano Banana 2"
+                  ? COPY.library.preview.modelVeo
+                  : COPY.library.preview.modelNanoBanana
               }
             />
             {item.actual_cost_usd != null && (
-              <Row k="Cost" v={`$${item.actual_cost_usd.toFixed(3)}`} mono />
+              <Row
+                k={COPY.library.preview.cost}
+                v={`$${item.actual_cost_usd.toFixed(3)}`}
+                mono
+              />
             )}
-            <Row k="Status" v={item.status} />
+            <Row
+              k={COPY.library.preview.status}
+              v={
+                COPY.library.preview.statusLabels[
+                  item.status as keyof typeof COPY.library.preview.statusLabels
+                ] ?? item.status
+              }
+            />
           </div>
           <div className="mt-4 pt-3 border-t border-line-2">
-            <div className="text-[11px] ink-3 mb-1">Prompt</div>
+            <div className="text-[11px] ink-3 mb-1">
+              {COPY.library.preview.prompt}
+            </div>
             <div className="text-[12px] ink-2 leading-relaxed line-clamp-6">
               {item.prompt}
             </div>
@@ -608,28 +695,31 @@ function AssetPreview({
               <a
                 href={item.output_url}
                 download={item.filename}
+                title="Bilgisayarına indir"
                 className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
               >
                 <Download className="h-3 w-3" />
-                Download
+                {COPY.library.preview.download}
               </a>
             )}
             {item.type === "image" && (
               <Link
                 href="/generate"
+                title={COPY.concepts.animate.long}
                 className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
               >
                 <Film className="h-3 w-3" />
-                Animate this image
+                {COPY.library.preview.animate}
               </Link>
             )}
             {item.type === "video" && (
               <Link
                 href="/generate"
+                title={COPY.concepts.extend.long}
                 className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
               >
                 <FastForward className="h-3 w-3" />
-                Extend this video
+                {COPY.library.preview.extend}
                 <ArrowRight className="h-3 w-3" />
               </Link>
             )}
@@ -637,10 +727,11 @@ function AssetPreview({
               type="button"
               onClick={() => onRequestDelete(item)}
               disabled={deleting}
+              title="Bu varlığı kütüphaneden ve depodan kalıcı olarak sil"
               className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg ink-2 text-[13px] hover:bg-soft disabled:opacity-40 transition"
             >
               <Trash2 className="h-3 w-3" />
-              Delete
+              {COPY.library.preview.delete}
             </button>
           </div>
         </div>

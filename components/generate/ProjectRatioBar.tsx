@@ -3,12 +3,15 @@
 import { PROJECTS, type AnyRatio } from "@/lib/projects";
 import type { Intent } from "@/lib/generate/machine";
 import { ratiosFor } from "@/lib/generate/machine";
+import { COPY } from "@/lib/i18n/copy";
 
 /**
- * Aspect ratio switcher. The hub used to also carry a project pill row;
- * with the hub running single-tenant (Newbee only) we drop the project
- * switcher entirely. Ratio options still filter by intent (image supports
- * 4:5 / 1:1; video and pipeline only 9:16 / 16:9).
+ * En-boy (aspect ratio) seçici. Hub eskiden burada proje pill'lerini de
+ * göstererek çoklu tenant'a destek veriyordu — single-tenant (Newbee) yapıya
+ * geçilince pill switcher düştü. Brand'i read-only bir label olarak
+ * gösteriyoruz ki "bu Newbee için üretiyoruz" context'i ekrandan kaybolmasın.
+ *
+ * Ratio seçenekleri intent'e göre filtrelenir (görsel 4 seçenek, video 2).
  */
 export function ProjectRatioBar({
   ratio,
@@ -21,13 +24,11 @@ export function ProjectRatioBar({
 }) {
   const options = intent ? ratiosFor(intent) : [];
   const disabled = intent === null;
-  // Showing the brand as a read-only label keeps the "we are making for
-  // Newbee" context visible without a useless one-option switcher.
   const brand = PROJECTS[0];
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[11px] ink-3">For</span>
+      <span className="text-[11px] ink-3">Kimin için</span>
       <span
         className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-md bg-soft border border-line-2 text-[12px] font-medium ink"
         title={brand.description}
@@ -40,12 +41,16 @@ export function ProjectRatioBar({
         {brand.name}
       </span>
 
-      <span className="text-[11px] ink-3 ml-2">Aspect</span>
+      <span className="text-[11px] ink-3 ml-2">En-boy</span>
       <select
         value={disabled ? "" : ratio}
         onChange={(e) => onRatioChange(e.target.value as AnyRatio)}
         disabled={disabled}
-        title={disabled ? "Pick what you want to make first." : undefined}
+        title={
+          disabled
+            ? "Önce ne üretmek istediğini seç"
+            : COPY.concepts.ratio.long
+        }
         className="h-9 px-2.5 pr-8 rounded-md border border-line bg-panel text-[12.5px] ink outline-none focus:border-brand appearance-none disabled:opacity-40 disabled:cursor-not-allowed"
         style={{
           backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>")`,
@@ -54,11 +59,16 @@ export function ProjectRatioBar({
         }}
       >
         {disabled && <option value="">—</option>}
-        {options.map((r) => (
-          <option key={r} value={r}>
-            {r}
-          </option>
-        ))}
+        {options.map((r) => {
+          const label = (
+            COPY.concepts.ratio.examples as Record<string, string | undefined>
+          )[r];
+          return (
+            <option key={r} value={r} title={label}>
+              {label ?? r}
+            </option>
+          );
+        })}
       </select>
     </div>
   );

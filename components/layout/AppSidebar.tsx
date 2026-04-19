@@ -15,11 +15,27 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { COPY } from "@/lib/i18n/copy";
 
 const NAV = [
-  { href: "/generate", label: "Generate", Icon: Sparkles },
-  { href: "/library", label: "Library", Icon: FolderOpen },
-  { href: "/analytics", label: "Analytics", Icon: BarChart3 },
+  {
+    href: "/generate",
+    label: COPY.nav.generate,
+    Icon: Sparkles,
+    title: "AI ile yeni görsel veya video üret",
+  },
+  {
+    href: "/library",
+    label: COPY.nav.library,
+    Icon: FolderOpen,
+    title: "Ürettiğin ve yüklediğin tüm dosyaları gör",
+  },
+  {
+    href: "/analytics",
+    label: COPY.nav.analytics,
+    Icon: BarChart3,
+    title: "Takımın harcama ve üretim özeti",
+  },
 ] as const;
 
 /**
@@ -121,9 +137,11 @@ export function AppSidebar() {
         </div>
         {!compact && (
           <div className="leading-tight">
-            <div className="text-[13.5px] font-semibold ink">Newbee</div>
+            <div className="text-[13.5px] font-semibold ink">
+              {COPY.nav.brandName}
+            </div>
             <div className="text-[9.5px] uppercase tracking-[0.14em] ink-3 mt-0.5 whitespace-nowrap">
-              Marketing Hub
+              {COPY.nav.brandSubtitle}
             </div>
           </div>
         )}
@@ -131,7 +149,7 @@ export function AppSidebar() {
 
       {/* Primary nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5">
-        {NAV.map(({ href, label, Icon }) => {
+        {NAV.map(({ href, label, Icon, title }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
@@ -142,7 +160,7 @@ export function AppSidebar() {
                   ? "bg-brand-soft text-brand-ink font-medium"
                   : "ink-2 hover:bg-soft"
               }`}
-              title={compact ? label : undefined}
+              title={compact ? `${label} — ${title}` : title}
             >
               <Icon className="h-4 w-4 shrink-0" />
               {!compact && (
@@ -167,10 +185,10 @@ export function AppSidebar() {
               ? "bg-brand-soft text-brand-ink font-medium"
               : "ink-2 hover:bg-soft"
           }`}
-          title={compact ? "Settings" : undefined}
+          title={`${COPY.nav.settings} — Hesap, şifre, API anahtarları`}
         >
           <Settings className="h-4 w-4 shrink-0" />
-          {!compact && <span>Settings</span>}
+          {!compact && <span>{COPY.nav.settings}</span>}
         </Link>
 
         <div
@@ -188,7 +206,7 @@ export function AppSidebar() {
             <>
               <div className="flex-1 min-w-0">
                 <div className="text-[12px] font-medium ink truncate">
-                  Admin
+                  Yönetici
                 </div>
                 <div className="text-[10px] ink-3 truncate">
                   {email ?? "—"}
@@ -197,8 +215,8 @@ export function AppSidebar() {
               <button
                 onClick={handleLogout}
                 className="ink-3 hover:ink transition"
-                title="Sign out"
-                aria-label="Sign out"
+                title={COPY.nav.signOut}
+                aria-label={COPY.nav.signOut}
               >
                 <LogOut className="h-3.5 w-3.5" />
               </button>
@@ -210,7 +228,8 @@ export function AppSidebar() {
         <button
           onClick={() => setCollapsed((c) => !c)}
           className="hidden md:flex w-full h-8 items-center justify-center text-[11px] ink-3 hover:ink transition"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? "Kenar menüyü aç" : "Kenar menüyü daralt"}
+          title={collapsed ? "Kenar menüyü aç" : "Kenar menüyü daralt"}
         >
           <ChevronRight
             className="h-3.5 w-3.5"
@@ -228,10 +247,10 @@ export function AppSidebar() {
         type="button"
         onClick={() => setMobileOpen(true)}
         className="md:hidden fixed top-3 left-3 z-40 h-9 px-3 rounded-lg inline-flex items-center gap-1.5 bg-panel border border-line text-[12.5px] ink shadow-card"
-        aria-label="Open navigation"
+        aria-label={COPY.nav.menuOpen}
       >
         <Menu className="h-3.5 w-3.5" />
-        Menu
+        Menü
       </button>
 
       {/* Desktop sidebar */}
@@ -248,7 +267,7 @@ export function AppSidebar() {
           className="md:hidden fixed inset-0 z-50 flex"
           role="dialog"
           aria-modal="true"
-          aria-label="Navigation"
+          aria-label="Menü"
         >
           <div
             className="flex-1"
@@ -261,7 +280,7 @@ export function AppSidebar() {
                 type="button"
                 onClick={() => setMobileOpen(false)}
                 className="w-8 h-8 rounded-md inline-flex items-center justify-center ink-2 hover:bg-soft transition"
-                aria-label="Close navigation"
+                aria-label={COPY.nav.menuClose}
               >
                 <X className="h-3.5 w-3.5" />
               </button>

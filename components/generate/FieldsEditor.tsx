@@ -6,16 +6,15 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
-import { COPY } from "@/lib/generate/copy";
+import { COPY } from "@/lib/i18n/copy";
 
 /**
- * 2-column grid of blueprint fields. Each field is a small panel on bg-soft
- * with a label + per-field regenerate button in the top-right corner, then
- * an inline input with placeholder text equal to the field's hint.
+ * 6 alanlı şema (Blueprint) editörü — 2-sütunlu grid. Her alan küçük bir
+ * panel: label + sağ üstte "sadece bunu yeniden yaz" ⟳ butonu + içeri inline
+ * input.
  *
- * Top row of the editor has a "Draft with Gemini" button that refills all
- * fields from the brief at once; a "Ready" chip appears when every field
- * has content.
+ * Üst başlık satırı ("Gemini ile taslak yaz") isteğe bağlı; BriefStage zaten
+ * kendi başlık satırını renderliyor (hideHeader=true).
  */
 export function FieldsEditor<T extends Record<string, string>>({
   title,
@@ -32,25 +31,17 @@ export function FieldsEditor<T extends Record<string, string>>({
 }: {
   title: string;
   icon: React.ReactNode;
-  fieldList: { key: keyof T & string; label: string; hint: string }[];
+  fieldList: readonly { key: keyof T & string; label: string; hint: string }[];
   values: T;
   onChange: (key: keyof T & string, value: string) => void;
-  /**
-   * "Draft with Gemini" handler. Optional — only needed when the inner
-   * header is rendered (`hideHeader={false}`). When the parent renders its
-   * own Draft button (e.g. BriefStage), this can be omitted.
-   */
   onFillAI?: () => void;
   aiLoading: boolean;
   ready: boolean;
   onRegenerateField?: (key: keyof T & string) => void;
   regeneratingField?: (keyof T & string) | null;
-  /**
-   * Hide the title row — used inside pipeline Tabs where each tab already
-   * has its own "Image blueprint / Video blueprint" label.
-   */
   hideHeader?: boolean;
 }) {
+  const fe = COPY.generate.fieldsEditor;
   return (
     <div className="space-y-2">
       {!hideHeader && (
@@ -70,7 +61,7 @@ export function FieldsEditor<T extends Record<string, string>>({
                 }}
               >
                 <Check className="h-2.5 w-2.5" />
-                {COPY.blueprint.ready}
+                {fe.ready}
               </span>
             )}
           </div>
@@ -79,6 +70,7 @@ export function FieldsEditor<T extends Record<string, string>>({
               type="button"
               onClick={onFillAI}
               disabled={aiLoading}
+              title="Brief'ini alıp tüm şema alanlarını Gemini ile otomatik doldur"
               className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-line bg-panel text-[12.5px] ink hover:bg-soft disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               {aiLoading ? (
@@ -86,7 +78,7 @@ export function FieldsEditor<T extends Record<string, string>>({
               ) : (
                 <Sparkles className="h-3 w-3" />
               )}
-              {aiLoading ? COPY.brief.drafting : COPY.brief.draftButton}
+              {aiLoading ? fe.draftingAll : fe.draftAll}
             </button>
           )}
         </div>
@@ -104,7 +96,10 @@ export function FieldsEditor<T extends Record<string, string>>({
               className="rounded-lg border border-line-2 bg-soft p-2.5"
             >
               <div className="flex items-center justify-between">
-                <label className="text-[11.5px] font-medium ink-2">
+                <label
+                  className="text-[11.5px] font-medium ink-2"
+                  title={f.hint}
+                >
                   {f.label}
                 </label>
                 {canRegen && (
@@ -113,7 +108,7 @@ export function FieldsEditor<T extends Record<string, string>>({
                     onClick={() => onRegenerateField?.(f.key)}
                     disabled={aiLoading || isRegen}
                     className="text-[10.5px] ink-3 hover:text-brand-ink flex items-center gap-1 disabled:opacity-40"
-                    title="Regenerate just this field"
+                    title={fe.regenerateTitle}
                   >
                     {isRegen ? (
                       <Loader2 className="h-2.5 w-2.5 nb-spin" />
@@ -128,6 +123,7 @@ export function FieldsEditor<T extends Record<string, string>>({
                 onChange={(e) => onChange(f.key, e.target.value)}
                 placeholder={f.hint}
                 disabled={isRegen}
+                title={f.hint}
                 className="w-full mt-1 text-[12.5px] ink bg-transparent outline-none placeholder:ink-3"
               />
             </div>

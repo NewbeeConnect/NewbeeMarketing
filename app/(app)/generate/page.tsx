@@ -36,6 +36,7 @@ import {
   AssetLockEditor,
   type LockedAsset,
 } from "@/components/generate/AssetLockEditor";
+import { WhatIsThis } from "@/components/ui/WhatIsThis";
 
 import { PROJECTS, type AnyRatio, type ProjectSlug } from "@/lib/projects";
 import {
@@ -43,7 +44,6 @@ import {
   asImageRatio,
   asVideoRatio,
   defaultRatioFor,
-  intentLabel,
   ratiosFor,
 } from "@/lib/generate/machine";
 import {
@@ -51,7 +51,7 @@ import {
   type StepVisual,
   stepsFor,
 } from "@/lib/generate/timeline";
-import { COPY } from "@/lib/generate/copy";
+import { COPY, type WhatIsThis as WhatIsThisCopy } from "@/lib/i18n/copy";
 import {
   useGenerateImage,
   useGenerateVideo,
@@ -86,16 +86,50 @@ const EMPTY_VIDEO_FIELDS: VideoPromptFields = {
   audio: "",
 };
 
-// Step subtitles shown next to the active step title
+// Step subtitles shown next to the active step title. Centralized Turkish
+// copy — pulled from COPY.generate.steps.<step>.subtitle where present.
 const STEP_SUBTITLES: Record<StepId, string> = {
-  goal: "What are we making?",
-  brief: "Tell Gemini the story, then shape the details.",
-  prompt: "Final instructions the model will receive.",
-  image: "Generate, upload, or pick from library.",
-  postImage: "Animate the image, or save just the still.",
-  video: "Render a short clip with Veo 3.1.",
+  goal: COPY.generate.steps.goal.subtitle,
+  brief: COPY.generate.steps.brief.subtitle,
+  prompt: COPY.generate.steps.prompt.subtitle,
+  image: COPY.generate.steps.image.subtitle,
+  postImage: COPY.generate.steps.postImage.subtitle,
+  video: COPY.generate.steps.video.subtitle,
   done: "",
 };
+
+// Helper — each TimelineStep gets a WhatIsThis info card as its `help`
+// prop. We inline the JSX once per step from COPY so every consumer
+// sees the same wording.
+function stepHelp(step: StepId): React.ReactNode | null {
+  const raw =
+    step === "goal"
+      ? COPY.generate.steps.goal.whatIsThis
+      : step === "brief"
+      ? COPY.generate.steps.brief.whatIsThis
+      : step === "prompt"
+      ? COPY.generate.steps.prompt.whatIsThis
+      : step === "image"
+      ? COPY.generate.steps.image.whatIsThis
+      : step === "postImage"
+      ? COPY.generate.steps.postImage.whatIsThis
+      : step === "video"
+      ? COPY.generate.steps.video.whatIsThis
+      : step === "done"
+      ? COPY.generate.steps.done.whatIsThis
+      : null;
+  if (!raw) return null;
+  // Normalize into the WhatIsThis shape — some entries don't declare `note`.
+  const w = raw as WhatIsThisCopy;
+  return (
+    <WhatIsThis
+      title={w.title}
+      body={w.body}
+      bullets={w.bullets}
+      note={w.note}
+    />
+  );
+}
 
 /**
  * Read a File as base64 using native FileReader. Fast + no stack-overflow
@@ -298,7 +332,9 @@ export default function GeneratePage() {
       const newSteps = stepsFor(next);
       setActiveStep("brief");
       setMaxReachedIdx(newSteps.indexOf("brief"));
-      toast.success(COPY.toasts.intentSwitched(intentLabel(next)));
+      toast.success(
+        COPY.generate.toasts.intentSwitched(COPY.generate.intentLabels[next])
+      );
     },
     [intent, activeVideoId, qc, refFiles]
   );
@@ -357,7 +393,7 @@ export default function GeneratePage() {
     const next = stepsFor("video");
     setActiveStep("brief");
     setMaxReachedIdx(next.indexOf("brief"));
-    toast.success("Continuing from your last video — write the next beat.");
+    toast.success(COPY.generate.toasts.extendStarted);
   }, [activeVideoId, brief, qc]);
 
   const animateImage = useCallback(() => {
@@ -371,7 +407,9 @@ export default function GeneratePage() {
     const pipe = stepsFor("pipeline");
     setActiveStep("brief");
     setMaxReachedIdx(pipe.indexOf("brief"));
-    toast.info("Write the animation brief — your image is the first frame.");
+    toast.info(
+      "Animasyon brief'ini yaz — görselin videonun ilk karesi olacak."
+    );
   }, [imageUrl]);
 
   // ─── Brief handlers ──────────────────────────────────────────────
@@ -388,18 +426,18 @@ export default function GeneratePage() {
       setBrief(res.suggestion);
       setLastHighlight(res.pickedHighlight);
       toast.success(
-        res.pickedHighlight
-          ? `Brief drafted around: ${res.pickedHighlight}.`
-          : "New brief drafted."
+        COPY.generate.toasts.briefDrafted(res.pickedHighlight)
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Suggestion failed");
+      toast.error(
+        e instanceof Error ? e.message : COPY.generate.toasts.suggestionFailed
+      );
     }
   }
 
   async function fillBlueprintWithAI(target: "image" | "video") {
     if (!brief.trim()) {
-      toast.error(COPY.toasts.briefNeeded);
+      toast.error(COPY.generate.toasts.briefNeeded);
       return;
     }
     try {
@@ -411,15 +449,19 @@ export default function GeneratePage() {
       });
       if (target === "image") setImageFields(res.fields as ImagePromptFields);
       else setVideoFields(res.fields as VideoPromptFields);
-      toast.success("Blueprint drafted. Tweak anything before continuing.");
+      toast.success(COPY.generate.toasts.blueprintDrafted);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Blueprint draft failed");
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : COPY.generate.toasts.blueprintDraftFailed
+      );
     }
   }
 
   async function regenerateImageField(key: keyof ImagePromptFields & string) {
     if (!brief.trim()) {
-      toast.error(COPY.toasts.briefNeeded);
+      toast.error(COPY.generate.toasts.briefNeeded);
       return;
     }
     setRegeneratingImageField(key);
@@ -435,17 +477,21 @@ export default function GeneratePage() {
       const fresh = (res.fields as ImagePromptFields)[key];
       if (fresh && fresh.trim().length > 0) {
         setImageFields((prev) => ({ ...prev, [key]: fresh }));
-        toast.success(`Regenerated ${key}.`);
+        toast.success(COPY.generate.toasts.fieldRegenerated(key));
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Field regeneration failed");
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : COPY.generate.toasts.fieldRegenerationFailed
+      );
     } finally {
       setRegeneratingImageField(null);
     }
   }
   async function regenerateVideoField(key: keyof VideoPromptFields & string) {
     if (!brief.trim()) {
-      toast.error(COPY.toasts.briefNeeded);
+      toast.error(COPY.generate.toasts.briefNeeded);
       return;
     }
     setRegeneratingVideoField(key);
@@ -461,10 +507,14 @@ export default function GeneratePage() {
       const fresh = (res.fields as VideoPromptFields)[key];
       if (fresh && fresh.trim().length > 0) {
         setVideoFields((prev) => ({ ...prev, [key]: fresh }));
-        toast.success(`Regenerated ${key}.`);
+        toast.success(COPY.generate.toasts.fieldRegenerated(key));
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Field regeneration failed");
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : COPY.generate.toasts.fieldRegenerationFailed
+      );
     } finally {
       setRegeneratingVideoField(null);
     }
@@ -497,15 +547,15 @@ export default function GeneratePage() {
   function continueFromBrief() {
     if (!intent) return;
     if (intent === "image" && !imageBlueprintReady) {
-      toast.error(COPY.toasts.blueprintIncomplete);
+      toast.error(COPY.generate.toasts.blueprintIncomplete);
       return;
     }
     if (intent === "video" && !videoBlueprintReady) {
-      toast.error(COPY.toasts.blueprintIncomplete);
+      toast.error(COPY.generate.toasts.blueprintIncomplete);
       return;
     }
     if (intent === "pipeline" && (!imageBlueprintReady || !videoBlueprintReady)) {
-      toast.error(COPY.toasts.blueprintIncomplete);
+      toast.error(COPY.generate.toasts.blueprintIncomplete);
       if (!imageBlueprintReady) setPipelineTab("image");
       else setPipelineTab("video");
       return;
@@ -521,11 +571,11 @@ export default function GeneratePage() {
 
   function rebuildImagePromptFromBlueprint() {
     setAssembledImagePrompt(assembleImagePrompt(imageFields));
-    toast.success("Image prompt rebuilt from blueprint.");
+    toast.success(COPY.generate.toasts.imagePromptRebuilt);
   }
   function rebuildVideoPromptFromBlueprint() {
     setAssembledVideoPrompt(assembleVideoPrompt(videoFields));
-    toast.success("Video prompt rebuilt from blueprint.");
+    toast.success(COPY.generate.toasts.videoPromptRebuilt);
   }
 
   function continueFromPrompt() {
@@ -551,7 +601,9 @@ export default function GeneratePage() {
       setImageUrl(res.outputUrl);
       advanceTo(intent === "pipeline" ? "postImage" : "done");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Image generation failed");
+      toast.error(
+        e instanceof Error ? e.message : COPY.generate.toasts.imageGenFailed
+      );
     }
   }
 
@@ -570,7 +622,9 @@ export default function GeneratePage() {
       setImageUrl(res.outputUrl);
       advanceTo(intent === "pipeline" ? "postImage" : "done");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Image upload failed");
+      toast.error(
+        e instanceof Error ? e.message : COPY.generate.toasts.imageUploadFailed
+      );
     }
   }
 
@@ -650,10 +704,12 @@ export default function GeneratePage() {
       });
       setActiveVideoId(res.generationId);
       toast.success(
-        COPY.toasts.videoStarted(projectMeta.name, ratio)
+        COPY.generate.toasts.videoStarted(projectMeta.name, ratio)
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Video generation failed");
+      toast.error(
+        e instanceof Error ? e.message : COPY.generate.toasts.videoGenFailed
+      );
     }
   }
 
@@ -672,7 +728,9 @@ export default function GeneratePage() {
       setActiveVideoId(res.generationId);
       advanceTo("done");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Video upload failed");
+      toast.error(
+        e instanceof Error ? e.message : COPY.generate.toasts.videoUploadFailed
+      );
     }
   }
 
@@ -686,14 +744,16 @@ export default function GeneratePage() {
   // ─── Summaries ───────────────────────────────────────────────────
   const projectMeta = PROJECTS.find((p) => p.slug === project)!;
   const briefSummary =
-    brief.length > 60 ? `${brief.slice(0, 60)}…` : brief || "(empty)";
+    brief.length > 60
+      ? `${brief.slice(0, 60)}…`
+      : brief || COPY.generate.steps.brief.summaryEmpty;
   const promptForSummary =
     intent === "video" ? assembledVideoPrompt : assembledImagePrompt;
   const promptSummary = promptForSummary
     ? promptForSummary.length > 60
       ? `${promptForSummary.slice(0, 60)}…`
       : promptForSummary
-    : "(auto-drafted from blueprint)";
+    : COPY.generate.steps.prompt.summaryEmpty;
 
   // "Start over" (reached via the top bar)
   const [startOverOpen, setStartOverOpen] = useState(false);
@@ -704,25 +764,29 @@ export default function GeneratePage() {
       {/* Top bar */}
       <div className="flex items-start justify-between mb-5 gap-3 flex-wrap">
         <div>
-          <div className="serif text-[26px] ink">Generate</div>
+          <div className="serif text-[26px] ink">
+            {COPY.generate.pageTitle}
+          </div>
           <div className="text-[12.5px] ink-3 mt-0.5">
-            Brief → prompt → image or video. Every step is editable.
+            {COPY.generate.pageSubtitle}
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href="/library"
+            title="Tüm üretimlerini gör"
             className="text-[12.5px] ink-2 hover:ink flex items-center gap-1.5 transition"
           >
-            <LibraryIcon className="h-3.5 w-3.5" /> Library
+            <LibraryIcon className="h-3.5 w-3.5" /> {COPY.generate.topbarLibrary}
           </Link>
           {intent && (
             <button
               type="button"
               onClick={() => setStartOverOpen(true)}
+              title="Her şeyi temizle ve hedef seçim ekranına dön"
               className="text-[12.5px] ink-2 hover:ink transition"
             >
-              Start over
+              {COPY.generate.startOver}
             </button>
           )}
         </div>
@@ -736,10 +800,10 @@ export default function GeneratePage() {
           </div>
           <div className="flex-1">
             <div className="text-[13px] font-medium text-brand-ink">
-              Extending from your last video
+              {COPY.generate.extendBanner.title}
             </div>
             <div className="text-[11.5px] text-brand-ink opacity-80 mt-0.5">
-              Veo will continue from its final frame — write the next beat.
+              {COPY.generate.extendBanner.sub}
             </div>
           </div>
           <button
@@ -749,7 +813,8 @@ export default function GeneratePage() {
               setExtendFromBriefText(null);
             }}
             className="ink-2 hover:ink transition"
-            aria-label="Cancel extend"
+            aria-label={COPY.generate.extendBanner.cancel}
+            title={COPY.generate.extendBanner.cancel}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -760,13 +825,16 @@ export default function GeneratePage() {
         {/* Step 1: Goal */}
         <TimelineStep
           stepNumber={steps.indexOf("goal") + 1}
-          title="Goal"
+          title={COPY.generate.steps.goal.title}
           subtitle={STEP_SUBTITLES.goal}
           visual={visualFor("goal")}
+          help={stepHelp("goal")}
           summary={
             intent ? (
               <span>
-                <span className="ink">{intentLabel(intent)}</span>{" "}
+                <span className="ink">
+                  {COPY.generate.intentLabels[intent]}
+                </span>{" "}
                 <span className="ink-3">
                   · {projectMeta.name} · {ratio}
                 </span>
@@ -793,9 +861,11 @@ export default function GeneratePage() {
                 <button
                   type="button"
                   onClick={() => advanceTo("brief")}
+                  title="Brief ve şema adımına geç"
                   className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
                 >
-                  Continue <ArrowRight className="h-3 w-3" />
+                  {COPY.generate.steps.goal.continueButton}{" "}
+                  <ArrowRight className="h-3 w-3" />
                 </button>
               </div>
             </div>
@@ -806,9 +876,10 @@ export default function GeneratePage() {
         {intent && (
           <TimelineStep
             stepNumber={steps.indexOf("brief") + 1}
-            title="Brief & blueprint"
+            title={COPY.generate.steps.brief.title}
             subtitle={STEP_SUBTITLES.brief}
             visual={visualFor("brief")}
+            help={stepHelp("brief")}
             summary={
               <span className="ink-3 truncate">{briefSummary}</span>
             }
@@ -817,7 +888,6 @@ export default function GeneratePage() {
             <div className="space-y-4">
               <BriefStage
                 intent={intent}
-                project={project}
                 brief={brief}
                 onBriefChange={setBrief}
                 imageFields={imageFields}
@@ -856,9 +926,11 @@ export default function GeneratePage() {
                 <button
                   type="button"
                   onClick={continueFromBrief}
+                  title={COPY.generate.steps.brief.continueButtonHint}
                   className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
                 >
-                  Continue to prompt <ArrowRight className="h-3 w-3" />
+                  {COPY.generate.steps.brief.continueButton}{" "}
+                  <ArrowRight className="h-3 w-3" />
                 </button>
               </div>
             </div>
@@ -869,9 +941,10 @@ export default function GeneratePage() {
         {intent && (
           <TimelineStep
             stepNumber={steps.indexOf("prompt") + 1}
-            title="Prompt"
+            title={COPY.generate.steps.prompt.title}
             subtitle={STEP_SUBTITLES.prompt}
             visual={visualFor("prompt")}
+            help={stepHelp("prompt")}
             summary={
               <span className="ink-3 truncate">{promptSummary}</span>
             }
@@ -883,8 +956,16 @@ export default function GeneratePage() {
                   <div className="flex items-center gap-1 border-b border-line-2">
                     {(
                       [
-                        { k: "image", l: "Image prompt", Icon: ImageIcon },
-                        { k: "video", l: "Video prompt", Icon: VideoIcon },
+                        {
+                          k: "image",
+                          l: COPY.generate.steps.prompt.tabImage,
+                          Icon: ImageIcon,
+                        },
+                        {
+                          k: "video",
+                          l: COPY.generate.steps.prompt.tabVideo,
+                          Icon: VideoIcon,
+                        },
                       ] as const
                     ).map((t) => (
                       <button
@@ -935,9 +1016,16 @@ export default function GeneratePage() {
                 <button
                   type="button"
                   onClick={continueFromPrompt}
+                  title={
+                    intent === "video"
+                      ? "Video üretim adımına geç"
+                      : "Görsel üretim adımına geç"
+                  }
                   className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
                 >
-                  {intent === "video" ? "Continue to video" : "Continue to image"}
+                  {intent === "video"
+                    ? COPY.generate.steps.prompt.continueButtonVideo
+                    : COPY.generate.steps.prompt.continueButtonImage}
                   <ArrowRight className="h-3 w-3" />
                 </button>
               </div>
@@ -949,19 +1037,20 @@ export default function GeneratePage() {
         {intent && steps.includes("image") && (
           <TimelineStep
             stepNumber={steps.indexOf("image") + 1}
-            title="Image"
+            title={COPY.generate.steps.image.title}
             subtitle={STEP_SUBTITLES.image}
             visual={visualFor("image")}
+            help={stepHelp("image")}
             summary={
               imageUrl ? (
                 <span className="inline-flex items-center gap-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imageUrl}
-                    alt="Image summary"
+                    alt="Görsel özet"
                     className="h-8 w-8 rounded object-cover"
                   />
-                  <span className="ink-3">Ready</span>
+                  <span className="ink-3">Hazır</span>
                 </span>
               ) : null
             }
@@ -987,14 +1076,19 @@ export default function GeneratePage() {
         {intent === "pipeline" && (
           <TimelineStep
             stepNumber={steps.indexOf("postImage") + 1}
-            title="Continue?"
+            title={COPY.generate.steps.postImage.title}
             subtitle={STEP_SUBTITLES.postImage}
             visual={visualFor("postImage")}
+            help={stepHelp("postImage")}
             summary={
               activeStep === "done" && !videoUrl ? (
-                <span className="ink-3">Stopped at image</span>
+                <span className="ink-3">
+                  {COPY.generate.steps.postImage.summaryStopped}
+                </span>
               ) : (
-                <span className="ink-3">Continuing to video</span>
+                <span className="ink-3">
+                  {COPY.generate.steps.postImage.summaryContinuing}
+                </span>
               )
             }
             onEdit={() => editStep("postImage")}
@@ -1014,17 +1108,18 @@ export default function GeneratePage() {
         {intent && steps.includes("video") && (
           <TimelineStep
             stepNumber={steps.indexOf("video") + 1}
-            title="Video"
+            title={COPY.generate.steps.video.title}
             subtitle={STEP_SUBTITLES.video}
             visual={visualFor("video")}
+            help={stepHelp("video")}
             summary={
               videoUrl ? (
-                <span className="ink-3">Ready</span>
+                <span className="ink-3">Hazır</span>
               ) : videoProcessing ? (
-                <span className="ink-3">Rendering…</span>
+                <span className="ink-3">Render ediliyor…</span>
               ) : videoFailed ? (
                 <span style={{ color: "var(--nb-danger)" }}>
-                  Failed — tap Edit to retry
+                  Başarısız — tekrar denemek için Düzenle
                 </span>
               ) : null
             }
@@ -1056,8 +1151,9 @@ export default function GeneratePage() {
         {intent && activeStep === "done" && (
           <TimelineStep
             stepNumber={steps.indexOf("done") + 1}
-            title="Done"
+            title={COPY.generate.steps.done.title}
             visual="active"
+            help={stepHelp("done")}
           >
             <CompletionCard
               intent={intent}
@@ -1081,20 +1177,24 @@ export default function GeneratePage() {
       <AlertDialog open={startOverOpen} onOpenChange={setStartOverOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{COPY.change.confirmTitle}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {COPY.generate.steps.goal.changeConfirmTitle}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {COPY.change.confirmBody}
+              {COPY.generate.steps.goal.changeConfirmBody}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{COPY.change.confirmCancel}</AlertDialogCancel>
+            <AlertDialogCancel>
+              {COPY.generate.steps.goal.changeConfirmCancel}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setStartOverOpen(false);
                 resetAll();
               }}
             >
-              {COPY.change.confirmAction}
+              {COPY.generate.steps.goal.changeConfirmAction}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

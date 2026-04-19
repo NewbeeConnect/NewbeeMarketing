@@ -12,6 +12,8 @@ import {
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { TOTAL_CREDIT_USD } from "@/lib/constants";
 import { PROJECTS } from "@/lib/projects";
+import { COPY } from "@/lib/i18n/copy";
+import { WhatIsThis } from "@/components/ui/WhatIsThis";
 
 /**
  * Hub-designed analytics page. Budget gauge at the top, four stat cards
@@ -67,11 +69,22 @@ export default function AnalyticsPage() {
     <div className="max-w-[1100px] mx-auto px-6 py-6">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <div className="serif text-[26px] ink">Analytics</div>
+          <div className="serif text-[26px] ink">
+            {COPY.analytics.pageTitle}
+          </div>
           <div className="text-[12.5px] ink-3 mt-0.5">
-            Spend and activity across your projects.
+            {COPY.analytics.pageSub}
           </div>
         </div>
+      </div>
+
+      <div className="mb-4">
+        <WhatIsThis
+          title={COPY.analytics.whatIsThis.title}
+          body={COPY.analytics.whatIsThis.body}
+          bullets={COPY.analytics.whatIsThis.bullets}
+          note={COPY.analytics.whatIsThis.note}
+        />
       </div>
 
       {isLoading ? (
@@ -85,19 +98,23 @@ export default function AnalyticsPage() {
             <div className="flex items-start justify-between mb-3 gap-4 flex-wrap">
               <div>
                 <div className="text-[12px] ink-3 uppercase tracking-wide">
-                  Credit used
+                  {COPY.analytics.budget.label}
                 </div>
                 <div className="flex items-baseline gap-2 mt-1">
                   <div className="serif text-[32px] ink">
                     ${totalSpent.toFixed(2)}
                   </div>
                   <div className="text-[13px] ink-3">
-                    of ${TOTAL_CREDIT_USD.toFixed(2)}
+                    {COPY.analytics.budget.of(
+                      `$${TOTAL_CREDIT_USD.toFixed(2)}`
+                    )}
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[12px] ink-3">Remaining</div>
+                <div className="text-[12px] ink-3">
+                  {COPY.analytics.budget.remaining}
+                </div>
                 <div className="text-[18px] font-semibold ink mono">
                   ${remaining.toFixed(2)}
                 </div>
@@ -120,10 +137,12 @@ export default function AnalyticsPage() {
               />
             </div>
             <div className="flex items-center justify-between mt-2 text-[11px] ink-3">
-              <span>{pct.toFixed(0)}% used</span>
+              <span>
+                %{pct.toFixed(0)} {COPY.analytics.budget.used}
+              </span>
               {pct >= 80 && (
                 <span style={{ color: "var(--nb-danger)" }}>
-                  Approaching budget cap
+                  {COPY.analytics.budget.cap}
                 </span>
               )}
             </div>
@@ -132,27 +151,30 @@ export default function AnalyticsPage() {
           {/* Stat cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <StatCard
-              label="Images"
+              label={COPY.analytics.statCards.images}
               value={String(stats.imageCount)}
-              sub={`${stats.completed} successful total`}
+              sub={COPY.analytics.statCards.imagesSub(stats.completed)}
               Icon={ImageIcon}
             />
             <StatCard
-              label="Videos"
+              label={COPY.analytics.statCards.videos}
               value={String(stats.videoCount)}
-              sub={`${stats.failed} failed total`}
+              sub={COPY.analytics.statCards.videosSub(stats.failed)}
               Icon={VideoIcon}
             />
             <StatCard
-              label="Total generations"
+              label={COPY.analytics.statCards.total}
               value={String(stats.total)}
-              sub="Across all projects"
+              sub={COPY.analytics.statCards.totalSub}
               Icon={Sparkles}
             />
             <StatCard
-              label="Success rate"
-              value={`${successRate}%`}
-              sub={`${stats.completed} of ${stats.total || "—"}`}
+              label={COPY.analytics.statCards.success}
+              value={`%${successRate}`}
+              sub={COPY.analytics.statCards.successSub(
+                stats.completed,
+                stats.total
+              )}
               Icon={CheckCircle2}
             />
           </div>
@@ -162,9 +184,11 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="text-[14px] font-semibold ink">
-                  Spend over time
+                  {COPY.analytics.trend.title}
                 </div>
-                <div className="text-[11.5px] ink-3">Last 12 months</div>
+                <div className="text-[11.5px] ink-3">
+                  {COPY.analytics.trend.sub}
+                </div>
               </div>
             </div>
             <div className="h-[180px] flex items-end gap-1.5">
@@ -172,7 +196,10 @@ export default function AnalyticsPage() {
                 <div
                   key={i}
                   className="flex-1 flex flex-col items-center gap-0.5"
-                  title={`${t.month || "—"}: $${t.amount.toFixed(2)}`}
+                  title={COPY.analytics.trend.monthTooltip(
+                    t.month || COPY.analytics.trend.monthEmpty,
+                    `$${t.amount.toFixed(2)}`
+                  )}
                 >
                   <div
                     className="w-full rounded"
@@ -196,22 +223,30 @@ export default function AnalyticsPage() {
           <div className="rounded-xl border border-line bg-panel overflow-hidden">
             <div className="px-5 py-3 border-b border-line-2 flex items-center justify-between">
               <div className="text-[14px] font-semibold ink whitespace-nowrap">
-                Breakdown by service
+                {COPY.analytics.breakdown.title}
               </div>
               <button className="text-[11.5px] ink-3 hover:text-brand-ink flex items-center gap-1 transition">
-                <Download className="h-3 w-3" /> Export CSV
+                <Download className="h-3 w-3" /> {COPY.analytics.breakdown.exportCsv}
               </button>
             </div>
             <div className="grid grid-cols-[1fr_120px] gap-2 px-5 py-2.5 border-b border-line-2 text-[11px] ink-3 uppercase tracking-wide">
-              <span>Service</span>
-              <span className="text-right">Spend</span>
+              <span>{COPY.analytics.breakdown.colService}</span>
+              <span className="text-right">
+                {COPY.analytics.breakdown.colSpend}
+              </span>
             </div>
             {(
               [
-                { key: "gemini", label: "Gemini (brief + prompt)" },
-                { key: "imagen", label: "Nano Banana 2 (image)" },
-                { key: "veo", label: "Veo 3.1 (video)" },
-                { key: "tts", label: "TTS" },
+                {
+                  key: "gemini",
+                  label: COPY.analytics.breakdown.services.gemini,
+                },
+                {
+                  key: "imagen",
+                  label: COPY.analytics.breakdown.services.imagen,
+                },
+                { key: "veo", label: COPY.analytics.breakdown.services.veo },
+                { key: "tts", label: COPY.analytics.breakdown.services.tts },
               ] as const
             ).map((row) => {
               const cost =
@@ -233,7 +268,7 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="mt-3 text-[11px] ink-3">
-            Projects: {PROJECTS.map((p) => p.name).join(" · ")}
+            Projeler: {PROJECTS.map((p) => p.name).join(" · ")}
           </div>
         </>
       )}

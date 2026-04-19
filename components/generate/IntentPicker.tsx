@@ -13,62 +13,48 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowRight, Image as ImageIcon, Repeat, Video } from "lucide-react";
 import type { Intent } from "@/lib/generate/machine";
-import { intentLabel } from "@/lib/generate/machine";
-import { COPY } from "@/lib/generate/copy";
+import { COPY } from "@/lib/i18n/copy";
 
-const META: Record<
-  Intent,
-  { Icon: React.ComponentType<{ className?: string }>; title: string; desc: string; time: string }
-> = {
-  image: {
-    Icon: ImageIcon,
-    title: COPY.intentCards.image.title,
-    desc: COPY.intentCards.image.tagline,
-    time: COPY.intentCards.image.time,
-  },
-  video: {
-    Icon: Video,
-    title: COPY.intentCards.video.title,
-    desc: COPY.intentCards.video.tagline,
-    time: COPY.intentCards.video.time,
-  },
-  pipeline: {
-    Icon: Repeat,
-    title: COPY.intentCards.pipeline.title,
-    desc: COPY.intentCards.pipeline.tagline,
-    time: COPY.intentCards.pipeline.time,
-  },
+const ICONS: Record<Intent, React.ComponentType<{ className?: string }>> = {
+  image: ImageIcon,
+  video: Video,
+  pipeline: Repeat,
 };
 
 /**
- * First-visit hero — three big intent cards. On hover, a "Choose →" label
- * fades in at the bottom-right of the card. Click commits the intent; the
- * parent then collapses this into <IntentPill /> which offers soft-switch.
+ * İlk-ziyaret hero'su — üç büyük intent kartı. Hover'da sağ altta "Seç →"
+ * etiketi belirir. Kart tıklanınca intent commit olur; ana component bunu
+ * <IntentPill /> ile "mode switcher"a dönüştürür.
  */
 export function IntentPicker({ onPick }: { onPick: (i: Intent) => void }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       {(["image", "video", "pipeline"] as const).map((k) => {
-        const { Icon, title, desc, time } = META[k];
+        const Icon = ICONS[k];
+        const meta = COPY.generate.intents[k];
         return (
           <button
             key={k}
             type="button"
             onClick={() => onPick(k)}
+            title={meta.whenToUse}
             className="group text-left rounded-xl border border-line bg-panel hover:border-brand hover:ring-brand transition p-4"
           >
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-brand-soft text-brand-ink">
               <Icon className="h-[18px] w-[18px]" />
             </div>
-            <div className="serif text-[18px] ink mt-3">{title}</div>
+            <div className="serif text-[18px] ink mt-3">{meta.title}</div>
             <div className="text-[12.5px] ink-2 mt-1 leading-relaxed">
-              {desc}
+              {meta.tagline}
             </div>
             <div className="mt-3 flex items-center justify-between">
-              <span className="mono text-[11px] ink-3">{time}</span>
+              <span className="mono text-[11px] ink-3">{meta.time}</span>
               <span className="text-[11px] font-medium text-brand-ink inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                Choose <ArrowRight className="h-3 w-3" />
+                Seç <ArrowRight className="h-3 w-3" />
               </span>
+            </div>
+            <div className="text-[11px] ink-3 mt-2 leading-snug">
+              {meta.whenToUse}
             </div>
           </button>
         );
@@ -78,9 +64,9 @@ export function IntentPicker({ onPick }: { onPick: (i: Intent) => void }) {
 }
 
 /**
- * Once an intent is chosen this replaces the hero. Three pill-buttons inline;
- * clicking a non-active one is a soft switch (brief/blueprint preserved,
- * downstream outputs cleared). "Start over" behind a confirm dialog.
+ * Intent seçildikten sonra hero'nun yerine geçen kompakt 3-yönlü switcher.
+ * Aktif olmayan bir butona basmak "soft switch" (brief + şema korunur, çıktı
+ * temizlenir). "Sıfırdan başla" tam reset — AlertDialog arkasında.
  */
 export function IntentPill({
   intent,
@@ -92,20 +78,23 @@ export function IntentPill({
   onChange: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const goal = COPY.generate.steps.goal;
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[11px] ink-3">Mode</span>
+        <span className="text-[11px] ink-3">{goal.modeLabel}</span>
         <div className="inline-flex p-0.5 bg-soft rounded-lg border border-line-2">
           {(["image", "video", "pipeline"] as const).map((k) => {
             const active = k === intent;
-            const { Icon } = META[k];
+            const Icon = ICONS[k];
+            const meta = COPY.generate.intents[k];
             return (
               <button
                 key={k}
                 type="button"
                 onClick={() => !active && onSwitch(k)}
                 aria-pressed={active}
+                title={active ? `Aktif: ${meta.title}` : `${meta.title}'a geç — ${meta.whenToUse}`}
                 className={`px-2.5 h-7 rounded-md text-[12px] whitespace-nowrap inline-flex items-center gap-1 transition ${
                   active
                     ? "bg-panel shadow-card ink font-medium"
@@ -113,7 +102,7 @@ export function IntentPill({
                 }`}
               >
                 <Icon className="h-3 w-3" />
-                {intentLabel(k)}
+                {COPY.generate.intentLabels[k]}
               </button>
             );
           })}
@@ -121,28 +110,29 @@ export function IntentPill({
         <button
           onClick={() => setOpen(true)}
           className="ml-1 text-[11.5px] ink-3 hover:ink transition"
+          title="Her şeyi temizle ve hedef seçim ekranına dön"
         >
-          {COPY.change.pillButton}
+          {goal.changeButton}
         </button>
       </div>
 
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{COPY.change.confirmTitle}</AlertDialogTitle>
+            <AlertDialogTitle>{goal.changeConfirmTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              {COPY.change.confirmBody}
+              {goal.changeConfirmBody}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{COPY.change.confirmCancel}</AlertDialogCancel>
+            <AlertDialogCancel>{goal.changeConfirmCancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setOpen(false);
                 onChange();
               }}
             >
-              {COPY.change.confirmAction}
+              {goal.changeConfirmAction}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

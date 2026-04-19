@@ -25,13 +25,12 @@ import { PreviewImage } from "./PreviewImage";
 import type { AnyRatio, ProjectSlug } from "@/lib/projects";
 import { PROJECTS } from "@/lib/projects";
 import type { Intent } from "@/lib/generate/machine";
-import { COPY } from "@/lib/generate/copy";
+import { COPY } from "@/lib/i18n/copy";
 
 /**
- * Terminal state of every /generate run. Success hero at top + asset
- * preview(s) + action grid (animate / extend / variant / library / start
- * over). Primary action adapts to intent: image-only → animate; has video →
- * extend; otherwise "create variant".
+ * Her /generate koşusunun terminal ekranı. Başarı hero'su + asset preview(ler)
+ * + aksiyon grid'i (canlandır / uzat / varyant / kütüphane / sıfırla).
+ * Primary aksiyon intent'e göre değişir.
  */
 export function CompletionCard({
   intent,
@@ -56,15 +55,19 @@ export function CompletionCard({
   onAnimateImage?: () => void;
   extendStale?: boolean;
 }) {
+  const s = COPY.generate.steps.done;
+  const goal = COPY.generate.steps.goal;
   const [resetOpen, setResetOpen] = useState(false);
   const projectMeta = PROJECTS.find((p) => p.slug === project)!;
 
   const heading =
     intent === "image"
-      ? COPY.completion.headingImage
+      ? s.headingImage
       : intent === "video"
-      ? COPY.completion.headingVideo
-      : COPY.completion.headingPipeline;
+      ? s.headingVideo
+      : s.headingPipeline;
+
+  const kind = videoUrl ? s.kindVideo : s.kindImage;
 
   return (
     <>
@@ -82,8 +85,7 @@ export function CompletionCard({
           <div className="flex-1">
             <div className="serif text-[22px] ink">{heading}</div>
             <div className="text-[12.5px] ink-2 mt-0.5">
-              Saved to Library · {projectMeta.name} /{" "}
-              {videoUrl ? "Videos" : "Images"} / {ratio}
+              {s.savedTo(projectMeta.name, kind, ratio)}
             </div>
           </div>
         </div>
@@ -92,7 +94,11 @@ export function CompletionCard({
         <div className="mt-5 flex flex-wrap gap-4 items-start justify-center">
           {imageUrl && (
             <div className="flex flex-col items-center gap-1.5">
-              <PreviewImage src={imageUrl} ratio={ratio} alt="Generated image" />
+              <PreviewImage
+                src={imageUrl}
+                ratio={ratio}
+                alt="Üretilen görsel"
+              />
             </div>
           )}
           {videoUrl && (
@@ -114,10 +120,11 @@ export function CompletionCard({
             <button
               type="button"
               onClick={onAnimateImage}
+              title={s.animateImageHint}
               className="col-span-1 sm:col-span-2 inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg bg-brand text-brand-ink text-[13.5px] font-semibold hover:brightness-95 transition"
             >
               <VideoIcon className="h-3.5 w-3.5" />
-              Animate this image
+              {s.animateImage}
             </button>
           )}
           {onExtendVideo && videoUrl && (
@@ -126,8 +133,8 @@ export function CompletionCard({
               onClick={onExtendVideo}
               title={
                 extendStale
-                  ? "This video may be past Veo's 2-day retention — extension might fail."
-                  : undefined
+                  ? s.extendVideoStaleHint
+                  : s.extendVideoHint
               }
               className={`inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg text-[13.5px] font-semibold transition ${
                 extendStale
@@ -136,46 +143,46 @@ export function CompletionCard({
               }`}
             >
               <FastForward className="h-3.5 w-3.5" />
-              {extendStale ? "Try to extend" : "Extend this video"}
+              {extendStale ? s.extendVideoStale : s.extendVideo}
               <ArrowRight className="h-3 w-3" />
             </button>
           )}
           <button
             type="button"
             onClick={onCreateVariant}
+            title={s.createVariantHint}
             className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-line bg-panel ink text-[13.5px] hover:bg-soft transition"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            {COPY.completion.variant}
+            {s.createVariant}
           </button>
           <Link
             href="/library"
+            title="Kütüphane sayfasına git"
             className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-line bg-panel ink text-[13.5px] hover:bg-soft transition"
           >
             <FolderOpen className="h-3.5 w-3.5" />
-            {COPY.completion.library}
+            {s.openLibrary}
           </Link>
           <button
             type="button"
             onClick={() => setResetOpen(true)}
+            title="Her şeyi temizle ve hedef seçim ekranına dön"
             className="col-span-1 sm:col-span-2 inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg ink-2 text-[13.5px] hover:bg-soft transition"
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            {COPY.completion.startOver}
+            {s.startOver}
           </button>
         </div>
 
         {videoUrl && onExtendVideo && (
           <div className="mt-4 text-[11.5px] ink-3 text-center">
-            {extendStale
-              ? "Heads up: extension relies on Veo's 2-day URI retention — this video may be past it."
-              : "Extend continues from the last frame of this clip. Available for ~2 days after render."}
+            {extendStale ? s.extendFootnoteStale : s.extendFootnoteFresh}
           </div>
         )}
         {onAnimateImage && imageUrl && !videoUrl && (
           <div className="mt-4 text-[11.5px] ink-3 text-center">
-            Animate turns this image into a 4–8 second clip — no need to
-            re-write the brief.
+            {s.animateFootnote}
           </div>
         )}
       </div>
@@ -183,20 +190,20 @@ export function CompletionCard({
       <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{COPY.change.confirmTitle}</AlertDialogTitle>
+            <AlertDialogTitle>{goal.changeConfirmTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              {COPY.change.confirmBody}
+              {goal.changeConfirmBody}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{COPY.change.confirmCancel}</AlertDialogCancel>
+            <AlertDialogCancel>{goal.changeConfirmCancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setResetOpen(false);
                 onStartOver();
               }}
             >
-              {COPY.change.confirmAction}
+              {goal.changeConfirmAction}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

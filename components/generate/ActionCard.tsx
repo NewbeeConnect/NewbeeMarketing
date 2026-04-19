@@ -3,9 +3,13 @@
 import { Loader2 } from "lucide-react";
 
 /**
- * Big clickable card used in Image/Video stages. Primary cards are filled
- * with the brand color; secondary cards get a brand-soft icon block against
- * a panel background.
+ * Image/Video aşamalarında kullanılan büyük tıklanabilir kart.
+ *
+ * - `primary=true` → brand-dolu kart (AI ile üret gibi ana aksiyonlar)
+ * - default → panel arka planlı, brand-soft icon block'lu secondary kart
+ *
+ * Her karta `title` attribute geçebilir (hover tooltip) — "bu butona basınca
+ * ne olur" açıklamasını hem görünür alt metinde hem hover'da verebilmek için.
  */
 export function ActionCard({
   icon,
@@ -15,6 +19,7 @@ export function ActionCard({
   loading,
   primary,
   disabled,
+  titleAttr,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -23,12 +28,15 @@ export function ActionCard({
   loading?: boolean;
   primary?: boolean;
   disabled?: boolean;
+  /** Native `title=` tooltip content (shown on hover). */
+  titleAttr?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={loading || disabled}
+      title={titleAttr}
       className={`group text-left rounded-xl border p-4 transition disabled:opacity-50 disabled:cursor-not-allowed ${
         primary
           ? "bg-brand text-brand-ink border-brand hover:brightness-95"

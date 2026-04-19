@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Mail } from "lucide-react";
+import { COPY } from "@/lib/i18n/copy";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -17,9 +18,9 @@ function LoginForm() {
   useEffect(() => {
     const error = searchParams.get("error");
     if (error === "not_admin") {
-      toast.error("Access denied. This portal is for admins only.");
+      toast.error(COPY.login.errors.notAdmin);
     } else if (error === "auth_failed") {
-      toast.error("Authentication failed. Please try again.");
+      toast.error(COPY.login.errors.authFailed);
     }
   }, [searchParams]);
 
@@ -40,7 +41,7 @@ function LoginForm() {
       router.push(redirectTo);
       router.refresh();
     } catch {
-      toast.error("An unexpected error occurred");
+      toast.error(COPY.login.errors.generic);
     } finally {
       setLoading(false);
     }
@@ -66,17 +67,17 @@ function LoginForm() {
               className="object-cover"
             />
           </div>
-          <div className="serif text-[24px] ink">Newbee Marketing Hub</div>
+          <div className="serif text-[24px] ink">{COPY.login.brand}</div>
           <div className="text-[12.5px] ink-3 mt-1 whitespace-nowrap">
-            Admin access only
+            {COPY.login.subBrand}
           </div>
         </div>
 
         <div className="bg-panel rounded-xl border border-line p-6 shadow-card">
-          <div className="text-[14px] font-semibold ink">Sign in</div>
-          <div className="text-[12px] ink-3 mt-0.5">
-            Admin credentials only. No public sign-up.
+          <div className="text-[14px] font-semibold ink">
+            {COPY.login.cardTitle}
           </div>
+          <div className="text-[12px] ink-3 mt-0.5">{COPY.login.cardSub}</div>
 
           <form onSubmit={handleLogin} className="mt-4 space-y-3">
             <div>
@@ -84,12 +85,12 @@ function LoginForm() {
                 htmlFor="login-email"
                 className="text-[12px] font-medium ink-2"
               >
-                Email
+                {COPY.login.emailLabel}
               </label>
               <input
                 id="login-email"
                 type="email"
-                placeholder="you@newbee.app"
+                placeholder={COPY.login.emailPlaceholder}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -102,7 +103,7 @@ function LoginForm() {
                 htmlFor="login-password"
                 className="text-[12px] font-medium ink-2"
               >
-                Password
+                {COPY.login.passwordLabel}
               </label>
               <input
                 id="login-password"
@@ -124,15 +125,15 @@ function LoginForm() {
               ) : (
                 <Mail className="h-3.5 w-3.5" />
               )}
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? COPY.login.signingIn : COPY.login.signIn}
             </button>
           </form>
         </div>
 
         <div className="text-center text-[11px] ink-3 mt-6">
-          Not an admin?{" "}
+          {COPY.login.requestAccess}{" "}
           <a className="text-brand-ink underline" href="mailto:admin@newbee.app">
-            Request access
+            {COPY.login.requestAccessLink}
           </a>
         </div>
       </div>

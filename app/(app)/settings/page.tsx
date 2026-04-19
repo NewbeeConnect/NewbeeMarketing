@@ -19,6 +19,8 @@ import {
   useSaveApiKeys,
 } from "@/hooks/useApiKeys";
 import { ChangePasswordSection } from "@/components/settings/ChangePasswordSection";
+import { COPY } from "@/lib/i18n/copy";
+import { WhatIsThis } from "@/components/ui/WhatIsThis";
 
 /**
  * Hub-designed Settings. Three tabs at the top (API keys / Billing / Team)
@@ -119,10 +121,20 @@ export default function SettingsPage() {
   return (
     <div className="max-w-[760px] mx-auto px-6 py-6">
       <div className="mb-5">
-        <div className="serif text-[26px] ink">Settings</div>
-        <div className="text-[12.5px] ink-3 mt-0.5">
-          Account, API keys, and integrations.
+        <div className="serif text-[26px] ink">
+          {COPY.settings.pageTitle}
         </div>
+        <div className="text-[12.5px] ink-3 mt-0.5">
+          {COPY.settings.pageSub}
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <WhatIsThis
+          title={COPY.settings.whatIsThis.title}
+          body={COPY.settings.whatIsThis.body}
+          bullets={COPY.settings.whatIsThis.bullets}
+        />
       </div>
 
       {/* Account card */}
@@ -132,9 +144,13 @@ export default function SettingsPage() {
             <Check className="h-4 w-4" />
           </div>
           <div>
-            <div className="text-[14px] font-semibold ink">Account</div>
+            <div className="text-[14px] font-semibold ink">
+              {COPY.settings.account.title}
+            </div>
             <div className="text-[12px] ink-3 mt-0.5">
-              Signed in as {userEmail ?? "…"}
+              {COPY.settings.account.signedInAs(
+                userEmail ?? COPY.settings.account.signedInPlaceholder
+              )}
             </div>
           </div>
           <div className="ml-auto">
@@ -142,10 +158,10 @@ export default function SettingsPage() {
               ok={supabaseOk === true}
               label={
                 supabaseOk === null
-                  ? "Checking…"
+                  ? COPY.settings.account.statusChecking
                   : supabaseOk
-                  ? "Authenticated"
-                  : "Signed out"
+                  ? COPY.settings.account.statusAuthenticated
+                  : COPY.settings.account.statusSignedOut
               }
             />
           </div>
@@ -156,45 +172,52 @@ export default function SettingsPage() {
 
       {/* Google Ads */}
       <SettingsSection
-        title="Google Ads API Keys"
-        hint="Enter your own keys to publish real campaigns."
+        title={COPY.settings.googleAds.title}
+        hint={COPY.settings.googleAds.hint}
         loading={keysLoading}
         ok={!!googleOk}
+        help={
+          <WhatIsThis
+            title={COPY.settings.googleAds.whatIsThis.title}
+            body={COPY.settings.googleAds.whatIsThis.body}
+            bullets={COPY.settings.googleAds.whatIsThis.bullets}
+          />
+        }
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <LabelledInput
-            label="Client ID *"
+            label={COPY.settings.googleAds.fields.clientId}
             value={googleForm.client_id}
             onChange={(v) =>
               setGoogleForm((p) => ({ ...p, client_id: v }))
             }
-            placeholder="Client ID"
+            placeholder={COPY.settings.googleAds.placeholders.clientId}
           />
           <LabelledInput
-            label="Client Secret"
+            label={COPY.settings.googleAds.fields.clientSecret}
             value={googleForm.client_secret}
             onChange={(v) =>
               setGoogleForm((p) => ({ ...p, client_secret: v }))
             }
-            placeholder="Client Secret"
+            placeholder={COPY.settings.googleAds.placeholders.clientSecret}
             secret
           />
           <LabelledInput
-            label="Developer Token *"
+            label={COPY.settings.googleAds.fields.developerToken}
             value={googleForm.developer_token}
             onChange={(v) =>
               setGoogleForm((p) => ({ ...p, developer_token: v }))
             }
-            placeholder="Developer Token"
+            placeholder={COPY.settings.googleAds.placeholders.developerToken}
             secret
           />
           <LabelledInput
-            label="Refresh Token"
+            label={COPY.settings.googleAds.fields.refreshToken}
             value={googleForm.refresh_token}
             onChange={(v) =>
               setGoogleForm((p) => ({ ...p, refresh_token: v }))
             }
-            placeholder="Refresh Token"
+            placeholder={COPY.settings.googleAds.placeholders.refreshToken}
             secret
           />
         </div>
@@ -209,91 +232,99 @@ export default function SettingsPage() {
                   developer_token: "",
                   refresh_token: "",
                 });
-                toast.success("Google Ads keys removed");
+                toast.success(COPY.settings.googleAds.removeSuccess);
               }}
             >
-              <Trash2 className="h-3 w-3" /> Remove
+              <Trash2 className="h-3 w-3" /> {COPY.settings.buttons.remove}
             </GhostButton>
           )}
           <PrimaryButton
             loading={saveKeys.isPending}
             onClick={async () => {
               if (!googleForm.client_id || !googleForm.developer_token) {
-                toast.error("Client ID and Developer Token required");
+                toast.error(COPY.settings.googleAds.errorRequired);
                 return;
               }
               await saveKeys.mutateAsync({
                 platform: "google_ads",
                 keys: googleForm,
               });
-              toast.success("Google Ads keys saved");
+              toast.success(COPY.settings.googleAds.saveSuccess);
             }}
           >
-            Save
+            {COPY.settings.buttons.save}
           </PrimaryButton>
         </div>
       </SettingsSection>
 
       {/* Meta Ads */}
       <SettingsSection
-        title="Meta Ads API Keys"
-        hint="Facebook + Instagram ad publishing."
+        title={COPY.settings.metaAds.title}
+        hint={COPY.settings.metaAds.hint}
         loading={keysLoading}
         ok={!!metaOk}
+        help={
+          <WhatIsThis
+            title={COPY.settings.metaAds.whatIsThis.title}
+            body={COPY.settings.metaAds.whatIsThis.body}
+            bullets={COPY.settings.metaAds.whatIsThis.bullets}
+          />
+        }
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <LabelledInput
-            label="App ID *"
+            label={COPY.settings.metaAds.fields.appId}
             value={metaForm.app_id}
             onChange={(v) => setMetaForm((p) => ({ ...p, app_id: v }))}
-            placeholder="Meta App ID"
+            placeholder={COPY.settings.metaAds.placeholders.appId}
           />
           <LabelledInput
-            label="App Secret"
+            label={COPY.settings.metaAds.fields.appSecret}
             value={metaForm.app_secret}
             onChange={(v) => setMetaForm((p) => ({ ...p, app_secret: v }))}
-            placeholder="App Secret"
+            placeholder={COPY.settings.metaAds.placeholders.appSecret}
             secret
           />
           <div className="sm:col-span-2">
             <LabelledInput
-              label="Access Token *"
+              label={COPY.settings.metaAds.fields.accessToken}
               value={metaForm.access_token}
               onChange={(v) =>
                 setMetaForm((p) => ({ ...p, access_token: v }))
               }
-              placeholder="Long-lived System User Token"
+              placeholder={COPY.settings.metaAds.placeholders.accessToken}
               secret
             />
           </div>
           <LabelledInput
-            label="Ad Account ID *"
+            label={COPY.settings.metaAds.fields.adAccountId}
             value={metaForm.ad_account_id}
             onChange={(v) =>
               setMetaForm((p) => ({ ...p, ad_account_id: v }))
             }
-            placeholder="act_XXXXXXXXX"
+            placeholder={COPY.settings.metaAds.placeholders.adAccountId}
           />
           <LabelledInput
-            label="Facebook Page ID *"
+            label={COPY.settings.metaAds.fields.pageId}
             value={metaForm.page_id}
             onChange={(v) => setMetaForm((p) => ({ ...p, page_id: v }))}
-            placeholder="Page ID (linked to Instagram)"
+            placeholder={COPY.settings.metaAds.placeholders.pageId}
           />
           <div className="sm:col-span-2">
             <LabelledInput
-              label="Instagram Account ID *"
+              label={COPY.settings.metaAds.fields.instagramAccountId}
               value={metaForm.instagram_account_id}
               onChange={(v) =>
                 setMetaForm((p) => ({ ...p, instagram_account_id: v }))
               }
-              placeholder="Instagram Business Account ID"
+              placeholder={
+                COPY.settings.metaAds.placeholders.instagramAccountId
+              }
             />
           </div>
         </div>
         <p className="text-[11.5px] ink-3 mt-3">
-          Ad Account ID, Page ID ve Instagram Account ID Meta Business
-          Manager&apos;dan bulunabilir.
+          {COPY.settings.metaAds.hintRow}
         </p>
         <div className="flex gap-2 justify-end mt-4">
           {metaOk && (
@@ -308,10 +339,10 @@ export default function SettingsPage() {
                   page_id: "",
                   instagram_account_id: "",
                 });
-                toast.success("Meta Ads keys removed");
+                toast.success(COPY.settings.metaAds.removeSuccess);
               }}
             >
-              <Trash2 className="h-3 w-3" /> Remove
+              <Trash2 className="h-3 w-3" /> {COPY.settings.buttons.remove}
             </GhostButton>
           )}
           <PrimaryButton
@@ -324,36 +355,41 @@ export default function SettingsPage() {
                 !metaForm.page_id ||
                 !metaForm.instagram_account_id
               ) {
-                toast.error(
-                  "App ID, Access Token, Ad Account ID, Page ID ve Instagram Account ID gerekli"
-                );
+                toast.error(COPY.settings.metaAds.errorRequired);
                 return;
               }
               await saveKeys.mutateAsync({
                 platform: "meta_ads",
                 keys: metaForm,
               });
-              toast.success("Meta Ads keys saved");
+              toast.success(COPY.settings.metaAds.saveSuccess);
             }}
           >
-            Save
+            {COPY.settings.buttons.save}
           </PrimaryButton>
         </div>
       </SettingsSection>
 
       {/* GitHub */}
       <SettingsSection
-        title="GitHub Integration"
-        hint="AI code analysis over private repos. Token needs `repo` scope."
+        title={COPY.settings.github.title}
+        hint={COPY.settings.github.hint}
         loading={keysLoading}
         ok={!!githubOk}
         IconOverride={Github}
+        help={
+          <WhatIsThis
+            title={COPY.settings.github.whatIsThis.title}
+            body={COPY.settings.github.whatIsThis.body}
+            bullets={COPY.settings.github.whatIsThis.bullets}
+          />
+        }
       >
         <LabelledInput
-          label="Personal Access Token *"
+          label={COPY.settings.github.fields.token}
           value={githubForm.personal_access_token}
           onChange={(v) => setGithubForm({ personal_access_token: v })}
-          placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          placeholder={COPY.settings.github.placeholders.token}
           secret
         />
         <div className="flex gap-2 justify-end mt-4">
@@ -362,27 +398,27 @@ export default function SettingsPage() {
               onClick={async () => {
                 await deleteKeys.mutateAsync("github");
                 setGithubForm({ personal_access_token: "" });
-                toast.success("GitHub token removed");
+                toast.success(COPY.settings.github.removeSuccess);
               }}
             >
-              <Trash2 className="h-3 w-3" /> Remove
+              <Trash2 className="h-3 w-3" /> {COPY.settings.buttons.remove}
             </GhostButton>
           )}
           <PrimaryButton
             loading={saveKeys.isPending}
             onClick={async () => {
               if (!githubForm.personal_access_token) {
-                toast.error("Personal Access Token is required");
+                toast.error(COPY.settings.github.errorRequired);
                 return;
               }
               await saveKeys.mutateAsync({
                 platform: "github",
                 keys: githubForm,
               });
-              toast.success("GitHub token saved");
+              toast.success(COPY.settings.github.saveSuccess);
             }}
           >
-            Save
+            {COPY.settings.buttons.save}
           </PrimaryButton>
         </div>
       </SettingsSection>
@@ -395,30 +431,20 @@ export default function SettingsPage() {
           </div>
           <div>
             <div className="text-[14px] font-semibold ink">
-              Connected services
+              {COPY.settings.services.title}
             </div>
             <div className="text-[12px] ink-3 mt-0.5">
-              Server-side integrations managed via environment variables.
+              {COPY.settings.services.sub}
             </div>
           </div>
         </div>
         <ul className="space-y-2 text-[12.5px]">
-          <li className="flex justify-between">
-            <span className="ink">Gemini (2.5 Pro / Flash / 3 Pro)</span>
-            <span className="ink-3">Brief + blueprint + prompts</span>
-          </li>
-          <li className="flex justify-between">
-            <span className="ink">Nano Banana 2</span>
-            <span className="ink-3">Image generation</span>
-          </li>
-          <li className="flex justify-between">
-            <span className="ink">Veo 3.1</span>
-            <span className="ink-3">Video generation (async, 2-day retention)</span>
-          </li>
-          <li className="flex justify-between">
-            <span className="ink">Supabase</span>
-            <span className="ink-3">Auth + storage + rate limits</span>
-          </li>
+          {COPY.settings.services.items.map((svc) => (
+            <li key={svc.name} className="flex justify-between gap-3">
+              <span className="ink">{svc.name}</span>
+              <span className="ink-3 text-right">{svc.role}</span>
+            </li>
+          ))}
         </ul>
       </div>
     </div>
@@ -430,6 +456,7 @@ export default function SettingsPage() {
 function SettingsSection({
   title,
   hint,
+  help,
   children,
   loading,
   ok,
@@ -437,6 +464,8 @@ function SettingsSection({
 }: {
   title: string;
   hint: string;
+  /** Optional WhatIsThis card rendered under the header. */
+  help?: React.ReactNode;
   children: React.ReactNode;
   loading?: boolean;
   ok?: boolean;
@@ -454,9 +483,17 @@ function SettingsSection({
           <div className="text-[12px] ink-3 mt-0.5">{hint}</div>
         </div>
         {!loading && ok != null && (
-          <StatusPill ok={ok} label={ok ? "Connected" : "Not configured"} />
+          <StatusPill
+            ok={ok}
+            label={
+              ok
+                ? COPY.settings.buttons.connected
+                : COPY.settings.buttons.notConfigured
+            }
+          />
         )}
       </div>
+      {help && <div className="mb-4">{help}</div>}
       {children}
     </div>
   );

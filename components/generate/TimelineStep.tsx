@@ -20,7 +20,9 @@ export function TimelineStep({
   subtitle,
   visual,
   summary,
+  help,
   onEdit,
+  editLabel = "Düzenle",
   children,
 }: {
   stepNumber: number;
@@ -29,7 +31,14 @@ export function TimelineStep({
   visual: "pending" | "active" | "completed";
   /** Shown inline next to the title when the step is collapsed. */
   summary?: React.ReactNode;
+  /**
+   * Rendered ONLY while the step is active, between subtitle and children.
+   * Typically a <WhatIsThis /> card — the "what do I do here?" nudge.
+   */
+  help?: React.ReactNode;
   onEdit?: () => void;
+  /** Label for the edit affordance on completed strips (i18n). */
+  editLabel?: string;
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -98,14 +107,20 @@ export function TimelineStep({
           <button
             onClick={onEdit}
             className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[12px] ink-2 hover:bg-soft hover:ink transition"
+            title={`${editLabel}: bu adıma geri dön`}
           >
             <Pencil className="h-3 w-3" />
-            Edit
+            {editLabel}
           </button>
         )}
       </div>
 
-      {active && <div className="px-4 pb-4 pt-2">{children}</div>}
+      {active && (
+        <div className="px-4 pb-4 pt-2 space-y-3">
+          {help}
+          {children}
+        </div>
+      )}
     </div>
   );
 }

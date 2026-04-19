@@ -17,7 +17,7 @@ import { LibraryPickerDialog } from "./LibraryPickerDialog";
 import type { AnyRatio, ImageRatio, ProjectSlug } from "@/lib/projects";
 import { PROJECTS, IMAGE_RATIOS } from "@/lib/projects";
 import type { Intent } from "@/lib/generate/machine";
-import { COPY } from "@/lib/generate/copy";
+import { COPY } from "@/lib/i18n/copy";
 
 export function ImageStage({
   intent,
@@ -44,22 +44,18 @@ export function ImageStage({
   aiLoading: boolean;
   uploadLoading: boolean;
 }) {
+  const s = COPY.generate.steps.image;
   const fileInput = useRef<HTMLInputElement>(null);
   const projectMeta = PROJECTS.find((p) => p.slug === project)!;
   const [libraryOpen, setLibraryOpen] = useState(false);
   const isImageRatio = (IMAGE_RATIOS as readonly string[]).includes(ratio);
 
-  // Progress placeholder while Nano Banana is painting.
   if (aiLoading) {
     return (
       <div className="rounded-lg border border-line bg-soft p-8 flex flex-col items-center justify-center">
         <Loader2 className="h-5 w-5 ink-3 nb-spin" />
-        <div className="text-[13px] ink mt-3 font-medium">
-          Nano Banana 2 is painting…
-        </div>
-        <div className="text-[11.5px] ink-3 mt-1">
-          Usually around 30 seconds.
-        </div>
+        <div className="text-[13px] ink mt-3 font-medium">{s.loading}</div>
+        <div className="text-[11.5px] ink-3 mt-1">{s.loadingSub}</div>
       </div>
     );
   }
@@ -72,33 +68,40 @@ export function ImageStage({
             className="h-3 w-3"
             style={{ color: "var(--nb-success)" }}
           />
-          {COPY.imageStage.savedTo(projectMeta.name, ratio)}
+          {s.savedTo(projectMeta.name, ratio)}
         </div>
-        <PreviewImage src={imageUrl} ratio={ratio} alt="Generated image" />
+        <PreviewImage src={imageUrl} ratio={ratio} alt="Üretilen görsel" />
         <div className="flex items-center justify-center flex-wrap gap-2">
           <button
             type="button"
             onClick={onRedo}
+            title="Bu görseli atıp yenisini üret"
             className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
           >
             <RefreshCw className="h-3 w-3" />
-            {COPY.imageStage.redo}
+            {s.redo}
           </button>
           <a
             href={imageUrl}
             download
+            title="Bilgisayarına PNG olarak indir"
             className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
           >
             <Download className="h-3 w-3" />
-            {COPY.imageStage.download}
+            {s.download}
           </a>
           {onContinue && (
             <button
               type="button"
               onClick={onContinue}
+              title={
+                intent === "pipeline"
+                  ? "Videoyu canlandır adımına geç"
+                  : "Tamamlama ekranına geç"
+              }
               className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
             >
-              {intent === "pipeline" ? "Continue to animate" : "Continue"}
+              {intent === "pipeline" ? s.continueButtonPipeline : s.continueButton}
               <ArrowRight className="h-3 w-3" />
             </button>
           )}
@@ -112,25 +115,28 @@ export function ImageStage({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <ActionCard
           icon={<Wand2 className="h-[18px] w-[18px]" />}
-          title={COPY.imageStage.aiCardTitle}
-          body={`${COPY.imageStage.aiCardBody} ~30s, ${ratio}.`}
+          title={s.generateWithAi}
+          body={`${s.generateWithAiBody} ${ratio}.`}
           onClick={onGenerate}
           loading={aiLoading}
           primary
+          titleAttr="Nano Banana 2 prompt'tan yeni bir görsel üretir (~30sn, $0.04)"
         />
         <ActionCard
           icon={<Upload className="h-[18px] w-[18px]" />}
-          title={COPY.imageStage.uploadCardTitle}
-          body={COPY.imageStage.uploadCardBody}
+          title={s.uploadMine}
+          body={s.uploadMineBody}
           onClick={() => fileInput.current?.click()}
           loading={uploadLoading}
+          titleAttr="Elindeki bir PNG/JPG dosyasını Kütüphane'ye ekle — AI atlanır"
         />
         <ActionCard
           icon={<FolderOpen className="h-[18px] w-[18px]" />}
-          title="Pick from library"
-          body={`Reuse any ${ratio} image from ${projectMeta.name}.`}
+          title={s.pickFromLibrary}
+          body={s.pickFromLibraryBody(projectMeta.name, ratio)}
           onClick={() => setLibraryOpen(true)}
           disabled={!isImageRatio}
+          titleAttr="Daha önce üretilmiş/yüklenmiş bir görseli tekrar kullan — yeni maliyet yok"
         />
         <input
           ref={fileInput}

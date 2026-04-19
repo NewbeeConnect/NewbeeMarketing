@@ -1,43 +1,44 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
+import { COPY } from "@/lib/i18n/copy";
 
 /**
- * The exact prompt string that will go to the model. User-editable — any
- * edits win. The "Rebuild from blueprint" link re-runs the assembly helper
- * from the current blueprint fields and overwrites the textarea.
- *
- * Hint text below explains: "What you see here is exactly what the model
- * receives."
+ * Modele gidecek son mesajı (prompt) gösteren + düzenlemeye izin veren
+ * editor. Textarea mono font'ta — user bunun bir "teknik mesaj" olduğunu
+ * görsel olarak anlasın. "Şemadan yeniden yaz" linki Blueprint alanlarını
+ * yeniden birleştirir; user edit'lerini siler.
  */
 export function AssembledPromptEditor({
   value,
   onChange,
   onResetFromBlueprint,
-  hint = "What you see here is exactly what the model receives.",
+  hint,
 }: {
   value: string;
   onChange: (v: string) => void;
   onResetFromBlueprint: () => void;
   hint?: string;
 }) {
+  const s = COPY.generate.steps.prompt;
   return (
     <div className="rounded-lg border border-line bg-panel p-3">
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="text-[11.5px] ink-3">{hint}</div>
+      <div className="flex items-center justify-between mb-1.5 gap-2 flex-wrap">
+        <div className="text-[11.5px] ink-3">{hint ?? s.hint}</div>
         <button
           type="button"
           onClick={onResetFromBlueprint}
+          title="Şema alanlarını tek bir prompt metnine dönüştür (elle yaptığın değişiklikleri siler)"
           className="text-[11.5px] ink-3 hover:text-brand-ink flex items-center gap-1 transition"
         >
-          <RefreshCw className="h-2.5 w-2.5" /> Rebuild from blueprint
+          <RefreshCw className="h-2.5 w-2.5" /> {s.rebuildFromBlueprint}
         </button>
       </div>
       <textarea
         rows={6}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Your edited prompt, sent as-is to the model."
+        placeholder={s.summaryEmpty}
         className="w-full px-3 py-2.5 rounded-md border border-line bg-panel text-[13px] ink outline-none resize-none focus:border-brand mono"
       />
     </div>

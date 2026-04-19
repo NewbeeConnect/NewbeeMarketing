@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { Lock, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+import { COPY } from "@/lib/i18n/copy";
 
 export type AssetKind = "app_ui" | "logo" | "product_photo" | "other";
 
@@ -14,25 +15,11 @@ export type LockedAsset = {
 
 const MAX_ASSET_BYTES = 4 * 1024 * 1024;
 
-const KIND_LABEL: Record<AssetKind, string> = {
-  app_ui: "App UI",
-  logo: "Logo",
-  product_photo: "Product photo",
-  other: "Other",
-};
-
-const KIND_HINT: Record<AssetKind, string> = {
-  app_ui: "Recreate this screen pixel-faithfully",
-  logo: "Place this mark exactly as shown",
-  product_photo: "Preserve product details and finish",
-  other: "Use as visual reference",
-};
-
 /**
- * "Lock assets" panel — up to 3 images the model must reproduce without
- * invention. Each slot shows a thumbnail, a kind dropdown, and a hint line
- * describing how the backend will instruct the model for that kind.
- * Empty slots become a single dashed "drop or click" tile.
+ * "Sabit tutulacak görseller" paneli — AI'nın halüsinasyon yapmadan birebir
+ * koruması gereken 3'e kadar görsel (uygulama ekranı, logo, ürün fotoğrafı,
+ * diğer). Her slot: thumbnail + kind dropdown + hint. Boş slot = tek bir
+ * dashed drop zone.
  */
 export function AssetLockEditor({
   assets,
@@ -45,17 +32,24 @@ export function AssetLockEditor({
   onRemove: (index: number) => void;
   onKindChange: (index: number, kind: AssetKind) => void;
 }) {
+  const al = COPY.generate.assetLock;
   const fileInput = useRef<HTMLInputElement>(null);
 
   return (
     <div className="rounded-lg border border-line-2 bg-soft p-3">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
         <Lock className="h-3.5 w-3.5 ink-2" />
-        <div className="text-[12.5px] font-medium ink">Lock assets</div>
-        <span className="text-[11px] ink-3">
-          · pixel-faithful · {assets.length}/3 · max 4 MB each
-        </span>
+        <div
+          className="text-[12.5px] font-medium ink"
+          title={COPY.concepts.assetLock.long}
+        >
+          {al.title}
+        </div>
+        <span className="text-[11px] ink-3">{al.meta(assets.length)}</span>
       </div>
+      <p className="text-[11px] ink-3 mb-2 leading-relaxed">
+        {COPY.concepts.assetLock.short}
+      </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {assets.map((a, i) => (
@@ -67,14 +61,15 @@ export function AssetLockEditor({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={a.preview}
-                alt={`Locked asset ${i + 1}`}
+                alt={`Sabit görsel ${i + 1}`}
                 className="w-full h-[112px] object-cover rounded-md"
               />
               <button
                 type="button"
                 onClick={() => onRemove(i)}
                 className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/95 border border-line-2 shadow-card flex items-center justify-center ink-2 hover:ink transition"
-                aria-label="Remove asset"
+                aria-label={al.removeLabel}
+                title={al.removeLabel}
               >
                 <X className="h-3 w-3" />
               </button>
@@ -82,20 +77,22 @@ export function AssetLockEditor({
             <select
               value={a.kind}
               onChange={(e) => onKindChange(i, e.target.value as AssetKind)}
-              className="w-full h-8 mt-2 px-2 rounded-md border border-line bg-panel text-[12px] ink outline-none focus:border-brand appearance-none bg-no-repeat"
+              title={al.kindHints[a.kind]}
+              className="w-full h-8 mt-2 px-2 rounded-md border border-line bg-panel text-[12px] ink outline-none focus:border-brand appearance-none"
               style={{
                 backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>")`,
                 backgroundPosition: "right 8px center",
+                backgroundRepeat: "no-repeat",
               }}
             >
-              {(Object.keys(KIND_LABEL) as AssetKind[]).map((k) => (
+              {(Object.keys(al.kindLabels) as AssetKind[]).map((k) => (
                 <option key={k} value={k}>
-                  {KIND_LABEL[k]}
+                  {al.kindLabels[k]}
                 </option>
               ))}
             </select>
             <div className="text-[10.5px] ink-3 mt-1 leading-tight">
-              {KIND_HINT[a.kind]}
+              {al.kindHints[a.kind]}
             </div>
           </div>
         ))}
@@ -119,15 +116,14 @@ export function AssetLockEditor({
                     rejectedOversize++;
                     continue;
                   }
-                  // Default kind is app_ui — that's the most common use case.
                   await onAdd(f, "app_ui");
                   added++;
                 }
                 if (rejectedOversize > 0) {
                   toast.error(
                     rejectedOversize === 1
-                      ? "Asset too large — max 4 MB per image."
-                      : `${rejectedOversize} images skipped — max 4 MB each.`
+                      ? al.tooBig
+                      : al.tooBigMany(rejectedOversize)
                   );
                 }
                 if (fileInput.current) fileInput.current.value = "";
@@ -136,13 +132,12 @@ export function AssetLockEditor({
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
+              title="PNG veya JPG seç; max 4 MB"
               className="rounded-lg border border-dashed border-line hover:border-brand hover:bg-brand-soft transition h-[180px] flex flex-col items-center justify-center gap-1.5 ink-3 hover:text-brand-ink"
             >
               <Upload className="h-[18px] w-[18px]" />
-              <span className="text-[12px] font-medium">
-                Drop file or click
-              </span>
-              <span className="text-[10.5px]">PNG, JPG · max 4 MB</span>
+              <span className="text-[12px] font-medium">{al.dropTitle}</span>
+              <span className="text-[10.5px]">{al.dropSub}</span>
             </button>
           </>
         )}

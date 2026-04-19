@@ -5,11 +5,13 @@ import { Check, ImageOff, Loader2, X } from "lucide-react";
 import { useLibraryImages } from "@/hooks/useGeneration";
 import type { ImageRatio, ProjectSlug } from "@/lib/projects";
 import { PROJECTS } from "@/lib/projects";
+import { COPY } from "@/lib/i18n/copy";
 
 /**
- * Modal grid of the user's existing images for the current project+ratio.
- * Picking one hands the URL back — no new Gemini call. Uses a plain overlay
- * (no shadcn Dialog) to match the hub design's shadow-pop + rounded-xl.
+ * Modal grid — kullanıcının kütüphanesindeki mevcut görselleri gösterir.
+ * Birine tıklayıp "Kullan" dediğinde URL'i parent'a geri döner. Shadcn
+ * Dialog yerine kendi overlay'imiz; hub'ın shadow-pop + rounded-xl
+ * görünümüne uyar. Escape + backdrop click ile kapanır.
  */
 export function LibraryPickerDialog({
   open,
@@ -24,6 +26,7 @@ export function LibraryPickerDialog({
   ratio: ImageRatio;
   onPick: (url: string) => void;
 }) {
+  const s = COPY.generate.steps.image;
   const [selected, setSelected] = useState<string | null>(null);
   const { data: items, isLoading } = useLibraryImages({
     project,
@@ -38,8 +41,6 @@ export function LibraryPickerDialog({
     setSelected(null);
   }, [onOpenChange]);
 
-  // Escape to close — we rolled this modal by hand (no shadcn Dialog) to
-  // match the hub visual spec, so we re-implement the keyboard behavior.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -55,7 +56,7 @@ export function LibraryPickerDialog({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Pick from library"
+      aria-label={s.libraryDialogTitle}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(30,20,10,.5)" }}
       onClick={close}
@@ -66,16 +67,19 @@ export function LibraryPickerDialog({
       >
         <div className="px-5 py-3.5 border-b border-line-2 flex items-center justify-between">
           <div>
-            <div className="text-[15px] font-semibold ink">Pick from library</div>
+            <div className="text-[15px] font-semibold ink">
+              {s.libraryDialogTitle}
+            </div>
             <div className="text-[12px] ink-3">
-              {projectLabel} · {ratio} · reuse an existing image, no new cost.
+              {s.libraryDialogSub(projectLabel, ratio)}
             </div>
           </div>
           <button
             type="button"
             onClick={close}
             className="w-8 h-8 rounded-md inline-flex items-center justify-center ink-2 hover:bg-soft hover:ink transition"
-            aria-label="Close"
+            aria-label={COPY.library.preview.close}
+            title={COPY.library.preview.close}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -85,12 +89,12 @@ export function LibraryPickerDialog({
           {isLoading ? (
             <div className="flex items-center justify-center h-40 text-[13px] ink-3">
               <Loader2 className="h-4 w-4 nb-spin mr-2" />
-              Loading library…
+              {s.libraryLoading}
             </div>
           ) : !items || items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-[13px] ink-3">
               <ImageOff className="h-6 w-6 mb-2" />
-              No {ratio} images for {projectLabel} yet.
+              {s.libraryEmpty(projectLabel, ratio)}
             </div>
           ) : (
             <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
@@ -101,6 +105,7 @@ export function LibraryPickerDialog({
                     key={item.id}
                     type="button"
                     onClick={() => setSelected(item.output_url)}
+                    title={item.filename}
                     className={`text-left rounded-lg overflow-hidden border-2 transition ${
                       isSelected
                         ? "border-brand ring-brand"
@@ -137,7 +142,7 @@ export function LibraryPickerDialog({
             onClick={close}
             className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
           >
-            Cancel
+            {s.libraryCancel}
           </button>
           <button
             type="button"
@@ -148,9 +153,10 @@ export function LibraryPickerDialog({
                 close();
               }
             }}
+            title="Seçili görseli bu adım için kullan (yeni maliyet yok)"
             className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
-            Use this image
+            {s.libraryUse}
           </button>
         </div>
       </div>
