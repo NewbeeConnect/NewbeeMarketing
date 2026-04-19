@@ -56,20 +56,22 @@ export type Database = {
           created_at: string | null
           error_message: string | null
           estimated_cost_usd: number | null
+          filename: string | null
           id: string
           model: string
           operation_name: string | null
           output_metadata: Json | null
           output_url: string | null
+          project_slug: string | null
           prompt: string
+          ratio: string | null
+          reference_urls: string[] | null
           retry_count: number | null
-          sequence_index: number | null
           started_at: string | null
           status: string
-          story_id: string | null
-          story_role: string | null
           thumbnail_url: string | null
           type: string
+          user_id: string | null
         }
         Insert: {
           actual_cost_usd?: number | null
@@ -79,20 +81,22 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           estimated_cost_usd?: number | null
+          filename?: string | null
           id?: string
           model: string
           operation_name?: string | null
           output_metadata?: Json | null
           output_url?: string | null
+          project_slug?: string | null
           prompt: string
+          ratio?: string | null
+          reference_urls?: string[] | null
           retry_count?: number | null
-          sequence_index?: number | null
           started_at?: string | null
           status?: string
-          story_id?: string | null
-          story_role?: string | null
           thumbnail_url?: string | null
           type: string
+          user_id?: string | null
         }
         Update: {
           actual_cost_usd?: number | null
@@ -102,30 +106,24 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           estimated_cost_usd?: number | null
+          filename?: string | null
           id?: string
           model?: string
           operation_name?: string | null
           output_metadata?: Json | null
           output_url?: string | null
+          project_slug?: string | null
           prompt?: string
+          ratio?: string | null
+          reference_urls?: string[] | null
           retry_count?: number | null
-          sequence_index?: number | null
           started_at?: string | null
           status?: string
-          story_id?: string | null
-          story_role?: string | null
           thumbnail_url?: string | null
           type?: string
+          user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "mkt_generations_story_id_fkey"
-            columns: ["story_id"]
-            isOneToOne: false
-            referencedRelation: "mkt_stories"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       mkt_notifications: {
         Row: {
@@ -183,54 +181,6 @@ export type Database = {
           id?: string
           last_refill_at?: string
           tokens?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      mkt_stories: {
-        Row: {
-          aspect_ratio: string
-          created_at: string | null
-          duration_per_clip_seconds: number
-          frame_prompts: Json
-          id: string
-          model_tier: string
-          scene_scripts: Json
-          status: string
-          stitched_generation_id: string | null
-          style_anchor: string | null
-          topic: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          aspect_ratio: string
-          created_at?: string | null
-          duration_per_clip_seconds: number
-          frame_prompts?: Json
-          id?: string
-          model_tier: string
-          scene_scripts?: Json
-          status?: string
-          stitched_generation_id?: string | null
-          style_anchor?: string | null
-          topic: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          aspect_ratio?: string
-          created_at?: string | null
-          duration_per_clip_seconds?: number
-          frame_prompts?: Json
-          id?: string
-          model_tier?: string
-          scene_scripts?: Json
-          status?: string
-          stitched_generation_id?: string | null
-          style_anchor?: string | null
-          topic?: string
-          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

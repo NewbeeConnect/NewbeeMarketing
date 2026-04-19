@@ -63,19 +63,10 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 }
 
 const ALLOWED_REDIRECT_PREFIXES = [
-  "/dashboard",
-  "/projects",
-  "/campaigns",
+  "/generate",
+  "/library",
   "/analytics",
-  "/gallery",
-  "/brand",
-  "/prompts",
-  "/templates",
-  "/autopilot",
-  "/social",
-  "/twitter",
-  "/calendar",
-  "/trends",
+  "/settings",
 ];
 
 export function isValidRedirect(path: string): boolean {

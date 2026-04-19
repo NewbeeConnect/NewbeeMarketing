@@ -1,59 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
+import { GenerateVideosOperation } from "@google/genai";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, COST_ESTIMATES } from "@/lib/google-ai";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
-import { GenerateVideosOperation } from "@google/genai";
 
-type RouteContext = { params: Promise<{ storyId: string; index: string }> };
+/**
+ * GET /api/generate/video/[generationId]/status
+ *
+ * Poll a Veo operation. If done and successful, download the mp4 from Veo's
+ * URI (2-day retention) and upload to Supabase storage at the path we
+ * pre-committed when the row was created.
+ *
+ * Returns { status: "processing" | "completed" | "failed", outputUrl? }.
+ */
+
+type RouteContext = { params: Promise<{ generationId: string }> };
 
 const MAX_GENERATION_TIME_MS = 15 * 60 * 1000;
 const MAX_DOWNLOAD_RETRIES = 5;
 
 export async function GET(_request: NextRequest, { params }: RouteContext) {
   try {
-    const { storyId, index: indexParam } = await params;
-    const index = Number(indexParam);
+    const { generationId } = await params;
 
     const supabase = await createSupabaseServer();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
     if (!ai) {
       return NextResponse.json({ error: "Google AI not configured" }, { status: 503 });
     }
 
     const serviceClient = createServiceClient();
 
-    // Cheap rate-limit: polling is called every few seconds per in-flight clip.
-    // `api-general` = 60/min which is plenty for legitimate UI polling.
+    // Polling is called often — cheap rate-limit keeps abuse in check.
     const rl = await checkRateLimit(serviceClient, user.id, "api-general");
     if (!rl.allowed) return rateLimitResponse(rl);
-
-    const { data: storyRow } = await serviceClient
-      .from("mkt_stories")
-      .select("id, user_id")
-      .eq("id", storyId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (!storyRow) {
-      return NextResponse.json({ error: "Story not found" }, { status: 404 });
-    }
 
     const { data: generation, error: genError } = await serviceClient
       .from("mkt_generations")
       .select("*")
-      .eq("story_id", storyId)
-      .eq("story_role", "clip")
-      .eq("sequence_index", index)
+      .eq("id", generationId)
+      .eq("user_id", user.id)
       .maybeSingle();
 
     if (genError || !generation) {
-      return NextResponse.json({ error: "Clip not started" }, { status: 404 });
+      return NextResponse.json({ error: "Generation not found" }, { status: 404 });
     }
 
+    // Short-circuit on terminal states
     if (generation.status === "completed" || generation.status === "failed") {
       return NextResponse.json({
         generationId: generation.id,
@@ -63,7 +59,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       });
     }
 
-    // Timeout guard
+    // 15-minute hard timeout so stuck rows don't poll forever.
     const startedAt = generation.started_at
       ? new Date(generation.started_at).getTime()
       : Date.now();
@@ -104,6 +100,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       });
     }
 
+    // Operation-level error
     if (operation.error) {
       const msg =
         (operation.error as Record<string, unknown>).message ??
@@ -123,10 +120,11 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       });
     }
 
-    // Safety filter
+    // Safety / RAI filter
     const raiCount = operation.response?.raiMediaFilteredCount ?? 0;
     if (raiCount > 0) {
-      const reasons = operation.response?.raiMediaFilteredReasons?.join(", ") ?? "policy";
+      const reasons =
+        operation.response?.raiMediaFilteredReasons?.join(", ") ?? "policy";
       await serviceClient
         .from("mkt_generations")
         .update({
@@ -159,13 +157,32 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       });
     }
 
-    // Download from Veo + upload to Supabase, with retry cap so the client
-    // doesn't poll forever if the Veo URI is expired (2-day retention) or
-    // permanently unreachable.
+    // Download from Veo (needs API key header). Use the pre-committed storage
+    // path that was persisted in config.storage_path.
+    const storagePath =
+      (generation.config as { storage_path?: string } | null)?.storage_path ??
+      null;
+    if (!storagePath) {
+      await serviceClient
+        .from("mkt_generations")
+        .update({
+          status: "failed",
+          error_message: "Missing storage_path in config",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", generation.id);
+      return NextResponse.json({
+        generationId: generation.id,
+        status: "failed",
+        errorMessage: "Missing storage path",
+      });
+    }
+
     const apiKey = process.env.GOOGLE_API_KEY;
     const videoResponse = await fetch(videoUri, {
       headers: apiKey ? { "x-goog-api-key": apiKey } : {},
     });
+
     if (!videoResponse.ok) {
       const retryCount = (generation.retry_count ?? 0) + 1;
       if (retryCount >= MAX_DOWNLOAD_RETRIES) {
@@ -196,13 +213,12 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     }
 
     const videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
-    const fileName = `${user.id}/stories/${storyId}/clips/${index}.mp4`;
 
     const { error: uploadError } = await serviceClient.storage
       .from("mkt-assets")
-      .upload(fileName, videoBuffer, {
+      .upload(storagePath, videoBuffer, {
         contentType: "video/mp4",
-        upsert: true,
+        upsert: false,
       });
 
     if (uploadError) {
@@ -234,25 +250,24 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       });
     }
 
-    const { data: publicUrlData } = serviceClient.storage
+    const { data: publicUrl } = serviceClient.storage
       .from("mkt-assets")
-      .getPublicUrl(fileName);
-    const outputUrl = publicUrlData.publicUrl;
+      .getPublicUrl(storagePath);
 
-    const isFast = (generation.model ?? "").includes("fast");
     const durationSec =
-      (generation.config as { duration_seconds?: number } | null)?.duration_seconds ?? 8;
-    const actualCost =
-      durationSec *
-      (isFast ? COST_ESTIMATES.veo_fast_per_second : COST_ESTIMATES.veo_standard_per_second);
+      (generation.config as { duration_seconds?: number } | null)
+        ?.duration_seconds ?? 8;
+    const actualCost = durationSec * COST_ESTIMATES.veo_per_second;
 
     await serviceClient
       .from("mkt_generations")
       .update({
         status: "completed",
-        output_url: outputUrl,
+        output_url: publicUrl.publicUrl,
         actual_cost_usd: actualCost,
-        output_metadata: { file_size_mb: videoBuffer.byteLength / (1024 * 1024) },
+        output_metadata: {
+          file_size_mb: videoBuffer.byteLength / (1024 * 1024),
+        },
         completed_at: new Date().toISOString(),
       })
       .eq("id", generation.id);
@@ -262,17 +277,17 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       generation_id: generation.id,
       api_service: "veo",
       model: generation.model,
-      operation: `story_clip_${index}`,
+      operation: "video_generation",
       estimated_cost_usd: actualCost,
     });
 
     return NextResponse.json({
       generationId: generation.id,
       status: "completed",
-      outputUrl,
+      outputUrl: publicUrl.publicUrl,
     });
   } catch (error) {
-    console.error("[clips status] error:", error);
+    console.error("[video/status] error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Status check failed" },
       { status: 500 }

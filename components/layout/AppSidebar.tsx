@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Film, BarChart3, Settings, LogOut } from "lucide-react";
+import { Sparkles, FolderOpen, BarChart3, Settings, LogOut } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -18,7 +18,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 const NAV_ITEMS = [
-  { title: "Generate", url: "/generate", icon: Film },
+  { title: "Generate", url: "/generate", icon: Sparkles },
+  { title: "Library", url: "/library", icon: FolderOpen },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: Settings },
 ] as const;

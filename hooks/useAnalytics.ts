@@ -17,9 +17,7 @@ interface AnalyticsData {
     failed: number;
     videoCount: number;
     imageCount: number;
-    stitchedCount: number;
   };
-  storyCount: number;
   monthlySpend: { month: string; amount: number }[];
 }
 
@@ -80,19 +78,12 @@ export function useAnalytics() {
         failed: gens.filter((g) => g.status === "failed").length,
         videoCount: gens.filter((g) => g.type === "video").length,
         imageCount: gens.filter((g) => g.type === "image").length,
-        stitchedCount: gens.filter((g) => g.type === "stitched").length,
       };
-
-      const { count: storyCount, error: storyCountError } = await supabase
-        .from("mkt_stories")
-        .select("*", { count: "exact", head: true });
-      if (storyCountError) throw storyCountError;
 
       return {
         totalSpent,
         costByService,
         generationStats,
-        storyCount: storyCount ?? 0,
         monthlySpend,
       };
     },
