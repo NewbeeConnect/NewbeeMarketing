@@ -134,9 +134,14 @@ export function BriefStage({
 
       {/* Blueprint */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="text-[12.5px] font-semibold ink">Blueprint</div>
+        <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <div className="text-[12.5px] font-semibold ink whitespace-nowrap">
+              Blueprint
+            </div>
+            <span className="text-[11.5px] ink-3">
+              · {COPY.blueprint.hint}
+            </span>
             {(imageReady || videoReady) && (
               <span
                 className="inline-flex items-center gap-1 px-2 h-6 text-[11px] rounded-md border"

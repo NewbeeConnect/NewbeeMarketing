@@ -79,6 +79,11 @@ export const COPY = {
     videoTitle: "Video blueprint",
     ready: "Ready",
     incomplete: "Fill every field",
+    /**
+     * One-liner sitting next to the "Blueprint" heading. It answers
+     * the "what am I doing here?" question without hovering.
+     */
+    hint: "Each field shapes one part of the final prompt the model sees.",
   },
 
   imageStage: {
