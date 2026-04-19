@@ -4,11 +4,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Newbee Marketing design system — warm honey palette, Geist + Fraunces
+ * typography, custom `ink/bg/brand/line` utility namespace. Ported from
+ * /Volumes/APP/Newbee/MarketingDesign/hub. Tailwind's shadcn theme vars
+ * (below) stay in place because shadcn/ui components read them, but the
+ * custom utilities are what every Newbee component actually uses.
+ */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-fraunces);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,78 +58,214 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+
+  /* ── Newbee brand palette (warm honey) ── */
+  --nb-bg: oklch(0.985 0.008 80);
+  --nb-app: oklch(0.975 0.012 82);
+  --nb-panel: oklch(0.995 0.004 80);
+  --nb-soft: oklch(0.965 0.012 82);
+  --nb-ink: oklch(0.22 0.02 60);
+  --nb-ink-2: oklch(0.42 0.02 60);
+  --nb-ink-3: oklch(0.58 0.02 60);
+  --nb-line: oklch(0.9 0.01 75);
+  --nb-line-2: oklch(0.935 0.008 75);
+  --nb-brand: oklch(0.86 0.12 82);
+  --nb-brand-soft: oklch(0.95 0.055 85);
+  --nb-brand-ink: oklch(0.38 0.1 65);
+  --nb-danger: oklch(0.58 0.18 25);
+  --nb-success: oklch(0.55 0.14 150);
+  --nb-success-soft: oklch(0.94 0.045 150);
+
+  /* Shadcn tokens (kept for any shadcn primitives we still use) */
+  --background: var(--nb-app);
+  --foreground: var(--nb-ink);
+  --card: var(--nb-panel);
+  --card-foreground: var(--nb-ink);
+  --popover: var(--nb-panel);
+  --popover-foreground: var(--nb-ink);
+  --primary: var(--nb-brand);
+  --primary-foreground: var(--nb-brand-ink);
+  --secondary: var(--nb-soft);
+  --secondary-foreground: var(--nb-ink);
+  --muted: var(--nb-soft);
+  --muted-foreground: var(--nb-ink-3);
+  --accent: var(--nb-brand-soft);
+  --accent-foreground: var(--nb-brand-ink);
+  --destructive: var(--nb-danger);
+  --border: var(--nb-line);
+  --input: var(--nb-line);
+  --ring: var(--nb-brand);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: var(--nb-panel);
+  --sidebar-foreground: var(--nb-ink);
+  --sidebar-primary: var(--nb-brand);
+  --sidebar-primary-foreground: var(--nb-brand-ink);
+  --sidebar-accent: var(--nb-brand-soft);
+  --sidebar-accent-foreground: var(--nb-brand-ink);
+  --sidebar-border: var(--nb-line);
+  --sidebar-ring: var(--nb-brand);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --nb-bg: oklch(0.17 0.015 70);
+  --nb-app: oklch(0.2 0.015 70);
+  --nb-panel: oklch(0.235 0.015 70);
+  --nb-soft: oklch(0.26 0.012 70);
+  --nb-ink: oklch(0.95 0.01 80);
+  --nb-ink-2: oklch(0.78 0.012 75);
+  --nb-ink-3: oklch(0.62 0.015 75);
+  --nb-line: oklch(0.33 0.015 70);
+  --nb-line-2: oklch(0.295 0.015 70);
+  --nb-brand: oklch(0.78 0.14 82);
+  --nb-brand-soft: oklch(0.32 0.06 75);
+  --nb-brand-ink: oklch(0.9 0.09 85);
+  --nb-danger: oklch(0.7 0.18 25);
+  --nb-success: oklch(0.72 0.14 150);
+  --nb-success-soft: oklch(0.32 0.06 150);
+
+  --background: var(--nb-app);
+  --foreground: var(--nb-ink);
+  --card: var(--nb-panel);
+  --card-foreground: var(--nb-ink);
+  --popover: var(--nb-panel);
+  --popover-foreground: var(--nb-ink);
+  --primary: var(--nb-brand);
+  --primary-foreground: var(--nb-brand-ink);
+  --secondary: var(--nb-soft);
+  --secondary-foreground: var(--nb-ink);
+  --muted: var(--nb-soft);
+  --muted-foreground: var(--nb-ink-3);
+  --accent: var(--nb-brand-soft);
+  --accent-foreground: var(--nb-brand-ink);
+  --destructive: var(--nb-danger);
+  --border: var(--nb-line);
+  --input: var(--nb-line);
+  --ring: var(--nb-brand);
+  --sidebar: var(--nb-panel);
+  --sidebar-foreground: var(--nb-ink);
+  --sidebar-primary: var(--nb-brand);
+  --sidebar-primary-foreground: var(--nb-brand-ink);
+  --sidebar-accent: var(--nb-brand-soft);
+  --sidebar-accent-foreground: var(--nb-brand-ink);
+  --sidebar-border: var(--nb-line);
+  --sidebar-ring: var(--nb-brand);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html,
   body {
-    @apply bg-background text-foreground;
+    background: var(--nb-app);
+    color: var(--nb-ink);
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
   }
+}
+
+/* ── Newbee utility namespace (ported from hub/primitives.jsx) ── */
+@layer utilities {
+  .serif {
+    font-family: var(--font-fraunces), "Fraunces", serif;
+    letter-spacing: -0.01em;
+  }
+  .mono {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+  }
+
+  .ink {
+    color: var(--nb-ink);
+  }
+  .ink-2 {
+    color: var(--nb-ink-2);
+  }
+  .ink-3 {
+    color: var(--nb-ink-3);
+  }
+
+  .bg-app {
+    background: var(--nb-app);
+  }
+  .bg-panel {
+    background: var(--nb-panel);
+  }
+  .bg-soft {
+    background: var(--nb-soft);
+  }
+  .bg-brand {
+    background: var(--nb-brand);
+  }
+  .bg-brand-soft {
+    background: var(--nb-brand-soft);
+  }
+  .text-brand-ink {
+    color: var(--nb-brand-ink);
+  }
+
+  .border-line {
+    border-color: var(--nb-line);
+  }
+  .border-line-2 {
+    border-color: var(--nb-line-2);
+  }
+  .border-brand {
+    border-color: var(--nb-brand);
+  }
+
+  .shadow-card {
+    box-shadow:
+      0 1px 2px rgba(60, 40, 20, 0.04),
+      0 4px 12px rgba(60, 40, 20, 0.04);
+  }
+  .shadow-pop {
+    box-shadow: 0 10px 40px rgba(60, 40, 20, 0.15);
+  }
+  .ring-brand {
+    box-shadow: 0 0 0 3px oklch(0.86 0.12 82 / 0.25);
+  }
+
+  .line-clamp-6 {
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* ── Animations ported from hub ── */
+@keyframes nb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes nb-slideFade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.nb-spin {
+  animation: nb-spin 0.9s linear infinite;
+}
+.slideFade {
+  animation: nb-slideFade 0.28s ease-out both;
+}
+
+::selection {
+  background: var(--nb-brand-soft);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px oklch(0.86 0.12 82 / 0.25);
 }

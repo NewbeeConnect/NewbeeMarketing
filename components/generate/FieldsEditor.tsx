@@ -1,21 +1,21 @@
 "use client";
 
-import { Check, Loader2, RefreshCw, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Check,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
 import { COPY } from "@/lib/generate/copy";
 
 /**
- * Generic editor for a structured prompt blueprint. Each field shows a label
- * + hint + small input. "AI fill" button regenerates the whole blueprint.
+ * 2-column grid of blueprint fields. Each field is a small panel on bg-soft
+ * with a label + per-field regenerate button in the top-right corner, then
+ * an inline input with placeholder text equal to the field's hint.
  *
- * When `onRegenerateField` is provided, each field also shows a tiny refresh
- * button that asks the AI to rewrite *only that field* while keeping the
- * rest as-is — cheaper and less disruptive than re-drafting the whole thing.
- *
- * Generics so the same component works for image and video blueprints.
+ * Top row of the editor has a "Draft with Gemini" button that refills all
+ * fields from the brief at once; a "Ready" chip appears when every field
+ * has content.
  */
 export function FieldsEditor<T extends Record<string, string>>({
   title,
@@ -28,6 +28,7 @@ export function FieldsEditor<T extends Record<string, string>>({
   ready,
   onRegenerateField,
   regeneratingField,
+  hideHeader = false,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -37,84 +38,95 @@ export function FieldsEditor<T extends Record<string, string>>({
   onFillAI: () => void;
   aiLoading: boolean;
   ready: boolean;
-  /**
-   * Optional — when provided, each field shows a small regenerate button that
-   * invokes this callback with just that field's key.
-   */
   onRegenerateField?: (key: keyof T & string) => void;
   regeneratingField?: (keyof T & string) | null;
+  /**
+   * Hide the title row — used inside pipeline Tabs where each tab already
+   * has its own "Image blueprint / Video blueprint" label.
+   */
+  hideHeader?: boolean;
 }) {
   return (
-    <Card className="p-3 space-y-3 bg-muted/30">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-sm font-medium">
-          {icon}
-          {title}
-          {ready && (
-            <span className="ml-1 flex items-center gap-0.5 text-xs font-normal text-green-600">
-              <Check className="h-3 w-3" />
-              {COPY.blueprint.ready}
-            </span>
-          )}
+    <div className="space-y-2">
+      {!hideHeader && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-[12.5px] font-semibold ink">
+              {icon}
+              {title}
+            </div>
+            {ready && (
+              <span
+                className="inline-flex items-center gap-1 px-2 h-6 text-[11px] rounded-md border"
+                style={{
+                  background: "var(--nb-success-soft)",
+                  borderColor: "transparent",
+                  color: "oklch(0.35 0.09 150)",
+                }}
+              >
+                <Check className="h-2.5 w-2.5" />
+                {COPY.blueprint.ready}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onFillAI}
+            disabled={aiLoading}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-line bg-panel text-[12.5px] ink hover:bg-soft disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            {aiLoading ? (
+              <Loader2 className="h-3 w-3 nb-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            {aiLoading ? COPY.brief.drafting : COPY.brief.draftButton}
+          </button>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onFillAI}
-          disabled={aiLoading}
-        >
-          {aiLoading ? (
-            <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
-          ) : (
-            <Sparkles className="h-3 w-3 mr-1.5" />
-          )}
-          {aiLoading ? COPY.brief.drafting : COPY.brief.draftButton}
-        </Button>
-      </div>
-      <div className="space-y-2">
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {fieldList.map((f) => {
-          const isFieldRegenerating = regeneratingField === f.key;
+          const isRegen = regeneratingField === f.key;
           const canRegen =
-            !!onRegenerateField && (values[f.key] as string).trim().length > 0;
+            !!onRegenerateField &&
+            (values[f.key] as string).trim().length > 0;
           return (
-            <div key={f.key} className="space-y-1">
-              <Label className="text-xs font-medium">
-                {f.label}
-                <span className="text-muted-foreground font-normal ml-1.5">
-                  {f.hint}
-                </span>
-              </Label>
-              <div className="flex items-center gap-1.5">
-                <Input
-                  value={values[f.key] as string}
-                  onChange={(e) => onChange(f.key, e.target.value)}
-                  className="text-xs flex-1"
-                  placeholder="…"
-                  disabled={isFieldRegenerating}
-                />
+            <div
+              key={f.key}
+              className="rounded-lg border border-line-2 bg-soft p-2.5"
+            >
+              <div className="flex items-center justify-between">
+                <label className="text-[11.5px] font-medium ink-2">
+                  {f.label}
+                </label>
                 {canRegen && (
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="sm"
                     onClick={() => onRegenerateField?.(f.key)}
-                    disabled={aiLoading || isFieldRegenerating}
-                    className="h-8 w-8 p-0 shrink-0"
+                    disabled={aiLoading || isRegen}
+                    className="text-[10.5px] ink-3 hover:text-brand-ink flex items-center gap-1 disabled:opacity-40"
                     title="Regenerate just this field"
                   >
-                    {isFieldRegenerating ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                    {isRegen ? (
+                      <Loader2 className="h-2.5 w-2.5 nb-spin" />
                     ) : (
-                      <RefreshCw className="h-3 w-3" />
+                      <RefreshCw className="h-2.5 w-2.5" />
                     )}
-                  </Button>
+                  </button>
                 )}
               </div>
+              <input
+                value={values[f.key] as string}
+                onChange={(e) => onChange(f.key, e.target.value)}
+                placeholder={f.hint}
+                disabled={isRegen}
+                className="w-full mt-1 text-[12.5px] ink bg-transparent outline-none placeholder:ink-3"
+              />
             </div>
           );
         })}
       </div>
-    </Card>
+    </div>
   );
 }

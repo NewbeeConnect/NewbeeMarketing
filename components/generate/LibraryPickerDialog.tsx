@@ -1,23 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Loader2, ImageOff } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Check, ImageOff, Loader2, X } from "lucide-react";
 import { useLibraryImages } from "@/hooks/useGeneration";
 import type { ImageRatio, ProjectSlug } from "@/lib/projects";
+import { PROJECTS } from "@/lib/projects";
 
 /**
- * Image picker that lets the user reuse any previously-generated image from
- * their library instead of paying Gemini to re-generate. Filters by project
- * + ratio so the candidates match what the current intent needs.
+ * Modal grid of the user's existing images for the current project+ratio.
+ * Picking one hands the URL back — no new Gemini call. Uses a plain overlay
+ * (no shadcn Dialog) to match the hub design's shadow-pop + rounded-xl.
  */
 export function LibraryPickerDialog({
   open,
@@ -38,36 +30,54 @@ export function LibraryPickerDialog({
     ratio,
     enabled: open,
   });
+  const projectLabel =
+    PROJECTS.find((p) => p.slug === project)?.name ?? project;
+
+  if (!open) return null;
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        onOpenChange(v);
-        if (!v) setSelected(null);
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(30,20,10,.5)" }}
+      onClick={() => {
+        onOpenChange(false);
+        setSelected(null);
       }}
     >
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Pick from library</DialogTitle>
-          <DialogDescription>
-            Any image you&rsquo;ve generated or uploaded for{" "}
-            <span className="font-medium">{project}</span> at{" "}
-            <span className="font-medium">{ratio}</span>. Using an existing
-            image skips the Gemini call.
-          </DialogDescription>
-        </DialogHeader>
+      <div
+        className="bg-panel rounded-xl border border-line shadow-pop w-full max-w-[820px] max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 py-3.5 border-b border-line-2 flex items-center justify-between">
+          <div>
+            <div className="text-[15px] font-semibold ink">Pick from library</div>
+            <div className="text-[12px] ink-3">
+              {projectLabel} · {ratio} · reuse an existing image, no new cost.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              onOpenChange(false);
+              setSelected(null);
+            }}
+            className="w-8 h-8 rounded-md inline-flex items-center justify-center ink-2 hover:bg-soft hover:ink transition"
+            aria-label="Close"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
 
-        <div className="min-h-[200px] max-h-[60vh] overflow-y-auto">
+        <div className="p-4 overflow-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            <div className="flex items-center justify-center h-40 text-[13px] ink-3">
+              <Loader2 className="h-4 w-4 nb-spin mr-2" />
               Loading library…
             </div>
           ) : !items || items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 text-sm text-muted-foreground">
+            <div className="flex flex-col items-center justify-center h-40 text-[13px] ink-3">
               <ImageOff className="h-6 w-6 mb-2" />
-              No {ratio} images for {project} yet.
+              No {ratio} images for {projectLabel} yet.
             </div>
           ) : (
             <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
@@ -78,28 +88,28 @@ export function LibraryPickerDialog({
                     key={item.id}
                     type="button"
                     onClick={() => setSelected(item.output_url)}
-                    className={`relative aspect-square rounded-md overflow-hidden border-2 bg-muted/30 transition-all ${
+                    className={`text-left rounded-lg overflow-hidden border-2 transition ${
                       isSelected
-                        ? "border-primary ring-2 ring-primary/30"
+                        ? "border-brand ring-brand"
                         : "border-transparent hover:border-muted-foreground/30"
                     }`}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.output_url ?? undefined}
-                      alt={item.filename}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                    {isSelected && (
-                      <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5">
-                        <Check className="h-3 w-3" />
-                      </div>
-                    )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
-                      <p className="text-[10px] text-white truncate">
-                        {item.filename}
-                      </p>
+                    <div className="relative aspect-square bg-soft">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={item.output_url ?? undefined}
+                        alt={item.filename}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-brand text-brand-ink flex items-center justify-center">
+                          <Check className="h-3 w-3" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-1.5 px-1 text-[10.5px] mono ink-3 truncate">
+                      {item.filename}
                     </div>
                   </button>
                 );
@@ -108,11 +118,19 @@ export function LibraryPickerDialog({
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="px-5 py-3 border-t border-line-2 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              onOpenChange(false);
+              setSelected(null);
+            }}
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+          >
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
+            type="button"
             disabled={!selected}
             onClick={() => {
               if (selected) {
@@ -121,11 +139,12 @@ export function LibraryPickerDialog({
                 setSelected(null);
               }
             }}
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             Use this image
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

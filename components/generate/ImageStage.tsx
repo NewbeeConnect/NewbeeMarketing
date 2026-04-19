@@ -6,12 +6,11 @@ import {
   Check,
   Download,
   FolderOpen,
+  Loader2,
   RefreshCw,
   Upload,
   Wand2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ActionCard } from "./ActionCard";
 import { PreviewImage } from "./PreviewImage";
 import { LibraryPickerDialog } from "./LibraryPickerDialog";
@@ -20,14 +19,6 @@ import { PROJECTS, IMAGE_RATIOS } from "@/lib/projects";
 import type { Intent } from "@/lib/generate/machine";
 import { COPY } from "@/lib/generate/copy";
 
-/**
- * Step 2 — Image. Three paths (Generate, Upload, Library) until we have an
- * output; after that, preview + Redo/Download.
- *
- * Library path: user picks an already-existing image from their library —
- * no Gemini cost, no new generation. Useful for reusing a hero shot across
- * multiple videos without paying for the same image twice.
- */
 export function ImageStage({
   intent,
   project,
@@ -49,13 +40,6 @@ export function ImageStage({
   onUploadFile: (file: File) => void;
   onPickFromLibrary: (url: string) => void;
   onRedo: () => void;
-  /**
-   * Optional Continue handler — shown alongside Redo/Download when the step
-   * already has an image but the user is editing from an earlier navigation
-   * (so they need an explicit way to advance forward). In the fresh-generate
-   * path the parent auto-advances on success, so the button stays hidden
-   * until the user is actually in a "re-visit" situation.
-   */
   onContinue?: () => void;
   aiLoading: boolean;
   uploadLoading: boolean;
@@ -63,95 +47,112 @@ export function ImageStage({
   const fileInput = useRef<HTMLInputElement>(null);
   const projectMeta = PROJECTS.find((p) => p.slug === project)!;
   const [libraryOpen, setLibraryOpen] = useState(false);
-
-  // Narrow ratio for the library picker (image library only takes ImageRatio).
   const isImageRatio = (IMAGE_RATIOS as readonly string[]).includes(ratio);
 
-  return (
-    <Card className="p-5 space-y-4">
-      <div>
-        <h2 className="text-base font-semibold">{COPY.imageStage.heading}</h2>
-        <p className="text-xs text-muted-foreground mt-1">
-          {intent === "pipeline"
-            ? COPY.imageStage.subPipeline
-            : COPY.imageStage.subStandalone}
-        </p>
+  // Progress placeholder while Nano Banana is painting.
+  if (aiLoading) {
+    return (
+      <div className="rounded-lg border border-line bg-soft p-8 flex flex-col items-center justify-center">
+        <Loader2 className="h-5 w-5 ink-3 nb-spin" />
+        <div className="text-[13px] ink mt-3 font-medium">
+          Nano Banana 2 is painting…
+        </div>
+        <div className="text-[11.5px] ink-3 mt-1">
+          Usually around 30 seconds.
+        </div>
       </div>
+    );
+  }
 
-      {!imageUrl ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <ActionCard
-            icon={<Wand2 className="h-5 w-5" />}
-            title={COPY.imageStage.aiCardTitle}
-            body={`${COPY.imageStage.aiCardBody} ${ratio}.`}
-            onClick={onGenerate}
-            loading={aiLoading}
-            primary
+  if (imageUrl) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-center gap-2 text-[12px] ink-2">
+          <Check
+            className="h-3 w-3"
+            style={{ color: "oklch(0.55 0.14 150)" }}
           />
-          <ActionCard
-            icon={<Upload className="h-5 w-5" />}
-            title={COPY.imageStage.uploadCardTitle}
-            body={COPY.imageStage.uploadCardBody}
-            onClick={() => fileInput.current?.click()}
-            loading={uploadLoading}
-          />
-          <ActionCard
-            icon={<FolderOpen className="h-5 w-5" />}
-            title="Pick from library"
-            body={`Reuse any ${ratio} image you&rsquo;ve made for ${projectMeta.name}.`}
-            onClick={() => setLibraryOpen(true)}
-            disabled={!isImageRatio}
-          />
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onUploadFile(f);
-              if (fileInput.current) fileInput.current.value = "";
-            }}
-          />
-          {isImageRatio && (
-            <LibraryPickerDialog
-              open={libraryOpen}
-              onOpenChange={setLibraryOpen}
-              project={project}
-              ratio={ratio as ImageRatio}
-              onPick={onPickFromLibrary}
-            />
+          {COPY.imageStage.savedTo(projectMeta.name, ratio)}
+        </div>
+        <PreviewImage src={imageUrl} ratio={ratio} alt="Generated image" />
+        <div className="flex items-center justify-center flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onRedo}
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+          >
+            <RefreshCw className="h-3 w-3" />
+            {COPY.imageStage.redo}
+          </button>
+          <a
+            href={imageUrl}
+            download
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+          >
+            <Download className="h-3 w-3" />
+            {COPY.imageStage.download}
+          </a>
+          {onContinue && (
+            <button
+              type="button"
+              onClick={onContinue}
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
+            >
+              {intent === "pipeline" ? "Continue to animate" : "Continue"}
+              <ArrowRight className="h-3 w-3" />
+            </button>
           )}
         </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Check className="h-3.5 w-3.5 text-green-600" />
-            {COPY.imageStage.savedTo(projectMeta.name, ratio)}
-          </div>
-          <PreviewImage src={imageUrl} ratio={ratio} alt="Generated image" />
-          <div className="flex flex-wrap gap-2">
-            {onContinue && (
-              <Button size="sm" onClick={onContinue}>
-                {intent === "pipeline"
-                  ? "Continue to animate"
-                  : "Continue"}
-                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-              </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={onRedo}>
-              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-              {COPY.imageStage.redo}
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <a href={imageUrl} download>
-                <Download className="h-3.5 w-3.5 mr-1.5" />
-                {COPY.imageStage.download}
-              </a>
-            </Button>
-          </div>
-        </div>
-      )}
-    </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <ActionCard
+          icon={<Wand2 className="h-[18px] w-[18px]" />}
+          title={COPY.imageStage.aiCardTitle}
+          body={`${COPY.imageStage.aiCardBody} ~30s, ${ratio}.`}
+          onClick={onGenerate}
+          loading={aiLoading}
+          primary
+        />
+        <ActionCard
+          icon={<Upload className="h-[18px] w-[18px]" />}
+          title={COPY.imageStage.uploadCardTitle}
+          body={COPY.imageStage.uploadCardBody}
+          onClick={() => fileInput.current?.click()}
+          loading={uploadLoading}
+        />
+        <ActionCard
+          icon={<FolderOpen className="h-[18px] w-[18px]" />}
+          title="Pick from library"
+          body={`Reuse any ${ratio} image from ${projectMeta.name}.`}
+          onClick={() => setLibraryOpen(true)}
+          disabled={!isImageRatio}
+        />
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onUploadFile(f);
+            if (fileInput.current) fileInput.current.value = "";
+          }}
+        />
+        {isImageRatio && (
+          <LibraryPickerDialog
+            open={libraryOpen}
+            onOpenChange={setLibraryOpen}
+            project={project}
+            ratio={ratio as ImageRatio}
+            onPick={onPickFromLibrary}
+          />
+        )}
+      </div>
+    </div>
   );
 }

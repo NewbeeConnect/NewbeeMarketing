@@ -1,32 +1,13 @@
 "use client";
 
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  PROJECTS,
-  type AnyRatio,
-  type ProjectSlug,
-} from "@/lib/projects";
+import { PROJECTS, type AnyRatio, type ProjectSlug } from "@/lib/projects";
 import type { Intent } from "@/lib/generate/machine";
 import { ratiosFor } from "@/lib/generate/machine";
-import { COPY } from "@/lib/generate/copy";
 
 /**
- * Project chips + context-aware ratio select. Ratio options change with
- * intent; when intent is null we disable the select entirely and explain why
- * via tooltip so new users aren't confused.
+ * Project + aspect ratio switcher, matching the hub's segmented-style
+ * presentation. Ratio options filter by intent (image supports 4:5 / 1:1,
+ * video and pipeline only 9:16 / 16:9). Disabled until an intent is chosen.
  */
 export function ProjectRatioBar({
   project,
@@ -45,63 +26,47 @@ export function ProjectRatioBar({
   const disabled = intent === null;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
-      <div className="space-y-2">
-        <Label>Project</Label>
-        <div className="flex gap-2">
-          {PROJECTS.map((p) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[11px] ink-3">Project</span>
+      <div className="inline-flex p-0.5 bg-soft rounded-lg border border-line-2">
+        {PROJECTS.map((p) => {
+          const active = project === p.slug;
+          return (
             <button
               key={p.slug}
               type="button"
               onClick={() => onProjectChange(p.slug)}
-              className={`flex-1 rounded-md border-2 p-2.5 text-sm text-left transition-colors ${
-                project === p.slug
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-muted-foreground/30"
+              className={`px-2.5 h-7 rounded-md text-[12px] whitespace-nowrap ${
+                active
+                  ? "bg-panel shadow-card ink font-medium"
+                  : "ink-3 hover:ink"
               }`}
             >
-              <span
-                className="inline-block h-2 w-2 rounded-full mr-1.5 align-middle"
-                style={{ backgroundColor: p.color }}
-              />
               {p.name}
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="space-y-2">
-              <Label>Aspect ratio</Label>
-              <Select
-                value={disabled ? "" : ratio}
-                onValueChange={(v) => onRatioChange(v as AnyRatio)}
-                disabled={disabled}
-              >
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="—" />
-                </SelectTrigger>
-                <SelectContent>
-                  {options.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </TooltipTrigger>
-          {(disabled || intent === "pipeline") && (
-            <TooltipContent>
-              {disabled
-                ? COPY.ratioPicker.disabledHint
-                : COPY.ratioPicker.pipelineHint}
-            </TooltipContent>
-          )}
-        </Tooltip>
-      </TooltipProvider>
+      <span className="text-[11px] ink-3 ml-2">Aspect</span>
+      <select
+        value={disabled ? "" : ratio}
+        onChange={(e) => onRatioChange(e.target.value as AnyRatio)}
+        disabled={disabled}
+        title={disabled ? "Pick what you want to make first." : undefined}
+        className="h-9 px-2.5 pr-8 rounded-md border border-line bg-panel text-[12.5px] ink outline-none focus:border-brand appearance-none bg-no-repeat disabled:opacity-40 disabled:cursor-not-allowed"
+        style={{
+          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>")`,
+          backgroundPosition: "right 8px center",
+        }}
+      >
+        {disabled && <option value="">—</option>}
+        {options.map((r) => (
+          <option key={r} value={r}>
+            {r}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

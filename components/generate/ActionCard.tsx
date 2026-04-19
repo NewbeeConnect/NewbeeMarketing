@@ -3,8 +3,9 @@
 import { Loader2 } from "lucide-react";
 
 /**
- * A big clickable card that invokes one action — e.g. "Generate with AI" or
- * "Upload my own". Primary = filled/colored, secondary = outlined.
+ * Big clickable card used in Image/Video stages. Primary cards are filled
+ * with the brand color; secondary cards get a brand-soft icon block against
+ * a panel background.
  */
 export function ActionCard({
   icon,
@@ -28,17 +29,36 @@ export function ActionCard({
       type="button"
       onClick={onClick}
       disabled={loading || disabled}
-      className={`flex flex-col items-start gap-1.5 rounded-md border-2 p-4 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+      className={`group text-left rounded-xl border p-4 transition disabled:opacity-50 disabled:cursor-not-allowed ${
         primary
-          ? "border-primary bg-primary/5 hover:bg-primary/10"
-          : "border-border hover:border-muted-foreground/40 hover:bg-muted/30"
+          ? "bg-brand text-brand-ink border-brand hover:brightness-95"
+          : "bg-panel border-line hover:border-brand ink"
       }`}
     >
-      <div className="flex items-center gap-2 font-medium text-sm">
-        {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : icon}
-        {title}
+      <div
+        className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2.5 ${
+          primary ? "" : "bg-brand-soft text-brand-ink"
+        }`}
+        style={
+          primary
+            ? { background: "var(--nb-brand-ink)", color: "var(--nb-brand)" }
+            : undefined
+        }
+      >
+        {loading ? (
+          <Loader2 className="h-[18px] w-[18px] nb-spin" />
+        ) : (
+          icon
+        )}
       </div>
-      <p className="text-xs text-muted-foreground">{body}</p>
+      <div className="text-[14px] font-semibold">{title}</div>
+      <div
+        className={`text-[12px] mt-1 leading-relaxed ${
+          primary ? "text-brand-ink opacity-80" : "ink-2"
+        }`}
+      >
+        {body}
+      </div>
     </button>
   );
 }

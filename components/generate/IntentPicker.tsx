@@ -1,9 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, ImageIcon, Repeat, Video } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,88 +11,76 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ArrowRight, Image as ImageIcon, Repeat, Video } from "lucide-react";
 import type { Intent } from "@/lib/generate/machine";
 import { intentLabel } from "@/lib/generate/machine";
 import { COPY } from "@/lib/generate/copy";
 
-const INTENT_META: Record<
+const META: Record<
   Intent,
-  { icon: React.ReactNode; title: string; tagline: string; time: string }
+  { Icon: React.ComponentType<{ className?: string }>; title: string; desc: string; time: string }
 > = {
   image: {
-    icon: <ImageIcon className="h-5 w-5" />,
+    Icon: ImageIcon,
     title: COPY.intentCards.image.title,
-    tagline: COPY.intentCards.image.tagline,
+    desc: COPY.intentCards.image.tagline,
     time: COPY.intentCards.image.time,
   },
   video: {
-    icon: <Video className="h-5 w-5" />,
+    Icon: Video,
     title: COPY.intentCards.video.title,
-    tagline: COPY.intentCards.video.tagline,
+    desc: COPY.intentCards.video.tagline,
     time: COPY.intentCards.video.time,
   },
   pipeline: {
-    icon: <Repeat className="h-5 w-5" />,
+    Icon: Repeat,
     title: COPY.intentCards.pipeline.title,
-    tagline: COPY.intentCards.pipeline.tagline,
+    desc: COPY.intentCards.pipeline.tagline,
     time: COPY.intentCards.pipeline.time,
   },
 };
 
 /**
- * On first visit (intent === null) this is a full-width hero of 3 big cards.
- * After the user commits, the parent swaps in <IntentPill /> which shows the
- * chosen intent + "Change" button.
+ * First-visit hero — three big intent cards. On hover, a "Choose →" label
+ * fades in at the bottom-right of the card. Click commits the intent; the
+ * parent then collapses this into <IntentPill /> which offers soft-switch.
  */
-export function IntentPicker({
-  onPick,
-}: {
-  onPick: (intent: Intent) => void;
-}) {
+export function IntentPicker({ onPick }: { onPick: (i: Intent) => void }) {
   return (
-    <Card className="p-6 space-y-5">
-      <div>
-        <h2 className="text-xl font-semibold">{COPY.intentPicker.heading}</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {COPY.intentPicker.sub}
-        </p>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {(["image", "video", "pipeline"] as const).map((intent) => {
-          const meta = INTENT_META[intent];
-          return (
-            <button
-              key={intent}
-              type="button"
-              onClick={() => onPick(intent)}
-              className="group flex flex-col items-start gap-2 rounded-md border-2 border-border p-4 text-left hover:border-primary hover:bg-primary/5 transition-colors"
-            >
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  {meta.icon}
-                  {meta.title}
-                </div>
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
-                  {meta.time}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground flex-1">{meta.tagline}</p>
-              <span className="text-xs text-primary flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                Start <ArrowRight className="h-3 w-3" />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {(["image", "video", "pipeline"] as const).map((k) => {
+        const { Icon, title, desc, time } = META[k];
+        return (
+          <button
+            key={k}
+            type="button"
+            onClick={() => onPick(k)}
+            className="group text-left rounded-xl border border-line bg-panel hover:border-brand hover:ring-brand transition p-4"
+          >
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-brand-soft text-brand-ink">
+              <Icon className="h-[18px] w-[18px]" />
+            </div>
+            <div className="serif text-[18px] ink mt-3">{title}</div>
+            <div className="text-[12.5px] ink-2 mt-1 leading-relaxed">
+              {desc}
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="mono text-[11px] ink-3">{time}</span>
+              <span className="text-[11px] font-medium text-brand-ink inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                Choose <ArrowRight className="h-3 w-3" />
               </span>
-            </button>
-          );
-        })}
-      </div>
-    </Card>
+            </div>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
 /**
- * Compact pill once the user has an intent. Shows a row of 3 small intent
- * buttons — clicking a *different* one is a "soft switch": brief + blueprints
- * kept, only downstream outputs cleared (no confirm dialog, lossless). The
- * "Start over" button hard-resets everything (with confirm).
+ * Once an intent is chosen this replaces the hero. Three pill-buttons inline;
+ * clicking a non-active one is a soft switch (brief/blueprint preserved,
+ * downstream outputs cleared). "Start over" behind a confirm dialog.
  */
 export function IntentPill({
   intent,
@@ -103,48 +88,42 @@ export function IntentPill({
   onChange,
 }: {
   intent: Intent;
-  /** Soft switch — preserves brief + blueprints, clears outputs. */
   onSwitch: (next: Intent) => void;
-  /** Hard reset — clears everything including brief. */
   onChange: () => void;
 }) {
   const [open, setOpen] = useState(false);
-
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-0.5 rounded-full border p-0.5 bg-muted/40">
-          {(["image", "video", "pipeline"] as const).map((i) => {
-            const meta = INTENT_META[i];
-            const isActive = i === intent;
+        <span className="text-[11px] ink-3">Mode</span>
+        <div className="inline-flex p-0.5 bg-soft rounded-lg border border-line-2">
+          {(["image", "video", "pipeline"] as const).map((k) => {
+            const active = k === intent;
+            const { Icon } = META[k];
             return (
               <button
-                key={i}
+                key={k}
                 type="button"
-                onClick={() => !isActive && onSwitch(i)}
-                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-                  isActive
-                    ? "bg-background shadow-sm text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                onClick={() => !active && onSwitch(k)}
+                aria-pressed={active}
+                className={`px-2.5 h-7 rounded-md text-[12px] whitespace-nowrap inline-flex items-center gap-1 transition ${
+                  active
+                    ? "bg-panel shadow-card ink font-medium"
+                    : "ink-3 hover:ink"
                 }`}
-                aria-pressed={isActive}
               >
-                <span className={isActive ? "text-primary" : ""}>
-                  {meta.icon}
-                </span>
-                <span>{intentLabel(i)}</span>
+                <Icon className="h-3 w-3" />
+                {intentLabel(k)}
               </button>
             );
           })}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs h-7"
+        <button
           onClick={() => setOpen(true)}
+          className="ml-1 text-[11.5px] ink-3 hover:ink transition"
         >
           {COPY.change.pillButton}
-        </Button>
+        </button>
       </div>
 
       <AlertDialog open={open} onOpenChange={setOpen}>

@@ -4,9 +4,8 @@ import Image from "next/image";
 import type { AnyRatio } from "@/lib/projects";
 
 /**
- * Scaled preview of a generated or uploaded image. Uses next/image with
- * unoptimized=true because the source is a Supabase storage URL that's
- * already sized appropriately.
+ * Scaled preview of a generated or uploaded image. Centered, rounded-lg with
+ * a border-line frame matching the hub design.
  */
 export function PreviewImage({
   src,
@@ -27,10 +26,12 @@ export function PreviewImage({
       : "aspect-[9/16]";
 
   return (
-    <div
-      className={`relative w-full overflow-hidden rounded-md bg-muted/40 ${aspect} max-w-md`}
-    >
-      <Image src={src} alt={alt} fill className="object-contain" unoptimized />
+    <div className="flex justify-center">
+      <div
+        className={`relative overflow-hidden rounded-lg border border-line bg-soft ${aspect} w-full max-w-md shadow-card`}
+      >
+        <Image src={src} alt={alt} fill className="object-contain" unoptimized />
+      </div>
     </div>
   );
 }

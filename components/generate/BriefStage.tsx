@@ -1,16 +1,13 @@
 "use client";
 
-import { Dices, ImageIcon, Loader2, Video as VideoIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+  Check,
+  Dices,
+  Image as ImageIcon,
+  Loader2,
+  Sparkles,
+  Video as VideoIcon,
+} from "lucide-react";
 import { FieldsEditor } from "./FieldsEditor";
 import { COPY } from "@/lib/generate/copy";
 import type { Intent } from "@/lib/generate/machine";
@@ -25,12 +22,12 @@ const IMAGE_FIELD_LABELS: {
   label: string;
   hint: string;
 }[] = [
-  { key: "subject", label: "Subject", hint: "Who / what and what they're doing." },
-  { key: "style", label: "Style", hint: "Visual genre — editorial, minimal catalogue…" },
-  { key: "composition", label: "Composition", hint: "Shot type, framing, angle, focal length." },
-  { key: "lighting", label: "Lighting", hint: "Direction, color, quality of light." },
-  { key: "mood", label: "Mood & palette", hint: "Tone + dominant colors." },
-  { key: "technical", label: "Technical", hint: "Focus, depth of field, sharpness cues." },
+  { key: "subject", label: "Subject", hint: "Who or what, doing what" },
+  { key: "style", label: "Style", hint: "Editorial, minimal, analog…" },
+  { key: "composition", label: "Composition", hint: "Shot type, framing, angle" },
+  { key: "lighting", label: "Lighting", hint: "Direction, color, quality" },
+  { key: "mood", label: "Mood & palette", hint: "Tone + dominant colors" },
+  { key: "technical", label: "Technical", hint: "Lens, DOF, focus cues" },
 ];
 
 const VIDEO_FIELD_LABELS: {
@@ -38,21 +35,18 @@ const VIDEO_FIELD_LABELS: {
   label: string;
   hint: string;
 }[] = [
-  { key: "subject", label: "Subject + opening", hint: "Who / what appears in the first frame." },
-  { key: "camera", label: "Camera", hint: "Dolly-in, handheld, locked-off, orbit…" },
-  { key: "action", label: "Action", hint: "What changes during the clip." },
-  { key: "lighting", label: "Lighting", hint: "Direction, color, quality — and how it evolves." },
-  { key: "mood", label: "Mood & palette", hint: "Emotional tone + cinematic reference." },
+  { key: "subject", label: "Subject + opening", hint: "Who/what in the first frame" },
+  { key: "camera", label: "Camera", hint: "Dolly-in, handheld, orbit…" },
+  { key: "action", label: "Action", hint: "What changes during the clip" },
+  { key: "lighting", label: "Lighting", hint: "Direction, color, evolution" },
+  { key: "mood", label: "Mood & palette", hint: "Emotional tone" },
   { key: "audio", label: "Audio", hint: "Silent, piano, room tone…" },
 ];
 
 /**
- * Stage 1 of every intent. Shows the brief textarea and the blueprint(s)
- * the current intent needs:
- *   - image intent    → image blueprint only
- *   - video intent    → video blueprint only
- *   - pipeline intent → both in a Tabs component (Image first, auto-advances
- *     to Video once the image blueprint is ready)
+ * Step 2 — Brief + blueprint(s). For pipeline intent shows both blueprints
+ * under an underline-style tab strip. Asset lock editor sits below (rendered
+ * by the page orchestrator — this component only owns brief + blueprint).
  */
 export function BriefStage({
   intent,
@@ -99,121 +93,175 @@ export function BriefStage({
   regeneratingImageField?: (keyof ImagePromptFields & string) | null;
   regeneratingVideoField?: (keyof VideoPromptFields & string) | null;
 }) {
-  // Placeholder is project-aware: Newbee users should see Newbee examples,
-  // Atelier Sayın users should see jewelry examples. Always matches the
-  // selected project so the example reads as "this is what I could write".
   const placeholder = COPY.briefPlaceholders[project][intent];
+  const showImageBP = intent === "image" || intent === "pipeline";
+  const showVideoBP = intent === "video" || intent === "pipeline";
 
   return (
-    <Card className="p-5 space-y-4">
-      <div>
-        <h2 className="text-base font-semibold">{COPY.brief.heading}</h2>
-        <p className="text-xs text-muted-foreground mt-1">{COPY.brief.sub}</p>
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="brief">{COPY.brief.label}</Label>
-          <Button
+    <div className="space-y-4">
+      {/* Brief panel */}
+      <div className="rounded-lg border border-line bg-panel p-3">
+        <div className="flex items-center justify-between mb-1.5">
+          <label
+            htmlFor="brief-textarea"
+            className="text-[12px] font-medium ink-2"
+          >
+            {COPY.brief.label}
+          </label>
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
             onClick={onRollDice}
             disabled={diceLoading}
-            className="text-xs h-7"
+            className="text-[11.5px] ink-3 hover:text-brand-ink flex items-center gap-1 whitespace-nowrap disabled:opacity-40"
           >
             {diceLoading ? (
-              <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+              <Loader2 className="h-3 w-3 nb-spin" />
             ) : (
-              <Dices className="h-3 w-3 mr-1.5" />
+              <Dices className="h-3 w-3" />
             )}
             {diceLoading ? COPY.brief.rollingDice : COPY.brief.rollDiceButton}
-          </Button>
+          </button>
         </div>
-        <Textarea
-          id="brief"
-          // 5 rows fits the richer, feature-aware briefs "Roll the dice"
-          // now returns (70–140 words). Still expands if the user types more.
+        <textarea
+          id="brief-textarea"
           rows={5}
           placeholder={placeholder}
           value={brief}
           onChange={(e) => onBriefChange(e.target.value)}
+          className="w-full px-3 py-2.5 rounded-md border border-line bg-panel text-[13.5px] ink outline-none resize-none focus:border-brand"
         />
       </div>
 
-      {intent === "image" && (
-        <FieldsEditor<ImagePromptFields>
-          title={COPY.blueprint.imageTitle}
-          icon={<ImageIcon className="h-4 w-4" />}
-          fieldList={IMAGE_FIELD_LABELS}
-          values={imageFields}
-          onChange={onImageFieldsChange}
-          onFillAI={onFillImage}
-          aiLoading={aiLoading}
-          ready={imageReady}
-          onRegenerateField={onRegenerateImageField}
-          regeneratingField={regeneratingImageField}
-        />
-      )}
+      {/* Blueprint */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="text-[12.5px] font-semibold ink">Blueprint</div>
+            {(imageReady || videoReady) && (
+              <span
+                className="inline-flex items-center gap-1 px-2 h-6 text-[11px] rounded-md border"
+                style={{
+                  background: "var(--nb-success-soft)",
+                  borderColor: "transparent",
+                  color: "oklch(0.35 0.09 150)",
+                }}
+              >
+                <Check className="h-2.5 w-2.5" /> Ready
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={
+              intent === "video"
+                ? onFillVideo
+                : intent === "pipeline" && pipelineTab === "video"
+                ? onFillVideo
+                : onFillImage
+            }
+            disabled={aiLoading}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-line bg-panel text-[12.5px] ink hover:bg-soft disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            {aiLoading ? (
+              <Loader2 className="h-3 w-3 nb-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            {aiLoading ? COPY.brief.drafting : COPY.brief.draftButton}
+          </button>
+        </div>
 
-      {intent === "video" && (
-        <FieldsEditor<VideoPromptFields>
-          title={COPY.blueprint.videoTitle}
-          icon={<VideoIcon className="h-4 w-4" />}
-          fieldList={VIDEO_FIELD_LABELS}
-          values={videoFields}
-          onChange={onVideoFieldsChange}
-          onFillAI={onFillVideo}
-          aiLoading={aiLoading}
-          ready={videoReady}
-          onRegenerateField={onRegenerateVideoField}
-          regeneratingField={regeneratingVideoField}
-        />
-      )}
-
-      {intent === "pipeline" && (
-        <Tabs
-          value={pipelineTab}
-          onValueChange={(v) => onPipelineTabChange(v as "image" | "video")}
-        >
-          <TabsList className="grid grid-cols-2">
-            <TabsTrigger value="image">
-              <ImageIcon className="h-3.5 w-3.5 mr-1.5" />
-              {COPY.blueprint.imageTitle}
-              {imageReady && <span className="ml-1 text-green-600">✓</span>}
-            </TabsTrigger>
-            <TabsTrigger value="video" disabled={!imageReady}>
-              <VideoIcon className="h-3.5 w-3.5 mr-1.5" />
-              {COPY.blueprint.videoTitle}
-              {videoReady && <span className="ml-1 text-green-600">✓</span>}
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="image" className="pt-2">
-            <FieldsEditor<ImagePromptFields>
-              title={COPY.blueprint.imageTitle}
-              icon={<ImageIcon className="h-4 w-4" />}
-              fieldList={IMAGE_FIELD_LABELS}
-              values={imageFields}
-              onChange={onImageFieldsChange}
-              onFillAI={onFillImage}
-              aiLoading={aiLoading}
-              ready={imageReady}
-            />
-          </TabsContent>
-          <TabsContent value="video" className="pt-2">
-            <FieldsEditor<VideoPromptFields>
-              title={COPY.blueprint.videoTitle}
-              icon={<VideoIcon className="h-4 w-4" />}
-              fieldList={VIDEO_FIELD_LABELS}
-              values={videoFields}
-              onChange={onVideoFieldsChange}
-              onFillAI={onFillVideo}
-              aiLoading={aiLoading}
-              ready={videoReady}
-            />
-          </TabsContent>
-        </Tabs>
-      )}
-    </Card>
+        {intent === "pipeline" ? (
+          <>
+            <div className="flex items-center gap-1 mb-2 border-b border-line-2">
+              {(
+                [
+                  { k: "image" as const, l: "Image blueprint", ready: imageReady },
+                  { k: "video" as const, l: "Video blueprint", ready: videoReady },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.k}
+                  onClick={() => onPipelineTabChange(t.k)}
+                  className={`px-3 h-8 text-[12.5px] relative inline-flex items-center gap-1.5 ${
+                    pipelineTab === t.k
+                      ? "ink font-medium"
+                      : "ink-3 hover:ink"
+                  }`}
+                >
+                  {t.l}
+                  {t.ready && (
+                    <Check
+                      className="h-3 w-3"
+                      style={{ color: "oklch(0.55 0.14 150)" }}
+                    />
+                  )}
+                  {pipelineTab === t.k && (
+                    <div className="absolute inset-x-3 -bottom-px h-0.5 bg-brand" />
+                  )}
+                </button>
+              ))}
+            </div>
+            {pipelineTab === "image" ? (
+              <FieldsEditor<ImagePromptFields>
+                title="Image blueprint"
+                icon={<ImageIcon className="h-3.5 w-3.5" />}
+                fieldList={IMAGE_FIELD_LABELS}
+                values={imageFields}
+                onChange={onImageFieldsChange}
+                onFillAI={onFillImage}
+                aiLoading={aiLoading}
+                ready={imageReady}
+                onRegenerateField={onRegenerateImageField}
+                regeneratingField={regeneratingImageField}
+                hideHeader
+              />
+            ) : (
+              <FieldsEditor<VideoPromptFields>
+                title="Video blueprint"
+                icon={<VideoIcon className="h-3.5 w-3.5" />}
+                fieldList={VIDEO_FIELD_LABELS}
+                values={videoFields}
+                onChange={onVideoFieldsChange}
+                onFillAI={onFillVideo}
+                aiLoading={aiLoading}
+                ready={videoReady}
+                onRegenerateField={onRegenerateVideoField}
+                regeneratingField={regeneratingVideoField}
+                hideHeader
+              />
+            )}
+          </>
+        ) : showImageBP ? (
+          <FieldsEditor<ImagePromptFields>
+            title="Image blueprint"
+            icon={<ImageIcon className="h-3.5 w-3.5" />}
+            fieldList={IMAGE_FIELD_LABELS}
+            values={imageFields}
+            onChange={onImageFieldsChange}
+            onFillAI={onFillImage}
+            aiLoading={aiLoading}
+            ready={imageReady}
+            onRegenerateField={onRegenerateImageField}
+            regeneratingField={regeneratingImageField}
+            hideHeader
+          />
+        ) : showVideoBP ? (
+          <FieldsEditor<VideoPromptFields>
+            title="Video blueprint"
+            icon={<VideoIcon className="h-3.5 w-3.5" />}
+            fieldList={VIDEO_FIELD_LABELS}
+            values={videoFields}
+            onChange={onVideoFieldsChange}
+            onFillAI={onFillVideo}
+            aiLoading={aiLoading}
+            ready={videoReady}
+            onRegenerateField={onRegenerateVideoField}
+            regeneratingField={regeneratingVideoField}
+            hideHeader
+          />
+        ) : null}
+      </div>
+    </div>
   );
 }

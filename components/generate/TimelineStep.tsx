@@ -2,23 +2,22 @@
 
 import { useEffect, useRef } from "react";
 import { Check, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 /**
- * Wrapper for a single step in the /generate timeline. Renders one of three
- * layouts based on `visual`:
- *   - "pending"   — returns null (future step, not in DOM yet)
- *   - "active"    — full content, expanded, highlighted ring
- *   - "completed" — compact summary strip with [Edit] button
+ * Timeline step wrapper — rendered once per step on the /generate page.
  *
- * The `onEdit` callback fires when the user clicks Edit on a completed step.
- * When `visual` becomes "active", the component smooth-scrolls itself into
- * view so the user never has to hunt for the next thing to do.
+ * Visual states:
+ *   - "pending"    → returns null (future step, not in DOM yet)
+ *   - "completed"  → compact strip: green number badge + title + inline summary + Edit
+ *   - "active"     → full card with ring-brand highlight, expanded content
+ *
+ * When a step flips to "active" we smooth-scroll the wrapper ~88px below the
+ * top of the viewport — user doesn't have to hunt for the next action.
  */
 export function TimelineStep({
   stepNumber,
   title,
+  subtitle,
   visual,
   summary,
   onEdit,
@@ -26,8 +25,9 @@ export function TimelineStep({
 }: {
   stepNumber: number;
   title: string;
+  subtitle?: string;
   visual: "pending" | "active" | "completed";
-  /** Short text or element shown when the step is collapsed (completed). */
+  /** Shown inline next to the title when the step is collapsed. */
   summary?: React.ReactNode;
   onEdit?: () => void;
   children: React.ReactNode;
@@ -35,56 +35,79 @@ export function TimelineStep({
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (visual === "active" && ref.current) {
-      // Delay one frame so DOM has settled after state change
-      requestAnimationFrame(() => {
-        ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
+    if (visual !== "active" || !ref.current) return;
+    requestAnimationFrame(() => {
+      if (!ref.current) return;
+      const rect = ref.current.getBoundingClientRect();
+      const target = window.scrollY + rect.top - 88;
+      window.scrollTo({ top: target, behavior: "smooth" });
+    });
   }, [visual]);
 
   if (visual === "pending") return null;
 
-  if (visual === "completed") {
-    return (
+  const active = visual === "active";
+
+  return (
+    <div
+      ref={ref}
+      data-step-active={active || undefined}
+      className={`rounded-xl border transition slideFade ${
+        active ? "bg-panel border-brand ring-brand" : "bg-panel border-line"
+      }`}
+    >
       <div
-        ref={ref}
-        className="flex items-center gap-3 rounded-md border bg-muted/30 px-3 py-2"
+        className={`flex items-start gap-3 px-4 ${
+          active ? "pt-4 pb-1" : "py-3"
+        }`}
       >
-        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-white shrink-0">
-          <Check className="h-3 w-3" />
+        {/* Number / check badge */}
+        <div
+          className={`shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold ${
+            active ? "bg-brand text-brand-ink" : "text-white"
+          }`}
+          style={
+            !active
+              ? { background: "oklch(0.55 0.12 150)" }
+              : undefined
+          }
+        >
+          {visual === "completed" ? (
+            <Check className="h-3 w-3" />
+          ) : (
+            stepNumber
+          )}
         </div>
-        <div className="text-xs font-medium text-muted-foreground shrink-0">
-          Step {stepNumber}
+
+        {/* Title + inline summary */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="text-[13.5px] font-semibold ink whitespace-nowrap">
+              {title}
+            </div>
+            {!active && summary && (
+              <div className="text-[12.5px] ink-3 truncate min-w-0">
+                · {summary}
+              </div>
+            )}
+          </div>
+          {active && subtitle && (
+            <div className="text-[12px] ink-3 mt-0.5">{subtitle}</div>
+          )}
         </div>
-        <div className="text-sm flex-1 min-w-0 truncate text-foreground">
-          {summary ?? title}
-        </div>
-        {onEdit && (
-          <Button
-            variant="ghost"
-            size="sm"
+
+        {visual === "completed" && onEdit && (
+          <button
             onClick={onEdit}
-            className="h-7 text-xs shrink-0"
+            className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[12px] ink-2 hover:bg-soft hover:ink transition"
           >
-            <Pencil className="h-3 w-3 mr-1.5" />
+            <Pencil className="h-3 w-3" />
             Edit
-          </Button>
+          </button>
         )}
       </div>
-    );
-  }
 
-  // active
-  return (
-    <Card ref={ref} className="p-5 space-y-4 ring-2 ring-primary/30">
-      <div className="flex items-center gap-2">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold shrink-0">
-          {stepNumber}
-        </div>
-        <h2 className="text-base font-semibold">{title}</h2>
-      </div>
-      <div>{children}</div>
-    </Card>
+      {active && <div className="px-4 pb-4 pt-2">{children}</div>}
+    </div>
   );
 }

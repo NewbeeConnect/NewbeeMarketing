@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  ArrowRight,
   CheckCircle2,
   FastForward,
   FolderOpen,
@@ -10,8 +11,6 @@ import {
   RotateCcw,
   Video as VideoIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,10 +28,10 @@ import type { Intent } from "@/lib/generate/machine";
 import { COPY } from "@/lib/generate/copy";
 
 /**
- * Final state of any pipeline. Shows the asset(s) + three next-actions:
- *   - Create another variant (keeps intent, brief, blueprint; resets outputs)
- *   - Open in Library
- *   - Start over (full reset, confirm dialog)
+ * Terminal state of every /generate run. Success hero at top + asset
+ * preview(s) + action grid (animate / extend / variant / library / start
+ * over). Primary action adapts to intent: image-only → animate; has video →
+ * extend; otherwise "create variant".
  */
 export function CompletionCard({
   intent,
@@ -53,23 +52,8 @@ export function CompletionCard({
   videoUrl: string | null;
   onCreateVariant: () => void;
   onStartOver: () => void;
-  /**
-   * Only provided when a video exists and is still within Veo's 2-day
-   * retention window. Starts a new cycle that extends from this video's
-   * last frame.
-   */
   onExtendVideo?: () => void;
-  /**
-   * Provided for image-only completions (image intent, or pipeline stopped
-   * at image) — starts a video stage using this image as first frame without
-   * re-running the brief.
-   */
   onAnimateImage?: () => void;
-  /**
-   * When true, the extend action is shown but visually demoted — Veo's URI
-   * retention window has likely expired. The backend will still give a clear
-   * error if it really is stale.
-   */
   extendStale?: boolean;
 }) {
   const [resetOpen, setResetOpen] = useState(false);
@@ -84,35 +68,39 @@ export function CompletionCard({
 
   return (
     <>
-      <Card className="p-5 space-y-4 border-green-600/40 bg-green-50/40 dark:bg-green-950/20">
-        <div className="flex items-start gap-2">
-          <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
-          <div>
-            <h2 className="text-base font-semibold">{heading}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Filed under <span className="font-medium text-foreground">
-                {projectMeta.name}
-              </span>{" "}
-              at {ratio}.
-            </p>
+      <div className="rounded-xl border border-line bg-panel p-5 slideFade">
+        <div className="flex items-start gap-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            style={{
+              background: "var(--nb-success-soft)",
+              color: "oklch(0.45 0.15 150)",
+            }}
+          >
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <div className="serif text-[22px] ink">{heading}</div>
+            <div className="text-[12.5px] ink-2 mt-0.5">
+              Saved to Library · {projectMeta.name} /{" "}
+              {videoUrl ? "Videos" : "Images"} / {ratio}
+            </div>
           </div>
         </div>
 
         {/* Asset previews */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="mt-5 flex flex-wrap gap-4 items-start justify-center">
           {imageUrl && (
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium">Image</p>
+            <div className="flex flex-col items-center gap-1.5">
               <PreviewImage src={imageUrl} ratio={ratio} alt="Generated image" />
             </div>
           )}
           {videoUrl && (
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium">Video</p>
+            <div className="flex flex-col items-center gap-1.5">
               <video
                 src={videoUrl}
                 controls
-                className={`w-full rounded-md bg-black max-w-md ${
+                className={`w-full rounded-lg border border-line bg-black max-w-md shadow-card ${
                   ratio === "16:9" ? "aspect-video" : "aspect-[9/16]"
                 }`}
               />
@@ -120,60 +108,77 @@ export function CompletionCard({
           )}
         </div>
 
-        {/* Next actions */}
-        <div className="flex flex-wrap gap-2 pt-2">
+        {/* Action grid */}
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2">
           {onAnimateImage && imageUrl && !videoUrl && (
-            <Button onClick={onAnimateImage}>
-              <VideoIcon className="h-3.5 w-3.5 mr-1.5" />
+            <button
+              type="button"
+              onClick={onAnimateImage}
+              className="col-span-1 sm:col-span-2 inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg bg-brand text-brand-ink text-[13.5px] font-semibold hover:brightness-95 transition"
+            >
+              <VideoIcon className="h-3.5 w-3.5" />
               Animate this image
-            </Button>
+            </button>
           )}
           {onExtendVideo && videoUrl && (
-            <Button
+            <button
+              type="button"
               onClick={onExtendVideo}
-              variant={extendStale ? "outline" : "default"}
               title={
                 extendStale
                   ? "This video may be past Veo's 2-day retention — extension might fail."
                   : undefined
               }
+              className={`inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg text-[13.5px] font-semibold transition ${
+                extendStale
+                  ? "border border-line bg-panel ink hover:bg-soft"
+                  : "bg-brand text-brand-ink hover:brightness-95"
+              }`}
             >
-              <FastForward className="h-3.5 w-3.5 mr-1.5" />
+              <FastForward className="h-3.5 w-3.5" />
               {extendStale ? "Try to extend" : "Extend this video"}
-            </Button>
+              <ArrowRight className="h-3 w-3" />
+            </button>
           )}
-          <Button
-            variant={
-              (onExtendVideo && videoUrl) || (onAnimateImage && imageUrl && !videoUrl)
-                ? "outline"
-                : "default"
-            }
+          <button
+            type="button"
             onClick={onCreateVariant}
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-line bg-panel ink text-[13.5px] hover:bg-soft transition"
           >
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+            <RefreshCw className="h-3.5 w-3.5" />
             {COPY.completion.variant}
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/library">
-              <FolderOpen className="h-3.5 w-3.5 mr-1.5" />
-              {COPY.completion.library}
-            </Link>
-          </Button>
-          <Button variant="ghost" onClick={() => setResetOpen(true)}>
-            <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+          </button>
+          <Link
+            href="/library"
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-line bg-panel ink text-[13.5px] hover:bg-soft transition"
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+            {COPY.completion.library}
+          </Link>
+          <button
+            type="button"
+            onClick={() => setResetOpen(true)}
+            className="col-span-1 sm:col-span-2 inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg ink-2 text-[13.5px] hover:bg-soft transition"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
             {COPY.completion.startOver}
-          </Button>
+          </button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {onAnimateImage && imageUrl && !videoUrl
-            ? "Animate turns this image into a 4–8 second clip — no need to re-write the brief."
-            : onExtendVideo && videoUrl
-            ? extendStale
-              ? "Heads up: extension relies on a short retention window (~2 days). This video may be past it."
-              : "Extend continues from the last frame of this clip (available for ~2 days after render)."
-            : COPY.completion.variantHint}
-        </p>
-      </Card>
+
+        {videoUrl && onExtendVideo && (
+          <div className="mt-4 text-[11.5px] ink-3 text-center">
+            {extendStale
+              ? "Heads up: extension relies on Veo's 2-day URI retention — this video may be past it."
+              : "Extend continues from the last frame of this clip. Available for ~2 days after render."}
+          </div>
+        )}
+        {onAnimateImage && imageUrl && !videoUrl && (
+          <div className="mt-4 text-[11.5px] ink-3 text-center">
+            Animate turns this image into a 4–8 second clip — no need to
+            re-write the brief.
+          </div>
+        )}
+      </div>
 
       <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
         <AlertDialogContent>

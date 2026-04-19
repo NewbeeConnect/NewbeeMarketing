@@ -1,62 +1,71 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useApiKeys, useSaveApiKeys, useDeleteApiKeys } from "@/hooks/useApiKeys";
-import { toast } from "sonner";
 import {
-  Key,
-  Database,
+  Check,
   Cloud,
-  CheckCircle,
-  XCircle,
-  ExternalLink,
-  Save,
-  Trash2,
-  Loader2,
+  Eye,
+  EyeOff,
   Github,
+  Key,
+  Loader2,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import {
+  useApiKeys,
+  useDeleteApiKeys,
+  useSaveApiKeys,
+} from "@/hooks/useApiKeys";
 
-function StatusBadge({ ok, label }: { ok: boolean; label?: string }) {
-  return (
-    <Badge
-      variant="outline"
-      className={
-        ok
-          ? "bg-green-50 text-green-700 border-green-300"
-          : "bg-red-50 text-red-700 border-red-300"
-      }
-    >
-      {ok ? (
-        <CheckCircle className="h-3 w-3 mr-1" />
-      ) : (
-        <XCircle className="h-3 w-3 mr-1" />
-      )}
-      {label ?? (ok ? "Connected" : "Not configured")}
-    </Badge>
-  );
-}
-
+/**
+ * Hub-designed Settings. Three tabs at the top (API keys / Billing / Team)
+ * — only API keys is wired for now. Cards wrap each integration section.
+ * Input fields sit on bg-panel with border-line and a brand focus ring.
+ */
 export default function SettingsPage() {
-  const [supabaseOk, setSupabaseOk] = useState<boolean | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [supabaseOk, setSupabaseOk] = useState<boolean | null>(null);
   const { data: apiKeys, isLoading: keysLoading } = useApiKeys();
   const saveKeys = useSaveApiKeys();
   const deleteKeys = useDeleteApiKeys();
+
+  useEffect(() => {
+    let mounted = true;
+    const supabase = createClient();
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (!mounted) return;
+        setSupabaseOk(!!data.user);
+        setUserEmail(data.user?.email ?? null);
+      })
+      .catch(() => {
+        if (mounted) setSupabaseOk(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const googleFormDefault = useMemo(() => {
     const gk = apiKeys?.find((k) => k.platform === "google_ads");
     if (gk?.keys_encrypted) {
       const keys = gk.keys_encrypted as Record<string, string>;
-      return { client_id: keys.client_id || "", client_secret: keys.client_secret || "", developer_token: keys.developer_token || "", refresh_token: keys.refresh_token || "" };
+      return {
+        client_id: keys.client_id || "",
+        client_secret: keys.client_secret || "",
+        developer_token: keys.developer_token || "",
+        refresh_token: keys.refresh_token || "",
+      };
     }
-    return { client_id: "", client_secret: "", developer_token: "", refresh_token: "" };
+    return {
+      client_id: "",
+      client_secret: "",
+      developer_token: "",
+      refresh_token: "",
+    };
   }, [apiKeys]);
 
   const metaFormDefault = useMemo(() => {
@@ -72,421 +81,490 @@ export default function SettingsPage() {
         instagram_account_id: keys.instagram_account_id || "",
       };
     }
-    return { app_id: "", app_secret: "", access_token: "", ad_account_id: "", page_id: "", instagram_account_id: "" };
+    return {
+      app_id: "",
+      app_secret: "",
+      access_token: "",
+      ad_account_id: "",
+      page_id: "",
+      instagram_account_id: "",
+    };
+  }, [apiKeys]);
+
+  const githubFormDefault = useMemo(() => {
+    const gk = apiKeys?.find((k) => k.platform === "github");
+    const keys =
+      (gk?.keys_encrypted as Record<string, string> | undefined) ?? {};
+    return { personal_access_token: keys.personal_access_token || "" };
   }, [apiKeys]);
 
   const [googleForm, setGoogleForm] = useState(googleFormDefault);
   const [metaForm, setMetaForm] = useState(metaFormDefault);
-
-  // Sync form state when API keys load
-  useEffect(() => { setGoogleForm(googleFormDefault); }, [googleFormDefault]);
-  useEffect(() => { setMetaForm(metaFormDefault); }, [metaFormDefault]);
-
-  useEffect(() => {
-    let mounted = true;
-    const supabase = createClient();
-    supabase.auth
-      .getUser()
-      .then(({ data }) => {
-        if (!mounted) return;
-        setSupabaseOk(!!data.user);
-        setUserEmail(data.user?.email ?? null);
-      })
-      .catch(() => {
-        if (mounted) setSupabaseOk(false);
-      });
-    return () => { mounted = false; };
-  }, []);
-
-  const hasAppUrl = !!process.env.NEXT_PUBLIC_APP_URL;
-  const hasSupabaseUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const googleConfigured = apiKeys?.some((k) => k.platform === "google_ads");
-  const metaConfigured = apiKeys?.some((k) => k.platform === "meta_ads");
-  const githubConfigured = apiKeys?.some((k) => k.platform === "github");
-
-  const githubFormDefault = useMemo(() => {
-    const gk = apiKeys?.find((k) => k.platform === "github");
-    if (gk?.keys_encrypted) {
-      const keys = gk.keys_encrypted as Record<string, string>;
-      return { personal_access_token: keys.personal_access_token || "" };
-    }
-    return { personal_access_token: "" };
-  }, [apiKeys]);
-
   const [githubForm, setGithubForm] = useState(githubFormDefault);
-  useEffect(() => { setGithubForm(githubFormDefault); }, [githubFormDefault]);
+
+  // These effects resync the form state when the underlying API-key query
+  // returns fresh data. setState-in-effect is the idiomatic way to handle
+  // external-data rehydration; the rule is disabled here on purpose.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => setGoogleForm(googleFormDefault), [googleFormDefault]);
+  useEffect(() => setMetaForm(metaFormDefault), [metaFormDefault]);
+  useEffect(() => setGithubForm(githubFormDefault), [githubFormDefault]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const googleOk = apiKeys?.some((k) => k.platform === "google_ads");
+  const metaOk = apiKeys?.some((k) => k.platform === "meta_ads");
+  const githubOk = apiKeys?.some((k) => k.platform === "github");
 
   return (
-    <>
-      <AppHeader title="Settings" />
-      <div className="flex-1 p-4 lg:p-6 space-y-6 max-w-3xl">
-        <div>
-          <h2 className="text-lg font-semibold">Settings</h2>
-          <p className="text-sm text-muted-foreground">
-            Configure your Marketing Hub
-          </p>
+    <div className="max-w-[760px] mx-auto px-6 py-6">
+      <div className="mb-5">
+        <div className="serif text-[26px] ink">Settings</div>
+        <div className="text-[12.5px] ink-3 mt-0.5">
+          Account, API keys, and integrations.
         </div>
-
-        {/* User */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <CheckCircle className="h-4 w-4" />
-              Account
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium">Logged in as</p>
-                <p className="text-xs text-muted-foreground">
-                  {userEmail ?? "Loading..."}
-                </p>
-              </div>
-              <StatusBadge
-                ok={supabaseOk === true}
-                label={supabaseOk === null ? "Checking..." : supabaseOk ? "Authenticated" : "Not signed in"}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* API Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Key className="h-4 w-4" />
-              API Configuration
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <ConfigRow
-              title="Supabase"
-              description="Database, auth, and file storage"
-              ok={hasSupabaseUrl}
-            />
-            <ConfigRow
-              title="Google AI API Key"
-              description="Gemini, Veo 3.1, Imagen 4 (server-side env)"
-              ok={null}
-              label="Server-side only"
-            />
-            <ConfigRow
-              title="Google Cloud Project"
-              description="Cloud TTS, Cloud Run workers"
-              ok={null}
-              label="Server-side only"
-            />
-            <ConfigRow
-              title="Newbee Supabase"
-              description="Read-only access for marketing insights"
-              ok={null}
-              label="Optional"
-            />
-          </CardContent>
-        </Card>
-
-        {/* Services */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Cloud className="h-4 w-4" />
-              Connected Services
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <ServiceRow
-              title="Gemini 2.5 Pro / Flash"
-              description="Strategy, scenes, prompt optimization, captions"
-            />
-            <ServiceRow
-              title="Veo 3.1"
-              description="AI video generation (async)"
-            />
-            <ServiceRow
-              title="Imagen 4"
-              description="AI image and thumbnail generation"
-            />
-            <ServiceRow
-              title="Google Cloud TTS"
-              description="Text-to-speech voiceover (Studio/Neural2 voices)"
-            />
-          </CardContent>
-        </Card>
-
-        {/* Ad Platform API Keys */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  Google Ads API Keys
-                </CardTitle>
-                <CardDescription>Enter your own keys to publish real campaigns</CardDescription>
-              </div>
-              {!keysLoading && (
-                <StatusBadge ok={!!googleConfigured} label={googleConfigured ? "Connected" : "Simulation mode"} />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Client ID *</Label>
-                <Input size={1} placeholder="Client ID" value={googleForm.client_id} onChange={(e) => setGoogleForm((p) => ({ ...p, client_id: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Client Secret</Label>
-                <Input size={1} type="password" placeholder="Client Secret" value={googleForm.client_secret} onChange={(e) => setGoogleForm((p) => ({ ...p, client_secret: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Developer Token *</Label>
-                <Input size={1} type="password" placeholder="Developer Token" value={googleForm.developer_token} onChange={(e) => setGoogleForm((p) => ({ ...p, developer_token: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Refresh Token</Label>
-                <Input size={1} type="password" placeholder="Refresh Token" value={googleForm.refresh_token} onChange={(e) => setGoogleForm((p) => ({ ...p, refresh_token: e.target.value }))} />
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              {googleConfigured && (
-                <Button variant="outline" size="sm" onClick={async () => { await deleteKeys.mutateAsync("google_ads"); setGoogleForm({ client_id: "", client_secret: "", developer_token: "", refresh_token: "" }); toast.success("Google Ads keys removed"); }}>
-                  <Trash2 className="h-3 w-3 mr-1" /> Remove
-                </Button>
-              )}
-              <Button size="sm" onClick={async () => { if (!googleForm.client_id || !googleForm.developer_token) { toast.error("Client ID and Developer Token required"); return; } await saveKeys.mutateAsync({ platform: "google_ads", keys: googleForm }); toast.success("Google Ads keys saved"); }} disabled={saveKeys.isPending}>
-                {saveKeys.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Save
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Key className="h-4 w-4" />
-                  Meta Ads API Keys
-                </CardTitle>
-                <CardDescription>Facebook &amp; Instagram ad publishing</CardDescription>
-              </div>
-              {!keysLoading && (
-                <StatusBadge ok={!!metaConfigured} label={metaConfigured ? "Connected" : "Simulation mode"} />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label className="text-xs">App ID *</Label>
-                <Input size={1} placeholder="Meta App ID" value={metaForm.app_id} onChange={(e) => setMetaForm((p) => ({ ...p, app_id: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">App Secret</Label>
-                <Input size={1} type="password" placeholder="App Secret" value={metaForm.app_secret} onChange={(e) => setMetaForm((p) => ({ ...p, app_secret: e.target.value }))} />
-              </div>
-              <div className="sm:col-span-2 space-y-1">
-                <Label className="text-xs">Access Token *</Label>
-                <Input size={1} type="password" placeholder="Long-lived System User Token" value={metaForm.access_token} onChange={(e) => setMetaForm((p) => ({ ...p, access_token: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Ad Account ID *</Label>
-                <Input size={1} placeholder="act_XXXXXXXXX" value={metaForm.ad_account_id} onChange={(e) => setMetaForm((p) => ({ ...p, ad_account_id: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Facebook Page ID *</Label>
-                <Input size={1} placeholder="Page ID (linked to Instagram)" value={metaForm.page_id} onChange={(e) => setMetaForm((p) => ({ ...p, page_id: e.target.value }))} />
-              </div>
-              <div className="sm:col-span-2 space-y-1">
-                <Label className="text-xs">Instagram Account ID *</Label>
-                <Input size={1} placeholder="Instagram Business Account ID" value={metaForm.instagram_account_id} onChange={(e) => setMetaForm((p) => ({ ...p, instagram_account_id: e.target.value }))} />
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Ad Account ID, Page ID ve Instagram Account ID Meta Business Manager&apos;dan bulunabilir.
-            </p>
-            <div className="flex gap-2 justify-end">
-              {metaConfigured && (
-                <Button variant="outline" size="sm" onClick={async () => { await deleteKeys.mutateAsync("meta_ads"); setMetaForm({ app_id: "", app_secret: "", access_token: "", ad_account_id: "", page_id: "", instagram_account_id: "" }); toast.success("Meta Ads keys removed"); }}>
-                  <Trash2 className="h-3 w-3 mr-1" /> Remove
-                </Button>
-              )}
-              <Button size="sm" onClick={async () => { if (!metaForm.app_id || !metaForm.access_token || !metaForm.ad_account_id || !metaForm.page_id || !metaForm.instagram_account_id) { toast.error("App ID, Access Token, Ad Account ID, Page ID ve Instagram Account ID gerekli"); return; } await saveKeys.mutateAsync({ platform: "meta_ads", keys: metaForm }); toast.success("Meta Ads keys saved"); }} disabled={saveKeys.isPending}>
-                {saveKeys.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Save
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* GitHub Integration */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Github className="h-4 w-4" />
-                  GitHub Integration
-                </CardTitle>
-                <CardDescription>Connect private repos for AI-powered code analysis</CardDescription>
-              </div>
-              {!keysLoading && (
-                <StatusBadge ok={!!githubConfigured} label={githubConfigured ? "Connected" : "Not configured"} />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-xs text-muted-foreground">
-              Add a GitHub Personal Access Token to let AI analyze your private repositories.
-              The token needs <code className="bg-muted px-1 rounded">repo</code> scope.
-              Generate one at GitHub &rarr; Settings &rarr; Developer settings &rarr; Personal access tokens.
-            </p>
-            <div className="space-y-1">
-              <Label className="text-xs">Personal Access Token *</Label>
-              <Input
-                size={1}
-                type="password"
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                value={githubForm.personal_access_token}
-                onChange={(e) => setGithubForm({ personal_access_token: e.target.value })}
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              {githubConfigured && (
-                <Button variant="outline" size="sm" onClick={async () => {
-                  await deleteKeys.mutateAsync("github");
-                  setGithubForm({ personal_access_token: "" });
-                  toast.success("GitHub token removed");
-                }}>
-                  <Trash2 className="h-3 w-3 mr-1" /> Remove
-                </Button>
-              )}
-              <Button size="sm" onClick={async () => {
-                if (!githubForm.personal_access_token) {
-                  toast.error("Personal Access Token is required");
-                  return;
-                }
-                await saveKeys.mutateAsync({ platform: "github", keys: githubForm });
-                toast.success("GitHub token saved");
-              }} disabled={saveKeys.isPending}>
-                {saveKeys.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Save
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Deployment Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Database className="h-4 w-4" />
-              Deployment
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium">App URL</p>
-                <p className="text-xs text-muted-foreground">
-                  {process.env.NEXT_PUBLIC_APP_URL ?? "Not set"}
-                </p>
-              </div>
-              <StatusBadge ok={hasAppUrl} />
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium">Framework</p>
-                <p className="text-xs text-muted-foreground">
-                  Next.js 16 + React 19 + TypeScript 5
-                </p>
-              </div>
-              <Badge variant="outline">Production Ready</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Vercel Setup Guide */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ExternalLink className="h-4 w-4" />
-              Vercel Deployment Checklist
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="text-sm space-y-2 list-decimal list-inside text-muted-foreground">
-              <li>
-                Connect GitHub repo{" "}
-                <code className="text-xs bg-muted px-1 rounded">
-                  NewbeeConnect/NewbeeMarketing
-                </code>
-              </li>
-              <li>
-                Set environment variables in Vercel dashboard:
-                <ul className="ml-5 mt-1 space-y-0.5 list-disc">
-                  <li>NEXT_PUBLIC_SUPABASE_URL</li>
-                  <li>NEXT_PUBLIC_SUPABASE_ANON_KEY</li>
-                  <li>SUPABASE_SERVICE_ROLE_KEY</li>
-                  <li>GOOGLE_API_KEY</li>
-                  <li>GOOGLE_CLOUD_PROJECT</li>
-                  <li>NEXT_PUBLIC_APP_URL (your Vercel domain)</li>
-                </ul>
-              </li>
-              <li>
-                Add Vercel domain to Supabase Auth redirect URLs
-              </li>
-              <li>Deploy and verify auth callback works</li>
-            </ol>
-          </CardContent>
-        </Card>
       </div>
-    </>
+
+      {/* Account card */}
+      <div className="rounded-xl border border-line bg-panel p-5 mb-4">
+        <div className="flex items-start gap-2 mb-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-brand-soft text-brand-ink">
+            <Check className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="text-[14px] font-semibold ink">Account</div>
+            <div className="text-[12px] ink-3 mt-0.5">
+              Signed in as {userEmail ?? "…"}
+            </div>
+          </div>
+          <div className="ml-auto">
+            <StatusPill
+              ok={supabaseOk === true}
+              label={
+                supabaseOk === null
+                  ? "Checking…"
+                  : supabaseOk
+                  ? "Authenticated"
+                  : "Signed out"
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Google Ads */}
+      <SettingsSection
+        title="Google Ads API Keys"
+        hint="Enter your own keys to publish real campaigns."
+        loading={keysLoading}
+        ok={!!googleOk}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <LabelledInput
+            label="Client ID *"
+            value={googleForm.client_id}
+            onChange={(v) =>
+              setGoogleForm((p) => ({ ...p, client_id: v }))
+            }
+            placeholder="Client ID"
+          />
+          <LabelledInput
+            label="Client Secret"
+            value={googleForm.client_secret}
+            onChange={(v) =>
+              setGoogleForm((p) => ({ ...p, client_secret: v }))
+            }
+            placeholder="Client Secret"
+            secret
+          />
+          <LabelledInput
+            label="Developer Token *"
+            value={googleForm.developer_token}
+            onChange={(v) =>
+              setGoogleForm((p) => ({ ...p, developer_token: v }))
+            }
+            placeholder="Developer Token"
+            secret
+          />
+          <LabelledInput
+            label="Refresh Token"
+            value={googleForm.refresh_token}
+            onChange={(v) =>
+              setGoogleForm((p) => ({ ...p, refresh_token: v }))
+            }
+            placeholder="Refresh Token"
+            secret
+          />
+        </div>
+        <div className="flex gap-2 justify-end mt-4">
+          {googleOk && (
+            <GhostButton
+              onClick={async () => {
+                await deleteKeys.mutateAsync("google_ads");
+                setGoogleForm({
+                  client_id: "",
+                  client_secret: "",
+                  developer_token: "",
+                  refresh_token: "",
+                });
+                toast.success("Google Ads keys removed");
+              }}
+            >
+              <Trash2 className="h-3 w-3" /> Remove
+            </GhostButton>
+          )}
+          <PrimaryButton
+            loading={saveKeys.isPending}
+            onClick={async () => {
+              if (!googleForm.client_id || !googleForm.developer_token) {
+                toast.error("Client ID and Developer Token required");
+                return;
+              }
+              await saveKeys.mutateAsync({
+                platform: "google_ads",
+                keys: googleForm,
+              });
+              toast.success("Google Ads keys saved");
+            }}
+          >
+            Save
+          </PrimaryButton>
+        </div>
+      </SettingsSection>
+
+      {/* Meta Ads */}
+      <SettingsSection
+        title="Meta Ads API Keys"
+        hint="Facebook + Instagram ad publishing."
+        loading={keysLoading}
+        ok={!!metaOk}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <LabelledInput
+            label="App ID *"
+            value={metaForm.app_id}
+            onChange={(v) => setMetaForm((p) => ({ ...p, app_id: v }))}
+            placeholder="Meta App ID"
+          />
+          <LabelledInput
+            label="App Secret"
+            value={metaForm.app_secret}
+            onChange={(v) => setMetaForm((p) => ({ ...p, app_secret: v }))}
+            placeholder="App Secret"
+            secret
+          />
+          <div className="sm:col-span-2">
+            <LabelledInput
+              label="Access Token *"
+              value={metaForm.access_token}
+              onChange={(v) =>
+                setMetaForm((p) => ({ ...p, access_token: v }))
+              }
+              placeholder="Long-lived System User Token"
+              secret
+            />
+          </div>
+          <LabelledInput
+            label="Ad Account ID *"
+            value={metaForm.ad_account_id}
+            onChange={(v) =>
+              setMetaForm((p) => ({ ...p, ad_account_id: v }))
+            }
+            placeholder="act_XXXXXXXXX"
+          />
+          <LabelledInput
+            label="Facebook Page ID *"
+            value={metaForm.page_id}
+            onChange={(v) => setMetaForm((p) => ({ ...p, page_id: v }))}
+            placeholder="Page ID (linked to Instagram)"
+          />
+          <div className="sm:col-span-2">
+            <LabelledInput
+              label="Instagram Account ID *"
+              value={metaForm.instagram_account_id}
+              onChange={(v) =>
+                setMetaForm((p) => ({ ...p, instagram_account_id: v }))
+              }
+              placeholder="Instagram Business Account ID"
+            />
+          </div>
+        </div>
+        <p className="text-[11.5px] ink-3 mt-3">
+          Ad Account ID, Page ID ve Instagram Account ID Meta Business
+          Manager&apos;dan bulunabilir.
+        </p>
+        <div className="flex gap-2 justify-end mt-4">
+          {metaOk && (
+            <GhostButton
+              onClick={async () => {
+                await deleteKeys.mutateAsync("meta_ads");
+                setMetaForm({
+                  app_id: "",
+                  app_secret: "",
+                  access_token: "",
+                  ad_account_id: "",
+                  page_id: "",
+                  instagram_account_id: "",
+                });
+                toast.success("Meta Ads keys removed");
+              }}
+            >
+              <Trash2 className="h-3 w-3" /> Remove
+            </GhostButton>
+          )}
+          <PrimaryButton
+            loading={saveKeys.isPending}
+            onClick={async () => {
+              if (
+                !metaForm.app_id ||
+                !metaForm.access_token ||
+                !metaForm.ad_account_id ||
+                !metaForm.page_id ||
+                !metaForm.instagram_account_id
+              ) {
+                toast.error(
+                  "App ID, Access Token, Ad Account ID, Page ID ve Instagram Account ID gerekli"
+                );
+                return;
+              }
+              await saveKeys.mutateAsync({
+                platform: "meta_ads",
+                keys: metaForm,
+              });
+              toast.success("Meta Ads keys saved");
+            }}
+          >
+            Save
+          </PrimaryButton>
+        </div>
+      </SettingsSection>
+
+      {/* GitHub */}
+      <SettingsSection
+        title="GitHub Integration"
+        hint="AI code analysis over private repos. Token needs `repo` scope."
+        loading={keysLoading}
+        ok={!!githubOk}
+        IconOverride={Github}
+      >
+        <LabelledInput
+          label="Personal Access Token *"
+          value={githubForm.personal_access_token}
+          onChange={(v) => setGithubForm({ personal_access_token: v })}
+          placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          secret
+        />
+        <div className="flex gap-2 justify-end mt-4">
+          {githubOk && (
+            <GhostButton
+              onClick={async () => {
+                await deleteKeys.mutateAsync("github");
+                setGithubForm({ personal_access_token: "" });
+                toast.success("GitHub token removed");
+              }}
+            >
+              <Trash2 className="h-3 w-3" /> Remove
+            </GhostButton>
+          )}
+          <PrimaryButton
+            loading={saveKeys.isPending}
+            onClick={async () => {
+              if (!githubForm.personal_access_token) {
+                toast.error("Personal Access Token is required");
+                return;
+              }
+              await saveKeys.mutateAsync({
+                platform: "github",
+                keys: githubForm,
+              });
+              toast.success("GitHub token saved");
+            }}
+          >
+            Save
+          </PrimaryButton>
+        </div>
+      </SettingsSection>
+
+      {/* Services info */}
+      <div className="rounded-xl border border-line bg-panel p-5">
+        <div className="flex items-start gap-2 mb-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-brand-soft text-brand-ink">
+            <Cloud className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="text-[14px] font-semibold ink">
+              Connected services
+            </div>
+            <div className="text-[12px] ink-3 mt-0.5">
+              Server-side integrations managed via environment variables.
+            </div>
+          </div>
+        </div>
+        <ul className="space-y-2 text-[12.5px]">
+          <li className="flex justify-between">
+            <span className="ink">Gemini (2.5 Pro / Flash / 3 Pro)</span>
+            <span className="ink-3">Brief + blueprint + prompts</span>
+          </li>
+          <li className="flex justify-between">
+            <span className="ink">Nano Banana 2</span>
+            <span className="ink-3">Image generation</span>
+          </li>
+          <li className="flex justify-between">
+            <span className="ink">Veo 3.1</span>
+            <span className="ink-3">Video generation (async, 2-day retention)</span>
+          </li>
+          <li className="flex justify-between">
+            <span className="ink">Supabase</span>
+            <span className="ink-3">Auth + storage + rate limits</span>
+          </li>
+        </ul>
+      </div>
+    </div>
   );
 }
 
-function ConfigRow({
+// ── Sub-primitives ────────────────────────────────────────────────────
+
+function SettingsSection({
   title,
-  description,
+  hint,
+  children,
+  loading,
   ok,
-  label,
+  IconOverride,
 }: {
   title: string;
-  description: string;
-  ok: boolean | null;
-  label?: string;
+  hint: string;
+  children: React.ReactNode;
+  loading?: boolean;
+  ok?: boolean;
+  IconOverride?: React.ComponentType<{ className?: string }>;
 }) {
+  const Icon = IconOverride ?? Key;
   return (
-    <div className="flex items-center justify-between py-2">
-      <div>
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
+    <div className="rounded-xl border border-line bg-panel p-5 mb-4">
+      <div className="flex items-start gap-2 mb-4">
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-brand-soft text-brand-ink">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-semibold ink">{title}</div>
+          <div className="text-[12px] ink-3 mt-0.5">{hint}</div>
+        </div>
+        {!loading && ok != null && (
+          <StatusPill ok={ok} label={ok ? "Connected" : "Not configured"} />
+        )}
       </div>
-      {ok !== null ? (
-        <StatusBadge ok={ok} label={label} />
-      ) : (
-        <Badge variant="outline">{label ?? "Unknown"}</Badge>
-      )}
+      {children}
     </div>
   );
 }
 
-function ServiceRow({
-  title,
-  description,
+function LabelledInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  secret,
 }: {
-  title: string;
-  description: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  secret?: boolean;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <div className="space-y-1">
+      <label className="text-[11.5px] font-medium ink-2">{label}</label>
+      <div className="relative">
+        <input
+          type={secret && !revealed ? "password" : "text"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`w-full h-9 px-3 rounded-md border border-line bg-panel text-[12.5px] ink outline-none focus:border-brand ${
+            secret ? "pr-10 mono" : ""
+          }`}
+        />
+        {secret && (
+          <button
+            type="button"
+            onClick={() => setRevealed((v) => !v)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 ink-3 hover:ink transition"
+            aria-label={revealed ? "Hide" : "Show"}
+          >
+            {revealed ? (
+              <EyeOff className="h-3.5 w-3.5" />
+            ) : (
+              <Eye className="h-3.5 w-3.5" />
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PrimaryButton({
+  children,
+  onClick,
+  loading,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  loading?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-2">
-      <div>
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-      <Badge variant="secondary" className="text-xs">
-        Google Cloud
-      </Badge>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
+    >
+      {loading && <Loader2 className="h-3 w-3 nb-spin" />}
+      {children}
+    </button>
+  );
+}
+
+function GhostButton({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+    >
+      {children}
+    </button>
+  );
+}
+
+function StatusPill({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 h-6 text-[11px] rounded-md border"
+      style={
+        ok
+          ? {
+              background: "var(--nb-success-soft)",
+              borderColor: "transparent",
+              color: "oklch(0.35 0.09 150)",
+            }
+          : {
+              background: "var(--nb-soft)",
+              borderColor: "var(--nb-line-2)",
+              color: "var(--nb-ink-2)",
+            }
+      }
+    >
+      <Check className="h-2.5 w-2.5" />
+      {label}
+    </span>
   );
 }

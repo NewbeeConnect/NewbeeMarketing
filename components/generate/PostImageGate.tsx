@@ -1,16 +1,13 @@
 "use client";
 
-import { ArrowRight, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { ArrowRight, Check, Film } from "lucide-react";
 import { PreviewImage } from "./PreviewImage";
 import type { AnyRatio } from "@/lib/projects";
-import { COPY } from "@/lib/generate/copy";
 
 /**
- * Pipeline-only intermission between Stage 2 (image) and Stage 3 (video).
- * User sees the generated/uploaded image and decides whether to animate it
- * or stop with just the image.
+ * Pipeline-only intermission between the image and video stages. Shows the
+ * just-generated image and a binary question: animate it into a clip, or
+ * stop and save just the still?
  */
 export function PostImageGate({
   imageUrl,
@@ -24,26 +21,30 @@ export function PostImageGate({
   onStop: () => void;
 }) {
   return (
-    <Card className="p-5 space-y-4">
-      <div>
-        <h2 className="text-base font-semibold">
-          {COPY.postImageGate.heading}
-        </h2>
-        <p className="text-xs text-muted-foreground mt-1">
-          {COPY.postImageGate.sub}
-        </p>
-      </div>
+    <div className="space-y-3">
       <PreviewImage src={imageUrl} ratio={ratio} alt="Stage 2 image" />
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={onContinue}>
-          {COPY.postImageGate.continue}
-          <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-        </Button>
-        <Button variant="outline" onClick={onStop}>
-          <Check className="h-3.5 w-3.5 mr-1.5" />
-          {COPY.postImageGate.stop}
-        </Button>
+      <div className="text-center text-[12.5px] ink-2">
+        Animate this image into a clip, or save just the still?
       </div>
-    </Card>
+      <div className="flex items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={onStop}
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+        >
+          <Check className="h-3 w-3" />
+          Save just the image
+        </button>
+        <button
+          type="button"
+          onClick={onContinue}
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
+        >
+          <Film className="h-3 w-3" />
+          Continue and animate it
+          <ArrowRight className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
   );
 }
