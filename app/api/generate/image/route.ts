@@ -6,6 +6,7 @@ import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
 import { IMAGE_RATIOS, PROJECT_SLUGS } from "@/lib/projects";
 import { buildFilename, buildStoragePath } from "@/lib/filename";
+import { compositeLogoOntoImage } from "@/lib/image/composite";
 
 /**
  * POST /api/generate/image
@@ -225,8 +226,40 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 8) Upload to Supabase storage at the canonical library path.
-      const buffer = Buffer.from(imagePart.inlineData.data, "base64");
+      // 8) Logo compositing. Nano Banana — like every AI image model today —
+      // can't preserve custom brand text across a fresh render; even with
+      // strict asset-lock instructions it garbles logos with custom type.
+      // So we paste user-provided logos on top of the output pixel-for-pixel
+      // with sharp. The base model's output stays as the backdrop and the
+      // logo is guaranteed correct. Bottom-right, 18% of width, is a
+      // marketing-safe default. (Other locked kinds — app_ui,
+      // product_photo — rely on the prompt-level lock instructions since
+      // they're scene-embedded, not corner-pasted.)
+      let compositedBase64 = imagePart.inlineData.data;
+      const logoAssets = (lockedAssets ?? []).filter(
+        (a) => a.kind === "logo"
+      );
+      for (const logo of logoAssets) {
+        try {
+          const composited = await compositeLogoOntoImage({
+            generatedBase64: compositedBase64,
+            logoBase64: logo.imageBytes,
+            logoMimeType: logo.mimeType,
+            placement: "bottom-right",
+            widthFraction: 0.18,
+          });
+          compositedBase64 = composited.toString("base64");
+        } catch (compositeErr) {
+          // Composite failure shouldn't kill the whole generation — we
+          // still have the base image. Log and continue.
+          console.warn(
+            "[generate/image] logo composite failed:",
+            compositeErr instanceof Error ? compositeErr.message : compositeErr
+          );
+        }
+      }
+
+      const buffer = Buffer.from(compositedBase64, "base64");
       const { error: uploadError } = await serviceClient.storage
         .from("mkt-assets")
         .upload(storagePath, buffer, {

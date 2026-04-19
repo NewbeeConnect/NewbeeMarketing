@@ -32,12 +32,20 @@ const assetKindSchema = z.enum([
  * pipeline flow, the assets are already baked into the first-frame image by
  * stage 2, so the only job of these instructions is to tell Veo NOT to animate
  * or mutate them. Appended to the prompt, one sentence per asset kind.
+ *
+ * KNOWN LIMITATION (logos): the image route now composites user-provided
+ * logos onto the generated still pixel-for-pixel via sharp (see
+ * lib/image/composite.ts). That fixes brand-text garbling in the still.
+ * Veo still re-renders each frame during animation, so custom brand text
+ * inside a logo may drift slightly even with these instructions. The full
+ * fix is a follow-up ffmpeg overlay pass on the finished Veo clip — until
+ * then the prompt-level constraint below is the strongest guardrail we have.
  */
 const VIDEO_LOCK_INSTRUCTIONS: Record<z.infer<typeof assetKindSchema>, string> = {
   app_ui:
     "Any mobile-app UI visible in the first frame must stay pixel-static for the entire clip: buttons, labels, icons, colors, spacing, and layout identical to the first frame. Do not animate, re-letter, re-layout, or invent new UI elements.",
   logo:
-    "Any brand logo visible in the first frame must keep its exact shape, proportions, colors, and typography for the entire clip. No morphing, no distortion, no rotation that redraws it.",
+    "A brand logo is pasted into the first frame as a pixel-perfect corner overlay. Treat that logo region as a static, locked rectangle — do NOT re-render, re-letter, stylize, morph, rotate, or reinterpret the brand text inside it. Keep the logo's shape, colors, typography, and position identical across every frame. The rest of the scene may animate normally, but the logo rectangle stays frozen.",
   product_photo:
     "The product visible in the first frame must keep its exact shape, colors, materials, and proportions. Do not invent details, textures, or geometry that weren't in the first frame.",
   other:

@@ -78,6 +78,14 @@ GOOGLE'S OFFICIAL GUIDANCE for this model (internalize these rules):
 6. If the intent mentions a phone/screen/UI: Nano Banana can hallucinate
    fake UI elements. Use wording like "real UI, legible app chrome" and
    mention that any icons/text shown must be the actual product, not invented.
+7. LOGO SAFE ZONE. The backend pastes brand logos onto the generated image
+   at the bottom-right corner, roughly 18% of the width, with 5% padding.
+   Compose the scene so the bottom-right ~25% of the frame stays visually
+   calm — negative space, empty countertop, soft-focus background, sky,
+   shallow gradient. Keep the hero subject in the left/center thirds and
+   avoid critical focal points in the bottom-right. Never describe text
+   or a logo in the prompt — that region is reserved for pixel-perfect
+   server-side overlay.
 
 Fields (each is one short sentence, dense, concrete):
 - subject: the literal thing being shown (who/what + what they're doing,
