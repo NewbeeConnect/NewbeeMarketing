@@ -146,6 +146,51 @@ for marketing work. Every clip prompt you generate MUST:
    - 16:9 (horizontal): "cinematic wide composition, negative space
      left-of-frame" or similar.
 
+====================================================================
+CRITICAL: TEXT / UI STABILITY
+====================================================================
+Veo's #2 failure mode is text/UI that warps, slides, or morphs between
+frames — letters rearranging, app icons hallucinating, fake logos
+appearing. If the scene includes ANY text or UI (phone screens,
+signage, labels, branding):
+
+a) If a locked reference image already contains the text/UI, say:
+   "All on-screen text and UI elements remain pixel-static, identical
+   to the first frame. No text re-rendering, no icon morphing, no
+   typography drift."
+
+b) If Veo is expected to invent text, DON'T — say: "No on-screen text
+   of any kind. The screen displays a clean solid color or the same
+   gradient throughout." Then we rely on the first-frame image to
+   already have the text baked in.
+
+c) If text must appear (e.g. opening a supplied screen), add: "The
+   text is already present in the opening frame and does not animate,
+   re-type, or redraw during the clip."
+
+====================================================================
+CRITICAL: AUDIO — NEVER EMPTY, NEVER "SILENT"
+====================================================================
+Veo 3.1 generates native audio, but ONLY when the audio field gives it
+material to synthesize. "Silent" or vague audio produces a muted clip,
+which always looks cheap and unfinished. Every audio field MUST:
+
+- Name the ambient bed (room tone, café chatter, wind, street murmur).
+- Name ONE hero sound layered on top (gentle piano motif, hand-tapping
+  a phone, coffee pouring, subtle whoosh).
+- Match the mood — calm scene = calm audio, energetic = driving beat.
+- If truly no audio is right (ASMR-style), say "soft, intimate room
+  tone — minimal breath, no music" instead of "silent". Keep it
+  textured.
+
+Example strong audio fields:
+  - "Warm café ambience — distant chatter, quiet espresso machine hiss,
+    a gentle acoustic piano melody rises subtly in the background."
+  - "Quiet morning bedroom — distant birdsong, a soft duvet rustle,
+    no music."
+  - "Sharp urban energy — Istanbul street traffic, a distant horn, a
+    driving electronic pulse at 110 BPM."
+
 Fields (each is one concrete sentence following the rules above):
 - subject: who/what appears in the opening frame + initial composition
   + aspect-aware framing cue. Use a reusable noun phrase for the hero.
@@ -162,16 +207,20 @@ Fields (each is one concrete sentence following the rules above):
   Prefer steady light over changing light unless the brief demands it.
 - mood: emotional tone + palette + optional cinematic reference
   ("tone of a Sofia Coppola morning scene").
-- audio: Veo will generate audio natively; describe the ambient bed +
-  any specific sounds. Use neutral ambient if unsure — changing audio
-  dramatically is a cut signal.
+- audio: Veo 3.1 generates audio NATIVELY — NEVER leave this empty or
+  write "silent"/"no audio". Follow the AUDIO section above: ambient
+  bed + one hero sound, matched to mood. Minimum 2 concrete audio
+  elements per clip.
 - negativePrompt: a comma-separated list of NOUNS and ADJECTIVES (never
-  "no X" phrasing). Stack these defaults at minimum, add brief-specific
-  ones as needed: "blurry, distorted geometry, morphing objects, sliding
-  objects, drifting props, text artifacts, fake logos, extra fingers,
-  deformed hands, low quality, jittery motion, watermarks". If the brief
-  involves a phone/UI screen, also add "fake app UI, hallucinated icons,
-  garbled on-screen text".
+  "no X" phrasing). The backend automatically stacks a strong baseline
+  ("blurry, distorted geometry, morphing objects, sliding objects,
+  drifting props, warping text, morphing letters, sliding typography,
+  unreadable text, glitching UI, flickering text, fake logos, extra
+  fingers, deformed hands, low quality, jittery motion, watermarks"),
+  so this field should only add brief-specific exclusions. Examples:
+  "fake app UI, hallucinated icons" (phone scene), "modern vehicles,
+  cars" (period piece), "plastic texture, 3D render look" (analog
+  photo style). Keep it under 15 tokens — less is more for negatives.
 
 Respond with valid JSON only — no markdown fences, no prose.`;
 

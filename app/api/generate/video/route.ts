@@ -268,10 +268,17 @@ export async function POST(request: NextRequest) {
       // brief-specific additions from the planner. Google's prompt guide is
       // explicit: use nouns + adjectives only, never "no X" phrasing — the
       // parser reads these tokens directly, not as instructions.
+      //
+      // Text-stability tokens were added after user report of "yazılar
+      // kayıyor" (text warping/sliding between frames): "morphing letters",
+      // "warping text", "sliding typography", "unreadable text" force Veo to
+      // either produce pixel-stable glyphs or omit text entirely.
       const BASELINE_NEGATIVE =
         "blurry, distorted geometry, morphing objects, sliding objects, " +
-        "drifting props, text artifacts, fake logos, extra fingers, " +
-        "deformed hands, low quality, jittery motion, watermarks";
+        "drifting props, text artifacts, fake logos, warping text, " +
+        "morphing letters, sliding typography, unreadable text, " +
+        "glitching UI, flickering text, extra fingers, deformed hands, " +
+        "low quality, jittery motion, watermarks";
       const mergedNegativePrompt = negativePrompt
         ? `${BASELINE_NEGATIVE}, ${negativePrompt}`
         : BASELINE_NEGATIVE;
@@ -285,7 +292,17 @@ export async function POST(request: NextRequest) {
           aspectRatio: ratio,
           numberOfVideos: 1,
           durationSeconds,
-          resolution: "720p",
+          // 1080p is the top tier for Veo 3.1 standard. Marketing use
+          // cases (Reels, IG posts, ad creatives) are all distributed at
+          // ≥ 1080p, and the quality delta over 720p is substantial
+          // (texture detail, edge crispness, face fidelity). Cost/second
+          // is the same; only render time increases modestly.
+          resolution: "1080p",
+          // Veo 3.1 standard generates native audio when enabled + the
+          // prompt includes audio cues. Defaulting to true is safe — the
+          // audio blueprint field carries the ambient/SFX/music
+          // description so Veo has something to synthesize.
+          generateAudio: true,
           negativePrompt: mergedNegativePrompt,
           // Restrict to adults whenever we hand Veo any image/video input —
           // extensions and image-to-video both imply real subjects.
