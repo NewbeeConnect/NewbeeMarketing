@@ -74,7 +74,7 @@ export function CompletionCard({
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: "var(--nb-success-soft)",
-              color: "oklch(0.45 0.15 150)",
+              color: "var(--nb-success)",
             }}
           >
             <CheckCircle2 className="h-5 w-5" />

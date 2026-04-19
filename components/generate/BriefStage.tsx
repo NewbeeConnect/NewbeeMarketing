@@ -143,7 +143,7 @@ export function BriefStage({
                 style={{
                   background: "var(--nb-success-soft)",
                   borderColor: "transparent",
-                  color: "oklch(0.35 0.09 150)",
+                  color: "var(--nb-success-ink)",
                 }}
               >
                 <Check className="h-2.5 w-2.5" /> Ready
@@ -193,7 +193,7 @@ export function BriefStage({
                   {t.ready && (
                     <Check
                       className="h-3 w-3"
-                      style={{ color: "oklch(0.55 0.14 150)" }}
+                      style={{ color: "var(--nb-success)" }}
                     />
                   )}
                   {pipelineTab === t.k && (

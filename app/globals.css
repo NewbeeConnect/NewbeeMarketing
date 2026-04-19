@@ -59,7 +59,13 @@
 :root {
   --radius: 0.625rem;
 
-  /* ── Newbee brand palette (warm honey) ── */
+  /* ── Newbee brand palette (warm honey) ──
+   * brand         strong surface color (primary button bg, ring)
+   * brand-soft    subtle accent surface (active nav pill, chip bg)
+   * brand-ink     text on brand + brand-soft (light mode only — dark enough for both)
+   * success/*     success hue set mirroring brand structure
+   * danger/*      destructive hue set
+   */
   --nb-bg: oklch(0.985 0.008 80);
   --nb-app: oklch(0.975 0.012 82);
   --nb-panel: oklch(0.995 0.004 80);
@@ -72,9 +78,12 @@
   --nb-brand: oklch(0.86 0.12 82);
   --nb-brand-soft: oklch(0.95 0.055 85);
   --nb-brand-ink: oklch(0.38 0.1 65);
-  --nb-danger: oklch(0.58 0.18 25);
   --nb-success: oklch(0.55 0.14 150);
   --nb-success-soft: oklch(0.94 0.045 150);
+  --nb-success-ink: oklch(0.35 0.09 150);
+  --nb-danger: oklch(0.58 0.18 25);
+  --nb-danger-soft: oklch(0.97 0.02 25);
+  --nb-danger-ink: oklch(0.45 0.15 25);
 
   /* Shadcn tokens (kept for any shadcn primitives we still use) */
   --background: var(--nb-app);
@@ -120,12 +129,19 @@
   --nb-ink-3: oklch(0.62 0.015 75);
   --nb-line: oklch(0.33 0.015 70);
   --nb-line-2: oklch(0.295 0.015 70);
-  --nb-brand: oklch(0.78 0.14 82);
-  --nb-brand-soft: oklch(0.32 0.06 75);
-  --nb-brand-ink: oklch(0.9 0.09 85);
-  --nb-danger: oklch(0.7 0.18 25);
+  /* Dark mode inverts brand-soft: on a dark panel, a LIGHT cream pill reads
+   * as an "active highlight" — same read as a dark pill on a light panel in
+   * the light theme. brand-ink stays dark so primary buttons (bg-brand) and
+   * active nav pills (bg-brand-soft) both get ~8:1 contrast text. */
+  --nb-brand: oklch(0.82 0.14 82);
+  --nb-brand-soft: oklch(0.92 0.06 85);
+  --nb-brand-ink: oklch(0.18 0.04 70);
   --nb-success: oklch(0.72 0.14 150);
-  --nb-success-soft: oklch(0.32 0.06 150);
+  --nb-success-soft: oklch(0.26 0.06 150);
+  --nb-success-ink: oklch(0.85 0.12 150);
+  --nb-danger: oklch(0.7 0.18 25);
+  --nb-danger-soft: oklch(0.28 0.08 25);
+  --nb-danger-ink: oklch(0.85 0.14 25);
 
   --background: var(--nb-app);
   --foreground: var(--nb-ink);
@@ -225,7 +241,7 @@
     box-shadow: 0 10px 40px rgba(60, 40, 20, 0.15);
   }
   .ring-brand {
-    box-shadow: 0 0 0 3px oklch(0.86 0.12 82 / 0.25);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--nb-brand) 40%, transparent);
   }
 
   .line-clamp-6 {
@@ -263,9 +279,19 @@
   background: var(--nb-brand-soft);
 }
 
-input:focus,
-textarea:focus,
-select:focus {
+/*
+ * Brand focus ring — applied only to our own styled inputs (the ones that
+ * explicitly opt in via `.focus-brand` OR sit inside a plain `.bg-panel`
+ * text input / textarea / select). Scoping prevents shadcn primitives
+ * (Dialog inputs, Combobox, etc.) from getting double focus treatment
+ * since they already render their own `ring` via Radix + tw-animate.
+ */
+.bg-panel input:focus,
+.bg-panel textarea:focus,
+.bg-panel select:focus,
+input.focus-brand:focus,
+textarea.focus-brand:focus,
+select.focus-brand:focus {
   outline: none;
-  box-shadow: 0 0 0 3px oklch(0.86 0.12 82 / 0.25);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--nb-brand) 40%, transparent);
 }

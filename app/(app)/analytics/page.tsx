@@ -38,10 +38,27 @@ export default function AnalyticsPage() {
 
   const trend = useMemo(() => {
     // Take last 12 monthly buckets; fall back to zeros if unavailable.
+    // useAnalytics emits `month` as the first 7 chars of an ISO timestamp
+    // ("YYYY-MM"). We parse that into a localized 3-letter abbreviation
+    // ("Apr") for the axis, falling back to a raw slice if the value ever
+    // deviates from the expected format.
     const months = data?.monthlySpend ?? [];
     const tail = months.slice(-12);
     while (tail.length < 12) tail.unshift({ month: "", amount: 0 });
-    return tail;
+    return tail.map((t) => {
+      let label = "—";
+      if (t.month) {
+        // Append "-01" so Date treats the string as a valid calendar date
+        const iso = /^\d{4}-\d{2}$/.test(t.month) ? `${t.month}-01` : t.month;
+        const d = new Date(iso);
+        if (!Number.isNaN(d.getTime())) {
+          label = d.toLocaleDateString(undefined, { month: "short" });
+        } else {
+          label = t.month.slice(-2);
+        }
+      }
+      return { ...t, label };
+    });
   }, [data?.monthlySpend]);
 
   const maxTrend = Math.max(1, ...trend.map((t) => t.amount));
@@ -170,9 +187,7 @@ export default function AnalyticsPage() {
             </div>
             <div className="flex justify-between mt-2 text-[10px] ink-3 mono">
               {trend.map((t, i) => (
-                <span key={i}>
-                  {t.month ? t.month.slice(5, 7) : "—"}
-                </span>
+                <span key={i}>{t.label}</span>
               ))}
             </div>
           </div>

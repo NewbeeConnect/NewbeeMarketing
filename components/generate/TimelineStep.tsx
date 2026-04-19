@@ -67,9 +67,7 @@ export function TimelineStep({
             active ? "bg-brand text-brand-ink" : "text-white"
           }`}
           style={
-            !active
-              ? { background: "oklch(0.55 0.12 150)" }
-              : undefined
+            !active ? { background: "var(--nb-success)" } : undefined
           }
         >
           {visual === "completed" ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -8,8 +8,10 @@ import {
   ChevronRight,
   FolderOpen,
   LogOut,
+  Menu,
   Settings,
   Sparkles,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -20,33 +22,30 @@ const NAV = [
 ] as const;
 
 /**
- * Collapsible sidebar matching the Newbee Marketing hub design:
- *  - Fixed "N" brand tile + wordmark at top
- *  - Three primary nav items (Generate / Library / Analytics) with active pill
- *  - Settings + user card + collapse toggle pinned to the footer
+ * Collapsible sidebar matching the Newbee Marketing hub design.
  *
- * Width toggles between 240px and 64px. State persists in localStorage so a
- * user who likes the compact sidebar keeps it across sessions.
+ * Behavior adapts to viewport width:
+ *   - ≥ md (768px): fixed-in-flow aside. 240px expanded or 64px collapsed.
+ *     Collapse state persists in localStorage across sessions.
+ *   - < md: hidden by default. A small "Menu" pill shows top-left; tapping
+ *     it slides the full sidebar in as an overlay drawer with a backdrop.
+ *     Backdrop click or Escape closes the drawer. Navigating closes it too.
  */
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const hydratedRef = useRef(false);
 
-  // Hydrate persisted collapse state + fetch user email on mount. We read
-  // localStorage in an effect (not the useState initializer) to keep the
-  // client/server render in sync — a brief unflashed-expanded moment is
-  // fine; a hydration mismatch is not.
+  // Hydrate persisted collapse state + fetch user email on mount.
   useEffect(() => {
     if (!hydratedRef.current) {
       hydratedRef.current = true;
       try {
         if (window.localStorage.getItem("nb_sidebar_collapsed") === "1") {
-          // This setState is intentional — syncing persisted UI state from
-          // localStorage on mount. Hydration mismatch risk is zero because
-          // we gate on hydratedRef and the default matches the SSR render.
+          // Intentional: syncing persisted UI state from localStorage.
           // eslint-disable-next-line react-hooks/set-state-in-effect
           setCollapsed(true);
         }
@@ -72,24 +71,41 @@ export function AppSidebar() {
     }
   }, [collapsed]);
 
-  const handleLogout = async () => {
+  // Close mobile drawer whenever the user navigates. setState-in-effect
+  // is the right pattern here — the drawer is a pure UI side-effect of
+  // the route (persisted nowhere, no external system).
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setMobileOpen(false), [pathname]);
+
+  // Escape to close drawer
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
+
+  const handleLogout = useCallback(async () => {
     await createClient().auth.signOut();
     router.push("/login");
-  };
+  }, [router]);
 
-  const W = collapsed ? 64 : 240;
   const initials = email
-    ? email
-        .split("@")[0]
-        .slice(0, 2)
-        .toUpperCase()
+    ? email.split("@")[0].slice(0, 2).toUpperCase()
     : "AD";
 
-  return (
-    <aside
-      className="shrink-0 border-r border-line bg-panel flex flex-col"
-      style={{ width: W, transition: "width .18s" }}
-    >
+  // Mobile drawer never collapses to mini — always full-width inside the
+  // overlay. Desktop respects the collapse toggle.
+  const widthDesktop = collapsed ? 64 : 240;
+
+  // Plain function (not a nested component) — React treats each <Inner />
+  // invocation as a new component type on every parent render and would
+  // remount it. Calling renderInner(...) returns JSX directly, so the DOM
+  // inside is stable across renders.
+  const renderInner = (compact: boolean) => (
+    <>
       {/* Brand header */}
       <div className="h-14 flex items-center gap-2.5 px-3 border-b border-line-2">
         <div
@@ -98,7 +114,7 @@ export function AppSidebar() {
         >
           <span className="serif text-[18px] text-brand-ink font-medium">N</span>
         </div>
-        {!collapsed && (
+        {!compact && (
           <div className="leading-tight">
             <div className="text-[13.5px] font-semibold ink">Newbee</div>
             <div className="text-[9.5px] uppercase tracking-[0.14em] ink-3 mt-0.5 whitespace-nowrap">
@@ -121,10 +137,10 @@ export function AppSidebar() {
                   ? "bg-brand-soft text-brand-ink font-medium"
                   : "ink-2 hover:bg-soft"
               }`}
-              title={collapsed ? label : undefined}
+              title={compact ? label : undefined}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed && (
+              {!compact && (
                 <>
                   <span>{label}</span>
                   {active && (
@@ -146,15 +162,15 @@ export function AppSidebar() {
               ? "bg-brand-soft text-brand-ink font-medium"
               : "ink-2 hover:bg-soft"
           }`}
-          title={collapsed ? "Settings" : undefined}
+          title={compact ? "Settings" : undefined}
         >
           <Settings className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Settings</span>}
+          {!compact && <span>Settings</span>}
         </Link>
 
         <div
           className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg ${
-            collapsed ? "justify-center" : ""
+            compact ? "justify-center" : ""
           }`}
         >
           <div
@@ -163,7 +179,7 @@ export function AppSidebar() {
           >
             {initials}
           </div>
-          {!collapsed && (
+          {!compact && (
             <>
               <div className="flex-1 min-w-0">
                 <div className="text-[12px] font-medium ink truncate">
@@ -177,6 +193,7 @@ export function AppSidebar() {
                 onClick={handleLogout}
                 className="ink-3 hover:ink transition"
                 title="Sign out"
+                aria-label="Sign out"
               >
                 <LogOut className="h-3.5 w-3.5" />
               </button>
@@ -184,9 +201,10 @@ export function AppSidebar() {
           )}
         </div>
 
+        {/* Collapse toggle is desktop-only; mobile drawer has an X in header. */}
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="w-full h-8 flex items-center justify-center text-[11px] ink-3 hover:ink transition"
+          className="hidden md:flex w-full h-8 items-center justify-center text-[11px] ink-3 hover:ink transition"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <ChevronRight
@@ -195,6 +213,58 @@ export function AppSidebar() {
           />
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile menu trigger — hidden on md+ */}
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed top-3 left-3 z-40 h-9 px-3 rounded-lg inline-flex items-center gap-1.5 bg-panel border border-line text-[12.5px] ink shadow-card"
+        aria-label="Open navigation"
+      >
+        <Menu className="h-3.5 w-3.5" />
+        Menu
+      </button>
+
+      {/* Desktop sidebar */}
+      <aside
+        className="hidden md:flex shrink-0 border-r border-line bg-panel flex-col"
+        style={{ width: widthDesktop, transition: "width .18s" }}
+      >
+        {renderInner(collapsed)}
+      </aside>
+
+      {/* Mobile overlay drawer */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-50 flex"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation"
+        >
+          <div
+            className="flex-1"
+            style={{ background: "rgba(30,20,10,.5)" }}
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="w-[260px] max-w-[85vw] bg-panel border-l border-line flex flex-col slideFade">
+            <div className="flex justify-end px-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="w-8 h-8 rounded-md inline-flex items-center justify-center ink-2 hover:bg-soft transition"
+                aria-label="Close navigation"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {renderInner(false)}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

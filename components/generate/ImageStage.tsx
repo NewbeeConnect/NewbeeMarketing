@@ -70,7 +70,7 @@ export function ImageStage({
         <div className="flex items-center justify-center gap-2 text-[12px] ink-2">
           <Check
             className="h-3 w-3"
-            style={{ color: "oklch(0.55 0.14 150)" }}
+            style={{ color: "var(--nb-success)" }}
           />
           {COPY.imageStage.savedTo(projectMeta.name, ratio)}
         </div>

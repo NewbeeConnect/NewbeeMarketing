@@ -90,7 +90,7 @@ export function VideoStage({
         className="rounded-lg border p-4 flex items-start gap-3"
         style={{
           borderColor: "var(--nb-danger)",
-          background: "oklch(0.97 0.02 25)",
+          background: "var(--nb-danger-soft)",
         }}
       >
         <div style={{ color: "var(--nb-danger)" }}>
@@ -125,7 +125,7 @@ export function VideoStage({
         <div className="flex items-center justify-center gap-2 text-[12px] ink-2">
           <Check
             className="h-3 w-3"
-            style={{ color: "oklch(0.55 0.14 150)" }}
+            style={{ color: "var(--nb-success)" }}
           />
           {COPY.videoStage.savedTo(projectMeta.name, ratio)}
         </div>

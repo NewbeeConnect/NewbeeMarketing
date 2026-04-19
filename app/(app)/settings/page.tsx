@@ -554,7 +554,7 @@ function StatusPill({ ok, label }: { ok: boolean; label: string }) {
           ? {
               background: "var(--nb-success-soft)",
               borderColor: "transparent",
-              color: "oklch(0.35 0.09 150)",
+              color: "var(--nb-success-ink)",
             }
           : {
               background: "var(--nb-soft)",

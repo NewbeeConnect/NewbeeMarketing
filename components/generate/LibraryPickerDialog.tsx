@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, ImageOff, Loader2, X } from "lucide-react";
 import { useLibraryImages } from "@/hooks/useGeneration";
 import type { ImageRatio, ProjectSlug } from "@/lib/projects";
@@ -33,16 +33,32 @@ export function LibraryPickerDialog({
   const projectLabel =
     PROJECTS.find((p) => p.slug === project)?.name ?? project;
 
+  const close = useCallback(() => {
+    onOpenChange(false);
+    setSelected(null);
+  }, [onOpenChange]);
+
+  // Escape to close — we rolled this modal by hand (no shadcn Dialog) to
+  // match the hub visual spec, so we re-implement the keyboard behavior.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, close]);
+
   if (!open) return null;
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Pick from library"
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(30,20,10,.5)" }}
-      onClick={() => {
-        onOpenChange(false);
-        setSelected(null);
-      }}
+      onClick={close}
     >
       <div
         className="bg-panel rounded-xl border border-line shadow-pop w-full max-w-[820px] max-h-[85vh] flex flex-col"
@@ -57,10 +73,7 @@ export function LibraryPickerDialog({
           </div>
           <button
             type="button"
-            onClick={() => {
-              onOpenChange(false);
-              setSelected(null);
-            }}
+            onClick={close}
             className="w-8 h-8 rounded-md inline-flex items-center justify-center ink-2 hover:bg-soft hover:ink transition"
             aria-label="Close"
           >
@@ -121,10 +134,7 @@ export function LibraryPickerDialog({
         <div className="px-5 py-3 border-t border-line-2 flex items-center justify-end gap-2">
           <button
             type="button"
-            onClick={() => {
-              onOpenChange(false);
-              setSelected(null);
-            }}
+            onClick={close}
             className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
           >
             Cancel
@@ -135,8 +145,7 @@ export function LibraryPickerDialog({
             onClick={() => {
               if (selected) {
                 onPick(selected);
-                onOpenChange(false);
-                setSelected(null);
+                close();
               }
             }}
             className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"

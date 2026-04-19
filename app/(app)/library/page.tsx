@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -21,6 +21,16 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   PROJECTS,
   type ProjectSlug,
 } from "@/lib/projects";
@@ -37,6 +47,11 @@ export default function LibraryPage() {
   const [layout, setLayout] = useState<"grid" | "list">("grid");
   const [preview, setPreview] = useState<GenerationRow | null>(null);
   const [search, setSearch] = useState("");
+  // Delete confirmation flow — we keep the pending id here and render an
+  // AlertDialog instead of falling back to the native confirm().
+  const [pendingDelete, setPendingDelete] = useState<GenerationRow | null>(
+    null
+  );
 
   const filter = useMemo(() => {
     if (view.kind === "root") return {};
@@ -47,20 +62,32 @@ export default function LibraryPage() {
   const { data: items = [], isLoading } = useLibrary(filter);
   const del = useDeleteGeneration();
 
+  // Per-project tally. When the user is at the root we fetch ALL items
+  // (filter={}), so `items` contains everything; grouping client-side is
+  // a single pass. On deeper views the data is filter-scoped and this
+  // map is unused.
   const rootStats = useMemo(() => {
     const m = new Map<ProjectSlug, { images: number; videos: number }>();
     for (const p of PROJECTS) m.set(p.slug, { images: 0, videos: 0 });
+    if (view.kind !== "root") return m;
+    for (const it of items) {
+      const entry = m.get(it.project_slug);
+      if (!entry) continue;
+      if (it.type === "image") entry.images++;
+      else if (it.type === "video") entry.videos++;
+    }
     return m;
-  }, []);
+  }, [items, view.kind]);
 
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this asset permanently?")) return;
+  async function performDelete(id: string) {
     try {
       await del.mutateAsync(id);
       if (preview?.id === id) setPreview(null);
       toast.success("Deleted");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setPendingDelete(null);
     }
   }
 
@@ -314,9 +341,35 @@ export default function LibraryPage() {
       <AssetPreview
         item={preview}
         onClose={() => setPreview(null)}
-        onDelete={handleDelete}
+        onRequestDelete={(item) => setPendingDelete(item)}
         deleting={del.isPending}
       />
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this asset?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete?.filename
+                ? `"${pendingDelete.filename}" will be removed from your library and Supabase storage. This can't be undone.`
+                : "This asset will be removed from your library and Supabase storage. This can't be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDelete) performDelete(pendingDelete.id);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -417,18 +470,32 @@ function AssetTile({
 function AssetPreview({
   item,
   onClose,
-  onDelete,
+  onRequestDelete,
   deleting,
 }: {
   item: GenerationRow | null;
   onClose: () => void;
-  onDelete: (id: string) => void;
+  onRequestDelete: (item: GenerationRow) => void;
   deleting: boolean;
 }) {
+  // Close on Escape — shadcn Dialog normally provides this, but we rolled
+  // this modal by hand to match the hub design, so we re-implement it.
+  useEffect(() => {
+    if (!item) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [item, onClose]);
+
   if (!item) return null;
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${item.filename} preview`}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(30,20,10,.55)" }}
       onClick={onClose}
@@ -533,7 +600,7 @@ function AssetPreview({
             )}
             <button
               type="button"
-              onClick={() => onDelete(item.id)}
+              onClick={() => onRequestDelete(item)}
               disabled={deleting}
               className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg ink-2 text-[13px] hover:bg-soft disabled:opacity-40 transition"
             >

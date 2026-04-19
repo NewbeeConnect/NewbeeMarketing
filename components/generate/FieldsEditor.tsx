@@ -35,7 +35,12 @@ export function FieldsEditor<T extends Record<string, string>>({
   fieldList: { key: keyof T & string; label: string; hint: string }[];
   values: T;
   onChange: (key: keyof T & string, value: string) => void;
-  onFillAI: () => void;
+  /**
+   * "Draft with Gemini" handler. Optional — only needed when the inner
+   * header is rendered (`hideHeader={false}`). When the parent renders its
+   * own Draft button (e.g. BriefStage), this can be omitted.
+   */
+  onFillAI?: () => void;
   aiLoading: boolean;
   ready: boolean;
   onRegenerateField?: (key: keyof T & string) => void;
@@ -61,7 +66,7 @@ export function FieldsEditor<T extends Record<string, string>>({
                 style={{
                   background: "var(--nb-success-soft)",
                   borderColor: "transparent",
-                  color: "oklch(0.35 0.09 150)",
+                  color: "var(--nb-success-ink)",
                 }}
               >
                 <Check className="h-2.5 w-2.5" />
@@ -69,19 +74,21 @@ export function FieldsEditor<T extends Record<string, string>>({
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onFillAI}
-            disabled={aiLoading}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-line bg-panel text-[12.5px] ink hover:bg-soft disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
-            {aiLoading ? (
-              <Loader2 className="h-3 w-3 nb-spin" />
-            ) : (
-              <Sparkles className="h-3 w-3" />
-            )}
-            {aiLoading ? COPY.brief.drafting : COPY.brief.draftButton}
-          </button>
+          {onFillAI && (
+            <button
+              type="button"
+              onClick={onFillAI}
+              disabled={aiLoading}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-line bg-panel text-[12.5px] ink hover:bg-soft disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              {aiLoading ? (
+                <Loader2 className="h-3 w-3 nb-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3" />
+              )}
+              {aiLoading ? COPY.brief.drafting : COPY.brief.draftButton}
+            </button>
+          )}
         </div>
       )}
 
