@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -108,11 +109,15 @@ export function AppSidebar() {
     <>
       {/* Brand header */}
       <div className="h-14 flex items-center gap-2.5 px-3 border-b border-line-2">
-        <div
-          className="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center bg-brand"
-          aria-hidden
-        >
-          <span className="serif text-[18px] text-brand-ink font-medium">N</span>
+        <div className="w-9 h-9 rounded-xl shrink-0 overflow-hidden relative">
+          <Image
+            src="/newbee-logo.png"
+            alt="Newbee"
+            fill
+            sizes="36px"
+            priority
+            className="object-cover"
+          />
         </div>
         {!compact && (
           <div className="leading-tight">

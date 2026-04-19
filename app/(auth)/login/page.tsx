@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -55,8 +56,15 @@ function LoginForm() {
     >
       <div className="w-full max-w-[400px]">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 bg-brand">
-            <span className="serif text-[26px] text-brand-ink">N</span>
+          <div className="w-16 h-16 rounded-2xl overflow-hidden relative mb-3 shadow-card">
+            <Image
+              src="/newbee-logo.png"
+              alt="Newbee"
+              fill
+              sizes="64px"
+              priority
+              className="object-cover"
+            />
           </div>
           <div className="serif text-[24px] ink">Newbee Marketing Hub</div>
           <div className="text-[12.5px] ink-3 mt-1 whitespace-nowrap">
