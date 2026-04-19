@@ -88,8 +88,8 @@ export function ChangePasswordSection() {
           <Lock className="h-4 w-4" />
         </div>
         <div>
-          <div className="text-[14px] font-semibold ink">{s.title}</div>
-          <div className="text-[12px] ink-3 mt-0.5">{s.sub}</div>
+          <div className="text-[16.5px] font-semibold ink">{s.title}</div>
+          <div className="text-[14px] ink-3 mt-0.5">{s.sub}</div>
         </div>
       </div>
 
@@ -131,7 +131,7 @@ export function ChangePasswordSection() {
             type="submit"
             disabled={saving || !current || !next || !confirm}
             title="Mevcut şifreni doğrulayıp yenisini kaydeder"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {saving && <Loader2 className="h-3 w-3 nb-spin" />}
             {saving ? s.submitting : s.submit}
@@ -160,7 +160,7 @@ function FieldRow({
   const s = COPY.settings.password;
   return (
     <div className="space-y-1">
-      <label className="text-[11.5px] font-medium ink-2">{label}</label>
+      <label className="text-[13.5px] font-medium ink-2">{label}</label>
       <div className="relative">
         <input
           type={reveal ? "text" : "password"}
@@ -169,7 +169,7 @@ function FieldRow({
           autoComplete={autoComplete}
           required
           minLength={8}
-          className="w-full h-9 pr-10 px-3 rounded-md border border-line bg-panel text-[12.5px] ink mono outline-none focus:border-brand"
+          className="w-full h-9 pr-10 px-3 rounded-md border border-line bg-panel text-[14.5px] ink mono outline-none focus:border-brand"
         />
         <button
           type="button"

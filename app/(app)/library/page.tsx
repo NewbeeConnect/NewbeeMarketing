@@ -126,10 +126,10 @@ export default function LibraryPage() {
     return (
       <div className="max-w-[960px] mx-auto px-6 py-6 space-y-4">
         <div className="mb-1">
-          <div className="serif text-[26px] ink">
+          <div className="serif text-[34px] ink">
             {COPY.library.pageTitle}
           </div>
-          <div className="text-[12.5px] ink-3 mt-0.5">
+          <div className="text-[14.5px] ink-3 mt-0.5">
             {COPY.library.pageSub}
           </div>
         </div>
@@ -176,14 +176,14 @@ export default function LibraryPage() {
                 </div>
                 <div className="flex items-end justify-between mt-3">
                   <div>
-                    <div className="serif text-[20px] ink">{x.label}</div>
-                    <div className="text-[12.5px] ink-3 mt-0.5">
+                    <div className="serif text-[24px] ink">{x.label}</div>
+                    <div className="text-[14.5px] ink-3 mt-0.5">
                       {isLoading
                         ? COPY.library.typeCards.loading
                         : COPY.library.typeCards.saved(totals[x.kind])}
                     </div>
                   </div>
-                  <div className="text-right text-[11px] ink-3 leading-tight">
+                  <div className="text-right text-[13px] ink-3 leading-tight">
                     <div>
                       <span className="ink font-medium mono">
                         {s.generated}
@@ -225,8 +225,8 @@ export default function LibraryPage() {
 
       <div className="flex items-end justify-between mt-4 mb-4 gap-3 flex-wrap">
         <div>
-          <div className="serif text-[24px] ink">{typeLabel}</div>
-          <div className="text-[12.5px] ink-3 mt-0.5">
+          <div className="serif text-[30px] ink">{typeLabel}</div>
+          <div className="text-[14.5px] ink-3 mt-0.5">
             {isLoading
               ? COPY.library.typeCards.loading
               : COPY.library.typeCards.saved(items.length)}
@@ -240,14 +240,14 @@ export default function LibraryPage() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder={COPY.library.searchPlaceholder}
               title="Dosya adı veya prompt içinde ara"
-              className="h-9 pl-8 pr-3 rounded-md border border-line bg-panel text-[12.5px] ink outline-none focus:border-brand w-[200px]"
+              className="h-9 pl-8 pr-3 rounded-md border border-line bg-panel text-[14.5px] ink outline-none focus:border-brand w-[200px]"
             />
           </div>
           <div className="inline-flex p-0.5 bg-soft rounded-lg border border-line-2">
             <button
               type="button"
               onClick={() => setLayout("grid")}
-              className={`px-2.5 h-7 rounded-md text-[12px] ${
+              className={`px-2.5 h-7 rounded-md text-[14px] ${
                 layout === "grid"
                   ? "bg-panel shadow-card ink"
                   : "ink-3 hover:ink"
@@ -261,7 +261,7 @@ export default function LibraryPage() {
             <button
               type="button"
               onClick={() => setLayout("list")}
-              className={`px-2.5 h-7 rounded-md text-[12px] ${
+              className={`px-2.5 h-7 rounded-md text-[14px] ${
                 layout === "list"
                   ? "bg-panel shadow-card ink"
                   : "ink-3 hover:ink"
@@ -305,12 +305,12 @@ export default function LibraryPage() {
             type="button"
             onClick={() => setSourceFilter(t.k)}
             title={t.title}
-            className={`px-3 h-8 text-[12.5px] relative inline-flex items-center gap-1.5 ${
+            className={`px-3 h-8 text-[14.5px] relative inline-flex items-center gap-1.5 ${
               sourceFilter === t.k ? "ink font-medium" : "ink-3 hover:ink"
             }`}
           >
             {t.label}
-            <span className="text-[10.5px] mono ink-3">{t.count}</span>
+            <span className="text-[12px] mono ink-3">{t.count}</span>
             {sourceFilter === t.k && (
               <div className="absolute inset-x-3 -bottom-px h-0.5 bg-brand" />
             )}
@@ -325,7 +325,7 @@ export default function LibraryPage() {
       ) : filteredItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <FolderOpen className="h-10 w-10 ink-3 mb-3 opacity-60" />
-          <div className="text-[13px] ink-2">
+          <div className="text-[15px] ink-2">
             {search
               ? COPY.library.emptyNoMatches
               : sourceFilter === "source"
@@ -334,7 +334,7 @@ export default function LibraryPage() {
               ? COPY.library.emptyNoGenerated(view.type)
               : COPY.library.emptyGeneric}
           </div>
-          <div className="text-[12px] ink-3 mt-0.5">
+          <div className="text-[14px] ink-3 mt-0.5">
             {search ? (
               COPY.library.emptyTryAgain
             ) : (
@@ -355,7 +355,7 @@ export default function LibraryPage() {
         </div>
       ) : (
         <div className="rounded-xl border border-line bg-panel overflow-hidden">
-          <div className="text-[11px] ink-3 grid grid-cols-[60px_1fr_90px_80px_100px_40px] gap-2 px-3 py-2 border-b border-line-2 uppercase tracking-wide">
+          <div className="text-[13px] ink-3 grid grid-cols-[60px_1fr_90px_80px_100px_40px] gap-2 px-3 py-2 border-b border-line-2 uppercase tracking-wide">
             <span />
             <span>{COPY.library.columns.name}</span>
             <span>{COPY.library.columns.origin}</span>
@@ -388,12 +388,12 @@ export default function LibraryPage() {
                   )
                 ) : null}
               </div>
-              <div className="mono text-[12px] ink truncate">{it.filename}</div>
-              <div className="text-[11.5px] ink-2">
+              <div className="mono text-[14px] ink truncate">{it.filename}</div>
+              <div className="text-[13.5px] ink-2">
                 <OriginChip item={it} />
               </div>
-              <div className="text-[11.5px] ink-2">{it.ratio}</div>
-              <div className="text-[11.5px] ink-3">
+              <div className="text-[13.5px] ink-2">{it.ratio}</div>
+              <div className="text-[13.5px] ink-3">
                 {new Date(it.created_at).toLocaleDateString()}
               </div>
               <MoreHorizontal className="h-3.5 w-3.5 ink-3" />
@@ -455,7 +455,7 @@ function OriginChip({ item }: { item: GenerationRow }) {
   const source = isSource(item);
   return (
     <span
-      className="inline-flex items-center gap-1 px-1.5 h-5 text-[10.5px] rounded-md border"
+      className="inline-flex items-center gap-1 px-1.5 h-5 text-[12px] rounded-md border"
       style={
         source
           ? {
@@ -484,7 +484,7 @@ function Breadcrumb({
   trail: { label: string; onClick?: () => void }[];
 }) {
   return (
-    <div className="flex items-center gap-2 text-[12.5px]">
+    <div className="flex items-center gap-2 text-[14.5px]">
       {trail.map((t, i) => {
         const isLast = i === trail.length - 1;
         return (
@@ -542,7 +542,7 @@ function AssetTile({
             />
           )
         ) : item.status === "failed" ? (
-          <div className="absolute inset-0 flex items-center justify-center text-[11px] ink-3 p-2 text-center">
+          <div className="absolute inset-0 flex items-center justify-center text-[13px] ink-3 p-2 text-center">
             Failed
           </div>
         ) : (
@@ -555,10 +555,10 @@ function AssetTile({
         </div>
       </div>
       <div className="p-2">
-        <div className="mono text-[10.5px] ink truncate">{item.filename}</div>
+        <div className="mono text-[12px] ink truncate">{item.filename}</div>
         <div className="flex items-center justify-between mt-0.5">
-          <div className="text-[10.5px] ink-3">{item.ratio}</div>
-          <div className="text-[10.5px] ink-3">
+          <div className="text-[12px] ink-3">{item.ratio}</div>
+          <div className="text-[12px] ink-3">
             {new Date(item.created_at).toLocaleDateString()}
           </div>
         </div>
@@ -617,13 +617,13 @@ function AssetPreview({
               className="max-h-[70vh] max-w-full bg-black rounded-lg"
             />
           ) : item.status === "failed" ? (
-            <div className="text-[13px] ink-2">
+            <div className="text-[15px] ink-2">
               {COPY.library.preview.failed(
                 item.error_message ?? COPY.library.preview.failedUnknown
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-[13px] ink-3">
+            <div className="flex items-center gap-2 text-[15px] ink-3">
               <Loader2 className="h-4 w-4 nb-spin" />
               {COPY.library.preview.stillRendering}
             </div>
@@ -631,7 +631,7 @@ function AssetPreview({
         </div>
         <div className="w-full md:w-[320px] border-t md:border-t-0 md:border-l border-line-2 p-4 flex flex-col">
           <div className="flex items-start justify-between gap-2">
-            <div className="mono text-[12px] ink break-all">{item.filename}</div>
+            <div className="mono text-[14px] ink break-all">{item.filename}</div>
             <button
               type="button"
               onClick={onClose}
@@ -642,7 +642,7 @@ function AssetPreview({
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
-          <div className="mt-3 space-y-2 text-[12px]">
+          <div className="mt-3 space-y-2 text-[14px]">
             <Row
               k={COPY.library.preview.origin}
               v={
@@ -683,10 +683,10 @@ function AssetPreview({
             />
           </div>
           <div className="mt-4 pt-3 border-t border-line-2">
-            <div className="text-[11px] ink-3 mb-1">
+            <div className="text-[13px] ink-3 mb-1">
               {COPY.library.preview.prompt}
             </div>
-            <div className="text-[12px] ink-2 leading-relaxed line-clamp-6">
+            <div className="text-[14px] ink-2 leading-relaxed line-clamp-6">
               {item.prompt}
             </div>
           </div>
@@ -696,7 +696,7 @@ function AssetPreview({
                 href={item.output_url}
                 download={item.filename}
                 title="Bilgisayarına indir"
-                className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
+                className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 transition"
               >
                 <Download className="h-3 w-3" />
                 {COPY.library.preview.download}
@@ -706,7 +706,7 @@ function AssetPreview({
               <Link
                 href="/generate"
                 title={COPY.concepts.animate.long}
-                className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+                className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
               >
                 <Film className="h-3 w-3" />
                 {COPY.library.preview.animate}
@@ -716,7 +716,7 @@ function AssetPreview({
               <Link
                 href="/generate"
                 title={COPY.concepts.extend.long}
-                className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+                className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
               >
                 <FastForward className="h-3 w-3" />
                 {COPY.library.preview.extend}
@@ -728,7 +728,7 @@ function AssetPreview({
               onClick={() => onRequestDelete(item)}
               disabled={deleting}
               title="Bu varlığı kütüphaneden ve depodan kalıcı olarak sil"
-              className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg ink-2 text-[13px] hover:bg-soft disabled:opacity-40 transition"
+              className="w-full inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg ink-2 text-[15px] hover:bg-soft disabled:opacity-40 transition"
             >
               <Trash2 className="h-3 w-3" />
               {COPY.library.preview.delete}

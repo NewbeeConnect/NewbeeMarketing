@@ -72,7 +72,7 @@ export function TimelineStep({
       >
         {/* Number / check badge */}
         <div
-          className={`shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold ${
+          className={`shrink-0 mt-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[13px] font-semibold ${
             active ? "bg-brand text-brand-ink" : "text-white"
           }`}
           style={
@@ -89,24 +89,24 @@ export function TimelineStep({
         {/* Title + inline summary */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="text-[13.5px] font-semibold ink whitespace-nowrap">
+            <div className="text-[15.5px] font-semibold ink whitespace-nowrap">
               {title}
             </div>
             {!active && summary && (
-              <div className="text-[12.5px] ink-3 truncate min-w-0">
+              <div className="text-[14.5px] ink-3 truncate min-w-0">
                 · {summary}
               </div>
             )}
           </div>
           {active && subtitle && (
-            <div className="text-[12px] ink-3 mt-0.5">{subtitle}</div>
+            <div className="text-[14px] ink-3 mt-0.5">{subtitle}</div>
           )}
         </div>
 
         {visual === "completed" && onEdit && (
           <button
             onClick={onEdit}
-            className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[12px] ink-2 hover:bg-soft hover:ink transition"
+            className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[14px] ink-2 hover:bg-soft hover:ink transition"
             title={`${editLabel}: bu adıma geri dön`}
           >
             <Pencil className="h-3 w-3" />

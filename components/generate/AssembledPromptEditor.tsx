@@ -24,12 +24,12 @@ export function AssembledPromptEditor({
   return (
     <div className="rounded-lg border border-line bg-panel p-3">
       <div className="flex items-center justify-between mb-1.5 gap-2 flex-wrap">
-        <div className="text-[11.5px] ink-3">{hint ?? s.hint}</div>
+        <div className="text-[13.5px] ink-3">{hint ?? s.hint}</div>
         <button
           type="button"
           onClick={onResetFromBlueprint}
           title="Şema alanlarını tek bir prompt metnine dönüştür (elle yaptığın değişiklikleri siler)"
-          className="text-[11.5px] ink-3 hover:text-brand-ink flex items-center gap-1 transition"
+          className="text-[13.5px] ink-3 hover:text-brand-ink flex items-center gap-1 transition"
         >
           <RefreshCw className="h-2.5 w-2.5" /> {s.rebuildFromBlueprint}
         </button>
@@ -39,7 +39,7 @@ export function AssembledPromptEditor({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={s.summaryEmpty}
-        className="w-full px-3 py-2.5 rounded-md border border-line bg-panel text-[13px] ink outline-none resize-none focus:border-brand mono"
+        className="w-full px-3 py-2.5 rounded-md border border-line bg-panel text-[15px] ink outline-none resize-none focus:border-brand mono"
       />
     </div>
   );

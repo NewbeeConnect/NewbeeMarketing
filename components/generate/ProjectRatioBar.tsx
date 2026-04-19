@@ -28,9 +28,9 @@ export function ProjectRatioBar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[11px] ink-3">Kimin için</span>
+      <span className="text-[13px] ink-3">Kimin için</span>
       <span
-        className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-md bg-soft border border-line-2 text-[12px] font-medium ink"
+        className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-md bg-soft border border-line-2 text-[14px] font-medium ink"
         title={brand.description}
       >
         <span
@@ -41,7 +41,7 @@ export function ProjectRatioBar({
         {brand.name}
       </span>
 
-      <span className="text-[11px] ink-3 ml-2">En-boy</span>
+      <span className="text-[13px] ink-3 ml-2">En-boy</span>
       <select
         value={disabled ? "" : ratio}
         onChange={(e) => onRatioChange(e.target.value as AnyRatio)}
@@ -51,7 +51,7 @@ export function ProjectRatioBar({
             ? "Önce ne üretmek istediğini seç"
             : COPY.concepts.ratio.long
         }
-        className="h-9 px-2.5 pr-8 rounded-md border border-line bg-panel text-[12.5px] ink outline-none focus:border-brand appearance-none disabled:opacity-40 disabled:cursor-not-allowed"
+        className="h-9 px-2.5 pr-8 rounded-md border border-line bg-panel text-[14.5px] ink outline-none focus:border-brand appearance-none disabled:opacity-40 disabled:cursor-not-allowed"
         style={{
           backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>")`,
           backgroundPosition: "right 8px center",

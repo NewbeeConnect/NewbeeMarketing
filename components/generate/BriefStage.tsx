@@ -86,7 +86,7 @@ export function BriefStage({
         <div className="flex items-center justify-between mb-1.5">
           <label
             htmlFor="brief-textarea"
-            className="text-[12px] font-medium ink-2"
+            className="text-[14px] font-medium ink-2"
             title={COPY.concepts.brief.long}
           >
             {s.briefLabel}
@@ -96,7 +96,7 @@ export function BriefStage({
             onClick={onRollDice}
             disabled={diceLoading}
             title="Gemini brand profiline bakıp on-brand bir brief yazar. Tekrar basarsan farklı bir açı dener."
-            className="text-[11.5px] ink-3 hover:text-brand-ink flex items-center gap-1 whitespace-nowrap disabled:opacity-40"
+            className="text-[13.5px] ink-3 hover:text-brand-ink flex items-center gap-1 whitespace-nowrap disabled:opacity-40"
           >
             {diceLoading ? (
               <Loader2 className="h-3 w-3 nb-spin" />
@@ -112,9 +112,9 @@ export function BriefStage({
           placeholder={placeholder}
           value={brief}
           onChange={(e) => onBriefChange(e.target.value)}
-          className="w-full px-3 py-2.5 rounded-md border border-line bg-panel text-[13.5px] ink outline-none resize-none focus:border-brand"
+          className="w-full px-3 py-2.5 rounded-md border border-line bg-panel text-[15.5px] ink outline-none resize-none focus:border-brand"
         />
-        <p className="text-[11px] ink-3 mt-1.5 leading-relaxed">
+        <p className="text-[13px] ink-3 mt-1.5 leading-relaxed">
           {COPY.concepts.brief.short}
         </p>
       </div>
@@ -124,15 +124,15 @@ export function BriefStage({
         <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap min-w-0">
             <div
-              className="text-[12.5px] font-semibold ink whitespace-nowrap"
+              className="text-[14.5px] font-semibold ink whitespace-nowrap"
               title={COPY.concepts.blueprint.long}
             >
               {s.blueprintLabel}
             </div>
-            <span className="text-[11.5px] ink-3">· {s.blueprintHint}</span>
+            <span className="text-[13.5px] ink-3">· {s.blueprintHint}</span>
             {(imageReady || videoReady) && (
               <span
-                className="inline-flex items-center gap-1 px-2 h-6 text-[11px] rounded-md border"
+                className="inline-flex items-center gap-1 px-2 h-6 text-[13px] rounded-md border"
                 style={{
                   background: "var(--nb-success-soft)",
                   borderColor: "transparent",
@@ -148,7 +148,7 @@ export function BriefStage({
             onClick={fillForTab}
             disabled={aiLoading}
             title="Brief'ini alıp tüm şema alanlarını Gemini ile otomatik doldur"
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-line bg-panel text-[12.5px] ink hover:bg-soft disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-line bg-panel text-[14.5px] ink hover:bg-soft disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {aiLoading ? (
               <Loader2 className="h-3 w-3 nb-spin" />
@@ -179,7 +179,7 @@ export function BriefStage({
                 <button
                   key={t.k}
                   onClick={() => onPipelineTabChange(t.k)}
-                  className={`px-3 h-8 text-[12.5px] relative inline-flex items-center gap-1.5 ${
+                  className={`px-3 h-8 text-[14.5px] relative inline-flex items-center gap-1.5 ${
                     pipelineTab === t.k
                       ? "ink font-medium"
                       : "ink-3 hover:ink"

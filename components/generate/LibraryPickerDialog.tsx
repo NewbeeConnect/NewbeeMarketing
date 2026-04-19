@@ -67,10 +67,10 @@ export function LibraryPickerDialog({
       >
         <div className="px-5 py-3.5 border-b border-line-2 flex items-center justify-between">
           <div>
-            <div className="text-[15px] font-semibold ink">
+            <div className="text-[17.5px] font-semibold ink">
               {s.libraryDialogTitle}
             </div>
-            <div className="text-[12px] ink-3">
+            <div className="text-[14px] ink-3">
               {s.libraryDialogSub(projectLabel, ratio)}
             </div>
           </div>
@@ -87,12 +87,12 @@ export function LibraryPickerDialog({
 
         <div className="p-4 overflow-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center h-40 text-[13px] ink-3">
+            <div className="flex items-center justify-center h-40 text-[15px] ink-3">
               <Loader2 className="h-4 w-4 nb-spin mr-2" />
               {s.libraryLoading}
             </div>
           ) : !items || items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 text-[13px] ink-3">
+            <div className="flex flex-col items-center justify-center h-40 text-[15px] ink-3">
               <ImageOff className="h-6 w-6 mb-2" />
               {s.libraryEmpty(projectLabel, ratio)}
             </div>
@@ -126,7 +126,7 @@ export function LibraryPickerDialog({
                         </div>
                       )}
                     </div>
-                    <div className="mt-1.5 px-1 text-[10.5px] mono ink-3 truncate">
+                    <div className="mt-1.5 px-1 text-[12px] mono ink-3 truncate">
                       {item.filename}
                     </div>
                   </button>
@@ -140,7 +140,7 @@ export function LibraryPickerDialog({
           <button
             type="button"
             onClick={close}
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
           >
             {s.libraryCancel}
           </button>
@@ -154,7 +154,7 @@ export function LibraryPickerDialog({
               }
             }}
             title="Seçili görseli bu adım için kullan (yeni maliyet yok)"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {s.libraryUse}
           </button>

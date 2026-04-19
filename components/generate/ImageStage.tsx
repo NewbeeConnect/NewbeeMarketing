@@ -54,8 +54,8 @@ export function ImageStage({
     return (
       <div className="rounded-lg border border-line bg-soft p-8 flex flex-col items-center justify-center">
         <Loader2 className="h-5 w-5 ink-3 nb-spin" />
-        <div className="text-[13px] ink mt-3 font-medium">{s.loading}</div>
-        <div className="text-[11.5px] ink-3 mt-1">{s.loadingSub}</div>
+        <div className="text-[15px] ink mt-3 font-medium">{s.loading}</div>
+        <div className="text-[13.5px] ink-3 mt-1">{s.loadingSub}</div>
       </div>
     );
   }
@@ -63,7 +63,7 @@ export function ImageStage({
   if (imageUrl) {
     return (
       <div className="space-y-3">
-        <div className="flex items-center justify-center gap-2 text-[12px] ink-2">
+        <div className="flex items-center justify-center gap-2 text-[14px] ink-2">
           <Check
             className="h-3 w-3"
             style={{ color: "var(--nb-success)" }}
@@ -76,7 +76,7 @@ export function ImageStage({
             type="button"
             onClick={onRedo}
             title="Bu görseli atıp yenisini üret"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
           >
             <RefreshCw className="h-3 w-3" />
             {s.redo}
@@ -85,7 +85,7 @@ export function ImageStage({
             href={imageUrl}
             download
             title="Bilgisayarına PNG olarak indir"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
           >
             <Download className="h-3 w-3" />
             {s.download}
@@ -99,7 +99,7 @@ export function ImageStage({
                   ? "Videoyu canlandır adımına geç"
                   : "Tamamlama ekranına geç"
               }
-              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 transition"
             >
               {intent === "pipeline" ? s.continueButtonPipeline : s.continueButton}
               <ArrowRight className="h-3 w-3" />

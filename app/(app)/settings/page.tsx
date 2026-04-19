@@ -121,10 +121,10 @@ export default function SettingsPage() {
   return (
     <div className="max-w-[760px] mx-auto px-6 py-6">
       <div className="mb-5">
-        <div className="serif text-[26px] ink">
+        <div className="serif text-[34px] ink">
           {COPY.settings.pageTitle}
         </div>
-        <div className="text-[12.5px] ink-3 mt-0.5">
+        <div className="text-[14.5px] ink-3 mt-0.5">
           {COPY.settings.pageSub}
         </div>
       </div>
@@ -144,10 +144,10 @@ export default function SettingsPage() {
             <Check className="h-4 w-4" />
           </div>
           <div>
-            <div className="text-[14px] font-semibold ink">
+            <div className="text-[16.5px] font-semibold ink">
               {COPY.settings.account.title}
             </div>
-            <div className="text-[12px] ink-3 mt-0.5">
+            <div className="text-[14px] ink-3 mt-0.5">
               {COPY.settings.account.signedInAs(
                 userEmail ?? COPY.settings.account.signedInPlaceholder
               )}
@@ -323,7 +323,7 @@ export default function SettingsPage() {
             />
           </div>
         </div>
-        <p className="text-[11.5px] ink-3 mt-3">
+        <p className="text-[13.5px] ink-3 mt-3">
           {COPY.settings.metaAds.hintRow}
         </p>
         <div className="flex gap-2 justify-end mt-4">
@@ -430,15 +430,15 @@ export default function SettingsPage() {
             <Cloud className="h-4 w-4" />
           </div>
           <div>
-            <div className="text-[14px] font-semibold ink">
+            <div className="text-[16.5px] font-semibold ink">
               {COPY.settings.services.title}
             </div>
-            <div className="text-[12px] ink-3 mt-0.5">
+            <div className="text-[14px] ink-3 mt-0.5">
               {COPY.settings.services.sub}
             </div>
           </div>
         </div>
-        <ul className="space-y-2 text-[12.5px]">
+        <ul className="space-y-2 text-[14.5px]">
           {COPY.settings.services.items.map((svc) => (
             <li key={svc.name} className="flex justify-between gap-3">
               <span className="ink">{svc.name}</span>
@@ -479,8 +479,8 @@ function SettingsSection({
           <Icon className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[14px] font-semibold ink">{title}</div>
-          <div className="text-[12px] ink-3 mt-0.5">{hint}</div>
+          <div className="text-[16.5px] font-semibold ink">{title}</div>
+          <div className="text-[14px] ink-3 mt-0.5">{hint}</div>
         </div>
         {!loading && ok != null && (
           <StatusPill
@@ -515,14 +515,14 @@ function LabelledInput({
   const [revealed, setRevealed] = useState(false);
   return (
     <div className="space-y-1">
-      <label className="text-[11.5px] font-medium ink-2">{label}</label>
+      <label className="text-[13.5px] font-medium ink-2">{label}</label>
       <div className="relative">
         <input
           type={secret && !revealed ? "password" : "text"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full h-9 px-3 rounded-md border border-line bg-panel text-[12.5px] ink outline-none focus:border-brand ${
+          className={`w-full h-9 px-3 rounded-md border border-line bg-panel text-[14.5px] ink outline-none focus:border-brand ${
             secret ? "pr-10 mono" : ""
           }`}
         />
@@ -559,7 +559,7 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={loading}
-      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
+      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
     >
       {loading && <Loader2 className="h-3 w-3 nb-spin" />}
       {children}
@@ -578,7 +578,7 @@ function GhostButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+      className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
     >
       {children}
     </button>
@@ -588,7 +588,7 @@ function GhostButton({
 function StatusPill({ ok, label }: { ok: boolean; label: string }) {
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 h-6 text-[11px] rounded-md border"
+      className="inline-flex items-center gap-1 px-2 h-6 text-[13px] rounded-md border"
       style={
         ok
           ? {

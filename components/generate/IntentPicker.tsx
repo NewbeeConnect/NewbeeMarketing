@@ -43,17 +43,17 @@ export function IntentPicker({ onPick }: { onPick: (i: Intent) => void }) {
             <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-brand-soft text-brand-ink">
               <Icon className="h-[18px] w-[18px]" />
             </div>
-            <div className="serif text-[18px] ink mt-3">{meta.title}</div>
-            <div className="text-[12.5px] ink-2 mt-1 leading-relaxed">
+            <div className="serif text-[22px] ink mt-3">{meta.title}</div>
+            <div className="text-[14.5px] ink-2 mt-1 leading-relaxed">
               {meta.tagline}
             </div>
             <div className="mt-3 flex items-center justify-between">
-              <span className="mono text-[11px] ink-3">{meta.time}</span>
-              <span className="text-[11px] font-medium text-brand-ink inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+              <span className="mono text-[13px] ink-3">{meta.time}</span>
+              <span className="text-[13px] font-medium text-brand-ink inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                 Seç <ArrowRight className="h-3 w-3" />
               </span>
             </div>
-            <div className="text-[11px] ink-3 mt-2 leading-snug">
+            <div className="text-[13px] ink-3 mt-2 leading-snug">
               {meta.whenToUse}
             </div>
           </button>
@@ -82,7 +82,7 @@ export function IntentPill({
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[11px] ink-3">{goal.modeLabel}</span>
+        <span className="text-[13px] ink-3">{goal.modeLabel}</span>
         <div className="inline-flex p-0.5 bg-soft rounded-lg border border-line-2">
           {(["image", "video", "pipeline"] as const).map((k) => {
             const active = k === intent;
@@ -95,7 +95,7 @@ export function IntentPill({
                 onClick={() => !active && onSwitch(k)}
                 aria-pressed={active}
                 title={active ? `Aktif: ${meta.title}` : `${meta.title}'a geç — ${meta.whenToUse}`}
-                className={`px-2.5 h-7 rounded-md text-[12px] whitespace-nowrap inline-flex items-center gap-1 transition ${
+                className={`px-2.5 h-7 rounded-md text-[14px] whitespace-nowrap inline-flex items-center gap-1 transition ${
                   active
                     ? "bg-panel shadow-card ink font-medium"
                     : "ink-3 hover:ink"
@@ -109,7 +109,7 @@ export function IntentPill({
         </div>
         <button
           onClick={() => setOpen(true)}
-          className="ml-1 text-[11.5px] ink-3 hover:ink transition"
+          className="ml-1 text-[13.5px] ink-3 hover:ink transition"
           title="Her şeyi temizle ve hedef seçim ekranına dön"
         >
           {goal.changeButton}

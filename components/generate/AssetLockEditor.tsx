@@ -40,14 +40,14 @@ export function AssetLockEditor({
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         <Lock className="h-3.5 w-3.5 ink-2" />
         <div
-          className="text-[12.5px] font-medium ink"
+          className="text-[14.5px] font-medium ink"
           title={COPY.concepts.assetLock.long}
         >
           {al.title}
         </div>
-        <span className="text-[11px] ink-3">{al.meta(assets.length)}</span>
+        <span className="text-[13px] ink-3">{al.meta(assets.length)}</span>
       </div>
-      <p className="text-[11px] ink-3 mb-2 leading-relaxed">
+      <p className="text-[13px] ink-3 mb-2 leading-relaxed">
         {COPY.concepts.assetLock.short}
       </p>
 
@@ -78,7 +78,7 @@ export function AssetLockEditor({
               value={a.kind}
               onChange={(e) => onKindChange(i, e.target.value as AssetKind)}
               title={al.kindHints[a.kind]}
-              className="w-full h-8 mt-2 px-2 rounded-md border border-line bg-panel text-[12px] ink outline-none focus:border-brand appearance-none"
+              className="w-full h-8 mt-2 px-2 rounded-md border border-line bg-panel text-[14px] ink outline-none focus:border-brand appearance-none"
               style={{
                 backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>")`,
                 backgroundPosition: "right 8px center",
@@ -91,7 +91,7 @@ export function AssetLockEditor({
                 </option>
               ))}
             </select>
-            <div className="text-[10.5px] ink-3 mt-1 leading-tight">
+            <div className="text-[12px] ink-3 mt-1 leading-tight">
               {al.kindHints[a.kind]}
             </div>
           </div>
@@ -136,8 +136,8 @@ export function AssetLockEditor({
               className="rounded-lg border border-dashed border-line hover:border-brand hover:bg-brand-soft transition h-[180px] flex flex-col items-center justify-center gap-1.5 ink-3 hover:text-brand-ink"
             >
               <Upload className="h-[18px] w-[18px]" />
-              <span className="text-[12px] font-medium">{al.dropTitle}</span>
-              <span className="text-[10.5px]">{al.dropSub}</span>
+              <span className="text-[14px] font-medium">{al.dropTitle}</span>
+              <span className="text-[12px]">{al.dropSub}</span>
             </button>
           </>
         )}

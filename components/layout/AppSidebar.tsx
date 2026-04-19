@@ -137,10 +137,10 @@ export function AppSidebar() {
         </div>
         {!compact && (
           <div className="leading-tight">
-            <div className="text-[13.5px] font-semibold ink">
+            <div className="text-[15.5px] font-semibold ink">
               {COPY.nav.brandName}
             </div>
-            <div className="text-[9.5px] uppercase tracking-[0.14em] ink-3 mt-0.5 whitespace-nowrap">
+            <div className="text-[11px] uppercase tracking-[0.14em] ink-3 mt-0.5 whitespace-nowrap">
               {COPY.nav.brandSubtitle}
             </div>
           </div>
@@ -155,7 +155,7 @@ export function AppSidebar() {
             <Link
               key={href}
               href={href}
-              className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-lg text-[13px] transition ${
+              className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-lg text-[15px] transition ${
                 active
                   ? "bg-brand-soft text-brand-ink font-medium"
                   : "ink-2 hover:bg-soft"
@@ -180,7 +180,7 @@ export function AppSidebar() {
       <div className="px-2 py-3 border-t border-line-2 space-y-0.5">
         <Link
           href="/settings"
-          className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-lg text-[13px] transition ${
+          className={`w-full h-9 flex items-center gap-2.5 px-2.5 rounded-lg text-[15px] transition ${
             pathname === "/settings" || pathname.startsWith("/settings/")
               ? "bg-brand-soft text-brand-ink font-medium"
               : "ink-2 hover:bg-soft"
@@ -197,7 +197,7 @@ export function AppSidebar() {
           }`}
         >
           <div
-            className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[11px] font-semibold text-brand-ink bg-brand-soft"
+            className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[13px] font-semibold text-brand-ink bg-brand-soft"
             aria-hidden
           >
             {initials}
@@ -205,10 +205,10 @@ export function AppSidebar() {
           {!compact && (
             <>
               <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-medium ink truncate">
+                <div className="text-[14px] font-medium ink truncate">
                   Yönetici
                 </div>
-                <div className="text-[10px] ink-3 truncate">
+                <div className="text-[11.5px] ink-3 truncate">
                   {email ?? "—"}
                 </div>
               </div>
@@ -227,7 +227,7 @@ export function AppSidebar() {
         {/* Collapse toggle is desktop-only; mobile drawer has an X in header. */}
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="hidden md:flex w-full h-8 items-center justify-center text-[11px] ink-3 hover:ink transition"
+          className="hidden md:flex w-full h-8 items-center justify-center text-[13px] ink-3 hover:ink transition"
           aria-label={collapsed ? "Kenar menüyü aç" : "Kenar menüyü daralt"}
           title={collapsed ? "Kenar menüyü aç" : "Kenar menüyü daralt"}
         >
@@ -246,7 +246,7 @@ export function AppSidebar() {
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-40 h-9 px-3 rounded-lg inline-flex items-center gap-1.5 bg-panel border border-line text-[12.5px] ink shadow-card"
+        className="md:hidden fixed top-3 left-3 z-40 h-9 px-3 rounded-lg inline-flex items-center gap-1.5 bg-panel border border-line text-[14.5px] ink shadow-card"
         aria-label={COPY.nav.menuOpen}
       >
         <Menu className="h-3.5 w-3.5" />

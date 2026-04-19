@@ -764,10 +764,10 @@ export default function GeneratePage() {
       {/* Top bar */}
       <div className="flex items-start justify-between mb-5 gap-3 flex-wrap">
         <div>
-          <div className="serif text-[26px] ink">
+          <div className="serif text-[34px] ink">
             {COPY.generate.pageTitle}
           </div>
-          <div className="text-[12.5px] ink-3 mt-0.5">
+          <div className="text-[14.5px] ink-3 mt-0.5">
             {COPY.generate.pageSubtitle}
           </div>
         </div>
@@ -775,7 +775,7 @@ export default function GeneratePage() {
           <Link
             href="/library"
             title="Tüm üretimlerini gör"
-            className="text-[12.5px] ink-2 hover:ink flex items-center gap-1.5 transition"
+            className="text-[14.5px] ink-2 hover:ink flex items-center gap-1.5 transition"
           >
             <LibraryIcon className="h-3.5 w-3.5" /> {COPY.generate.topbarLibrary}
           </Link>
@@ -784,7 +784,7 @@ export default function GeneratePage() {
               type="button"
               onClick={() => setStartOverOpen(true)}
               title="Her şeyi temizle ve hedef seçim ekranına dön"
-              className="text-[12.5px] ink-2 hover:ink transition"
+              className="text-[14.5px] ink-2 hover:ink transition"
             >
               {COPY.generate.startOver}
             </button>
@@ -799,10 +799,10 @@ export default function GeneratePage() {
             <Film className="h-3.5 w-3.5" />
           </div>
           <div className="flex-1">
-            <div className="text-[13px] font-medium text-brand-ink">
+            <div className="text-[15px] font-medium text-brand-ink">
               {COPY.generate.extendBanner.title}
             </div>
-            <div className="text-[11.5px] text-brand-ink opacity-80 mt-0.5">
+            <div className="text-[13.5px] text-brand-ink opacity-80 mt-0.5">
               {COPY.generate.extendBanner.sub}
             </div>
           </div>
@@ -862,7 +862,7 @@ export default function GeneratePage() {
                   type="button"
                   onClick={() => advanceTo("brief")}
                   title="Brief ve şema adımına geç"
-                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
+                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 transition"
                 >
                   {COPY.generate.steps.goal.continueButton}{" "}
                   <ArrowRight className="h-3 w-3" />
@@ -927,7 +927,7 @@ export default function GeneratePage() {
                   type="button"
                   onClick={continueFromBrief}
                   title={COPY.generate.steps.brief.continueButtonHint}
-                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
+                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 transition"
                 >
                   {COPY.generate.steps.brief.continueButton}{" "}
                   <ArrowRight className="h-3 w-3" />
@@ -971,7 +971,7 @@ export default function GeneratePage() {
                       <button
                         key={t.k}
                         onClick={() => setPromptTab(t.k)}
-                        className={`px-3 h-8 text-[12.5px] relative inline-flex items-center gap-1.5 ${
+                        className={`px-3 h-8 text-[14.5px] relative inline-flex items-center gap-1.5 ${
                           promptTab === t.k
                             ? "ink font-medium"
                             : "ink-3 hover:ink"
@@ -1021,7 +1021,7 @@ export default function GeneratePage() {
                       ? "Video üretim adımına geç"
                       : "Görsel üretim adımına geç"
                   }
-                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[13px] font-semibold hover:brightness-95 transition"
+                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-brand text-brand-ink text-[15px] font-semibold hover:brightness-95 transition"
                 >
                   {intent === "video"
                     ? COPY.generate.steps.prompt.continueButtonVideo

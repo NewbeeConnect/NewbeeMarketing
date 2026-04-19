@@ -47,13 +47,13 @@ export function FieldsEditor<T extends Record<string, string>>({
       {!hideHeader && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-[12.5px] font-semibold ink">
+            <div className="flex items-center gap-1.5 text-[14.5px] font-semibold ink">
               {icon}
               {title}
             </div>
             {ready && (
               <span
-                className="inline-flex items-center gap-1 px-2 h-6 text-[11px] rounded-md border"
+                className="inline-flex items-center gap-1 px-2 h-6 text-[13px] rounded-md border"
                 style={{
                   background: "var(--nb-success-soft)",
                   borderColor: "transparent",
@@ -71,7 +71,7 @@ export function FieldsEditor<T extends Record<string, string>>({
               onClick={onFillAI}
               disabled={aiLoading}
               title="Brief'ini alıp tüm şema alanlarını Gemini ile otomatik doldur"
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-line bg-panel text-[12.5px] ink hover:bg-soft disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-line bg-panel text-[14.5px] ink hover:bg-soft disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               {aiLoading ? (
                 <Loader2 className="h-3 w-3 nb-spin" />
@@ -97,7 +97,7 @@ export function FieldsEditor<T extends Record<string, string>>({
             >
               <div className="flex items-center justify-between">
                 <label
-                  className="text-[11.5px] font-medium ink-2"
+                  className="text-[13.5px] font-medium ink-2"
                   title={f.hint}
                 >
                   {f.label}
@@ -107,7 +107,7 @@ export function FieldsEditor<T extends Record<string, string>>({
                     type="button"
                     onClick={() => onRegenerateField?.(f.key)}
                     disabled={aiLoading || isRegen}
-                    className="text-[10.5px] ink-3 hover:text-brand-ink flex items-center gap-1 disabled:opacity-40"
+                    className="text-[12px] ink-3 hover:text-brand-ink flex items-center gap-1 disabled:opacity-40"
                     title={fe.regenerateTitle}
                   >
                     {isRegen ? (
@@ -124,7 +124,7 @@ export function FieldsEditor<T extends Record<string, string>>({
                 placeholder={f.hint}
                 disabled={isRegen}
                 title={f.hint}
-                className="w-full mt-1 text-[12.5px] ink bg-transparent outline-none placeholder:ink-3"
+                className="w-full mt-1 text-[14.5px] ink bg-transparent outline-none placeholder:ink-3"
               />
             </div>
           );

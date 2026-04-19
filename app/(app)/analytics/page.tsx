@@ -69,10 +69,10 @@ export default function AnalyticsPage() {
     <div className="max-w-[1100px] mx-auto px-6 py-6">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <div className="serif text-[26px] ink">
+          <div className="serif text-[34px] ink">
             {COPY.analytics.pageTitle}
           </div>
-          <div className="text-[12.5px] ink-3 mt-0.5">
+          <div className="text-[14.5px] ink-3 mt-0.5">
             {COPY.analytics.pageSub}
           </div>
         </div>
@@ -97,14 +97,14 @@ export default function AnalyticsPage() {
           <div className="rounded-xl border border-line bg-panel p-5 mb-4">
             <div className="flex items-start justify-between mb-3 gap-4 flex-wrap">
               <div>
-                <div className="text-[12px] ink-3 uppercase tracking-wide">
+                <div className="text-[14px] ink-3 uppercase tracking-wide">
                   {COPY.analytics.budget.label}
                 </div>
                 <div className="flex items-baseline gap-2 mt-1">
-                  <div className="serif text-[32px] ink">
+                  <div className="serif text-[40px] ink">
                     ${totalSpent.toFixed(2)}
                   </div>
-                  <div className="text-[13px] ink-3">
+                  <div className="text-[15px] ink-3">
                     {COPY.analytics.budget.of(
                       `$${TOTAL_CREDIT_USD.toFixed(2)}`
                     )}
@@ -112,10 +112,10 @@ export default function AnalyticsPage() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[12px] ink-3">
+                <div className="text-[14px] ink-3">
                   {COPY.analytics.budget.remaining}
                 </div>
-                <div className="text-[18px] font-semibold ink mono">
+                <div className="text-[22px] font-semibold ink mono">
                   ${remaining.toFixed(2)}
                 </div>
               </div>
@@ -136,7 +136,7 @@ export default function AnalyticsPage() {
                 }}
               />
             </div>
-            <div className="flex items-center justify-between mt-2 text-[11px] ink-3">
+            <div className="flex items-center justify-between mt-2 text-[13px] ink-3">
               <span>
                 %{pct.toFixed(0)} {COPY.analytics.budget.used}
               </span>
@@ -183,10 +183,10 @@ export default function AnalyticsPage() {
           <div className="rounded-xl border border-line bg-panel p-5 mb-4">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="text-[14px] font-semibold ink">
+                <div className="text-[16.5px] font-semibold ink">
                   {COPY.analytics.trend.title}
                 </div>
-                <div className="text-[11.5px] ink-3">
+                <div className="text-[13.5px] ink-3">
                   {COPY.analytics.trend.sub}
                 </div>
               </div>
@@ -212,7 +212,7 @@ export default function AnalyticsPage() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between mt-2 text-[10px] ink-3 mono">
+            <div className="flex justify-between mt-2 text-[11.5px] ink-3 mono">
               {trend.map((t, i) => (
                 <span key={i}>{t.label}</span>
               ))}
@@ -222,14 +222,14 @@ export default function AnalyticsPage() {
           {/* Breakdown by service */}
           <div className="rounded-xl border border-line bg-panel overflow-hidden">
             <div className="px-5 py-3 border-b border-line-2 flex items-center justify-between">
-              <div className="text-[14px] font-semibold ink whitespace-nowrap">
+              <div className="text-[16.5px] font-semibold ink whitespace-nowrap">
                 {COPY.analytics.breakdown.title}
               </div>
-              <button className="text-[11.5px] ink-3 hover:text-brand-ink flex items-center gap-1 transition">
+              <button className="text-[13.5px] ink-3 hover:text-brand-ink flex items-center gap-1 transition">
                 <Download className="h-3 w-3" /> {COPY.analytics.breakdown.exportCsv}
               </button>
             </div>
-            <div className="grid grid-cols-[1fr_120px] gap-2 px-5 py-2.5 border-b border-line-2 text-[11px] ink-3 uppercase tracking-wide">
+            <div className="grid grid-cols-[1fr_120px] gap-2 px-5 py-2.5 border-b border-line-2 text-[13px] ink-3 uppercase tracking-wide">
               <span>{COPY.analytics.breakdown.colService}</span>
               <span className="text-right">
                 {COPY.analytics.breakdown.colSpend}
@@ -256,7 +256,7 @@ export default function AnalyticsPage() {
               return (
                 <div
                   key={row.key}
-                  className="grid grid-cols-[1fr_120px] gap-2 px-5 py-3 border-b border-line-2 last:border-b-0 text-[13px] items-center"
+                  className="grid grid-cols-[1fr_120px] gap-2 px-5 py-3 border-b border-line-2 last:border-b-0 text-[15px] items-center"
                 >
                   <span className="ink font-medium">{row.label}</span>
                   <span className="text-right ink font-medium mono">
@@ -267,7 +267,7 @@ export default function AnalyticsPage() {
             })}
           </div>
 
-          <div className="mt-3 text-[11px] ink-3">
+          <div className="mt-3 text-[13px] ink-3">
             Projeler: {PROJECTS.map((p) => p.name).join(" · ")}
           </div>
         </>
@@ -290,13 +290,13 @@ function StatCard({
   return (
     <div className="rounded-xl border border-line bg-panel p-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11.5px] ink-3 uppercase tracking-wide">
+        <div className="text-[13.5px] ink-3 uppercase tracking-wide">
           {label}
         </div>
         <Icon className="h-3.5 w-3.5 ink-3" />
       </div>
-      <div className="serif text-[28px] ink mt-2">{value}</div>
-      <div className="text-[11.5px] ink-3 mt-0.5">{sub}</div>
+      <div className="serif text-[34px] ink mt-2">{value}</div>
+      <div className="text-[13.5px] ink-3 mt-0.5">{sub}</div>
     </div>
   );
 }

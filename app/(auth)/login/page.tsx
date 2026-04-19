@@ -67,23 +67,23 @@ function LoginForm() {
               className="object-cover"
             />
           </div>
-          <div className="serif text-[24px] ink">{COPY.login.brand}</div>
-          <div className="text-[12.5px] ink-3 mt-1 whitespace-nowrap">
+          <div className="serif text-[30px] ink">{COPY.login.brand}</div>
+          <div className="text-[14.5px] ink-3 mt-1 whitespace-nowrap">
             {COPY.login.subBrand}
           </div>
         </div>
 
         <div className="bg-panel rounded-xl border border-line p-6 shadow-card">
-          <div className="text-[14px] font-semibold ink">
+          <div className="text-[16.5px] font-semibold ink">
             {COPY.login.cardTitle}
           </div>
-          <div className="text-[12px] ink-3 mt-0.5">{COPY.login.cardSub}</div>
+          <div className="text-[14px] ink-3 mt-0.5">{COPY.login.cardSub}</div>
 
           <form onSubmit={handleLogin} className="mt-4 space-y-3">
             <div>
               <label
                 htmlFor="login-email"
-                className="text-[12px] font-medium ink-2"
+                className="text-[14px] font-medium ink-2"
               >
                 {COPY.login.emailLabel}
               </label>
@@ -94,14 +94,14 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full h-9 px-3 mt-1 rounded-md border border-line bg-panel text-[13px] ink outline-none focus:border-brand"
+                className="w-full h-9 px-3 mt-1 rounded-md border border-line bg-panel text-[15px] ink outline-none focus:border-brand"
               />
             </div>
 
             <div>
               <label
                 htmlFor="login-password"
-                className="text-[12px] font-medium ink-2"
+                className="text-[14px] font-medium ink-2"
               >
                 {COPY.login.passwordLabel}
               </label>
@@ -111,14 +111,14 @@ function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full h-9 px-3 mt-1 rounded-md border border-line bg-panel text-[13px] ink outline-none focus:border-brand"
+                className="w-full h-9 px-3 mt-1 rounded-md border border-line bg-panel text-[15px] ink outline-none focus:border-brand"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-10 rounded-lg inline-flex items-center justify-center gap-1.5 text-[13.5px] font-semibold bg-brand text-brand-ink hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="w-full h-10 rounded-lg inline-flex items-center justify-center gap-1.5 text-[15.5px] font-semibold bg-brand text-brand-ink hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               {loading ? (
                 <Loader2 className="h-3.5 w-3.5 nb-spin" />
@@ -130,7 +130,7 @@ function LoginForm() {
           </form>
         </div>
 
-        <div className="text-center text-[11px] ink-3 mt-6">
+        <div className="text-center text-[13px] ink-3 mt-6">
           {COPY.login.requestAccess}{" "}
           <a className="text-brand-ink underline" href="mailto:admin@newbee.app">
             {COPY.login.requestAccessLink}

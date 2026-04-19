@@ -59,9 +59,9 @@ export function ActionCard({
           icon
         )}
       </div>
-      <div className="text-[14px] font-semibold">{title}</div>
+      <div className="text-[16.5px] font-semibold">{title}</div>
       <div
-        className={`text-[12px] mt-1 leading-relaxed ${
+        className={`text-[14px] mt-1 leading-relaxed ${
           primary ? "text-brand-ink opacity-80" : "ink-2"
         }`}
       >

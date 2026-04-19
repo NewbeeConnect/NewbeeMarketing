@@ -68,8 +68,8 @@ export function VideoStage({
     return (
       <div className="rounded-lg border border-line bg-soft p-6 flex flex-col items-center text-center">
         <Loader2 className="h-5 w-5 ink-3 nb-spin mb-2" />
-        <div className="text-[14px] font-medium ink">{s.processingTitle}</div>
-        <div className="text-[12px] ink-2 mt-1 max-w-[380px]">
+        <div className="text-[16.5px] font-medium ink">{s.processingTitle}</div>
+        <div className="text-[14px] ink-2 mt-1 max-w-[380px]">
           {s.processingBody.split("Kütüphane'de").map((part, i, arr) => (
             <span key={i}>
               {part}
@@ -102,10 +102,10 @@ export function VideoStage({
           <AlertTriangle className="h-[18px] w-[18px]" />
         </div>
         <div className="flex-1">
-          <div className="text-[13.5px] font-semibold ink">
+          <div className="text-[15.5px] font-semibold ink">
             {s.failedTitle}
           </div>
-          <div className="text-[12.5px] ink-2 mt-0.5">
+          <div className="text-[14.5px] ink-2 mt-0.5">
             {errorMessage ?? s.failedDefault}
           </div>
           <div className="mt-2 flex gap-2">
@@ -113,7 +113,7 @@ export function VideoStage({
               type="button"
               onClick={onRedo}
               title="Yeni bir deneme başlat"
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-line bg-panel ink text-[12.5px] hover:bg-soft transition"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-line bg-panel ink text-[14.5px] hover:bg-soft transition"
             >
               <RefreshCw className="h-3 w-3" />
               {s.tryAgain}
@@ -127,7 +127,7 @@ export function VideoStage({
   if (videoUrl) {
     return (
       <div className="space-y-3">
-        <div className="flex items-center justify-center gap-2 text-[12px] ink-2">
+        <div className="flex items-center justify-center gap-2 text-[14px] ink-2">
           <Check
             className="h-3 w-3"
             style={{ color: "var(--nb-success)" }}
@@ -148,7 +148,7 @@ export function VideoStage({
             type="button"
             onClick={onRedo}
             title="Bu videoyu atıp yenisini üret"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
           >
             <RefreshCw className="h-3 w-3" />
             {s.redo}
@@ -157,7 +157,7 @@ export function VideoStage({
             href={videoUrl}
             download
             title="Bilgisayarına MP4 olarak indir"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[13px] hover:bg-soft transition"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-line bg-panel ink text-[15px] hover:bg-soft transition"
           >
             <Download className="h-3 w-3" />
             {s.download}
@@ -171,7 +171,7 @@ export function VideoStage({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className="text-[11px] ink-3 mr-1"
+          className="text-[13px] ink-3 mr-1"
           title={COPY.concepts.duration.long}
         >
           {s.durationLabel}
@@ -185,7 +185,7 @@ export function VideoStage({
                 type="button"
                 onClick={() => onDurationChange(d as 4 | 6 | 8)}
                 title={`${d} saniyelik klip (yaklaşık $${(d * 0.4).toFixed(2)})`}
-                className={`px-2.5 h-7 rounded-md text-[12px] ${
+                className={`px-2.5 h-7 rounded-md text-[14px] ${
                   active
                     ? "bg-panel shadow-card ink font-medium"
                     : "ink-3 hover:ink"
@@ -202,16 +202,16 @@ export function VideoStage({
         <div className="rounded-lg border border-line-2 bg-soft p-3">
           <div className="flex items-center justify-between mb-2">
             <div
-              className="text-[12.5px] font-medium ink"
+              className="text-[14.5px] font-medium ink"
               title={COPY.concepts.referenceImage.long}
             >
               {s.referenceLabel}{" "}
-              <span className="text-[11px] ink-3 font-normal">
+              <span className="text-[13px] ink-3 font-normal">
                 · {refPreviews.length}/3 · her biri max 4 MB
               </span>
             </div>
           </div>
-          <p className="text-[11px] ink-3 mb-2 leading-relaxed">
+          <p className="text-[13px] ink-3 mb-2 leading-relaxed">
             {s.referenceHint}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -268,7 +268,7 @@ export function VideoStage({
                   type="button"
                   onClick={() => refFileInput.current?.click()}
                   title="Bir PNG/JPG yükle — modelin ilhama almak için kullanacağı referans"
-                  className="w-20 h-20 rounded-md border border-dashed border-line hover:border-brand hover:bg-brand-soft flex flex-col items-center justify-center ink-3 text-[10.5px] transition"
+                  className="w-20 h-20 rounded-md border border-dashed border-line hover:border-brand hover:bg-brand-soft flex flex-col items-center justify-center ink-3 text-[12px] transition"
                 >
                   <Upload className="h-3.5 w-3.5" />
                   <span className="mt-0.5">Ekle</span>
