@@ -146,6 +146,8 @@ export const COPY = {
     briefNeeded: "Write a brief first.",
     blueprintIncomplete: "Fill every blueprint field first.",
     imageNeeded: "Image must be ready before generating the video.",
+    intentSwitched: (label: string) =>
+      `Switched to ${label} — brief and blueprint kept.`,
   },
 
   ratioPicker: {

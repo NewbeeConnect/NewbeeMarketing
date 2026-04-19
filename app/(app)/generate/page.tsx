@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -79,12 +79,31 @@ const EMPTY_VIDEO_FIELDS: VideoPromptFields = {
   audio: "",
 };
 
-async function fileToBase64(file: File): Promise<{ imageBytes: string; mimeType: string }> {
-  const arrayBuffer = await file.arrayBuffer();
-  let binary = "";
-  const bytes = new Uint8Array(arrayBuffer);
-  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-  return { imageBytes: btoa(binary), mimeType: file.type || "image/png" };
+/**
+ * Read a File as base64 using native FileReader. ~10–20× faster than manually
+ * walking the byte array and avoids the chunked `btoa` stack-overflow trap
+ * on multi-MB images.
+ */
+function fileToBase64(
+  file: File
+): Promise<{ imageBytes: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const comma = dataUrl.indexOf(",");
+      if (comma < 0) {
+        reject(new Error("Malformed data URL from FileReader"));
+        return;
+      }
+      resolve({
+        imageBytes: dataUrl.slice(comma + 1),
+        mimeType: file.type || "image/png",
+      });
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("FileReader error"));
+    reader.readAsDataURL(file);
+  });
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────
@@ -172,6 +191,21 @@ export default function GeneratePage() {
   // "Roll the dice" — track last highlight for variety on repeat rolls
   const [lastHighlight, setLastHighlight] = useState<string | null>(null);
 
+  // Unmount cleanup: revoke any live ObjectURLs we created for previews.
+  // In-flow remove/reset/switch/variant handlers already revoke the URLs they
+  // drop — this catches the navigate-away-mid-edit case where the component
+  // unmounts without hitting those paths.
+  const refFilesRef = useRef(refFiles);
+  const lockedAssetsRef = useRef(lockedAssets);
+  refFilesRef.current = refFiles;
+  lockedAssetsRef.current = lockedAssets;
+  useEffect(() => {
+    return () => {
+      refFilesRef.current.forEach((r) => URL.revokeObjectURL(r.preview));
+      lockedAssetsRef.current.forEach((a) => URL.revokeObjectURL(a.preview));
+    };
+  }, []);
+
   // ─── Mutations ────────────────────────────────────────────────────
   const promptMut = useGeneratePromptBlueprint();
   const suggestMut = useSuggestBrief();
@@ -231,7 +265,7 @@ export default function GeneratePage() {
   const switchIntent = useCallback(
     (next: Intent) => {
       if (intent === next) return;
-      // Soft switch: keep brief + blueprint + locked assets, clear downstream
+      // Soft switch: keep brief + blueprint + locked assets, clear downstream.
       if (activeVideoId) {
         qc.removeQueries({ queryKey: ["video-status", activeVideoId] });
       }
@@ -244,13 +278,18 @@ export default function GeneratePage() {
       setExtendFromBriefText(null);
       refFiles.forEach((r) => URL.revokeObjectURL(r.preview));
       setRefFiles([]);
-      setAssembledImagePrompt("");
-      setAssembledVideoPrompt("");
-      // Jump back to brief; drop any prior "reached" past brief.
+      // Preserve the prompt edits that are still meaningful for the new intent.
+      // - next="video"  → image prompt unused; clear it (drop stale edit)
+      // - next="image"  → video prompt unused; clear it
+      // - next="pipeline" → keep both (image prompt still applies to the image
+      //                    stage, video prompt still applies to the video stage)
+      if (next === "video") setAssembledImagePrompt("");
+      if (next === "image") setAssembledVideoPrompt("");
+      // Jump back to brief; downstream steps re-open as the user advances.
       const newSteps = stepsFor(next);
       setActiveStep("brief");
       setMaxReachedIdx(newSteps.indexOf("brief"));
-      toast.success(`Switched to ${intentLabel(next)} — brief kept.`);
+      toast.success(COPY.toasts.intentSwitched(intentLabel(next)));
     },
     [intent, activeVideoId, qc, refFiles]
   );
@@ -434,7 +473,7 @@ export default function GeneratePage() {
   }
 
   // ─── Asset lock handlers ─────────────────────────────────────────
-  async function addLockedAsset(file: File, kind: LockedAsset["kind"]) {
+  function addLockedAsset(file: File, kind: LockedAsset["kind"]) {
     if (lockedAssets.length >= 3) return;
     if (!file.type.startsWith("image/")) return;
     setLockedAssets((prev) => [
@@ -552,6 +591,17 @@ export default function GeneratePage() {
     setActiveStep("image");
   }
 
+  /**
+   * When the user Edits back to the image step (imageUrl already set) they
+   * need an explicit forward action — the auto-advance on generate/upload
+   * only fires for fresh runs. This moves them to the next logical step
+   * without re-running Gemini.
+   */
+  function continueFromImage() {
+    if (!intent) return;
+    advanceTo(intent === "pipeline" ? "postImage" : "done");
+  }
+
   // ─── postImage gate ──────────────────────────────────────────────
   function continueToVideo() {
     advanceTo("video");
@@ -561,7 +611,7 @@ export default function GeneratePage() {
   }
 
   // ─── Video handlers ──────────────────────────────────────────────
-  async function handleAddReference(file: File) {
+  function handleAddReference(file: File) {
     if (refFiles.length >= 3) return;
     if (!file.type.startsWith("image/")) return;
     setRefFiles((prev) => [
@@ -657,6 +707,17 @@ export default function GeneratePage() {
     brief.length > 90 ? `${brief.slice(0, 90)}…` : brief || "(empty)";
   const projectMeta = PROJECTS.find((p) => p.slug === project)!;
 
+  // Prompt summary: show truncated prompt, or a placeholder if empty. The
+  // older implementation always appended "…" which looked wrong next to the
+  // placeholder string.
+  const promptForSummary =
+    intent === "video" ? assembledVideoPrompt : assembledImagePrompt;
+  const promptSummary = promptForSummary
+    ? promptForSummary.length > 90
+      ? `${promptForSummary.slice(0, 90)}…`
+      : promptForSummary
+    : "(auto-drafted from blueprint)";
+
   // ─── Render ───────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4 p-6 max-w-4xl w-full mx-auto">
@@ -696,7 +757,7 @@ export default function GeneratePage() {
 
       {/* Step 1: Goal — IntentPicker + Project/Ratio */}
       <TimelineStep
-        stepNumber={1}
+        stepNumber={steps.indexOf("goal") + 1}
         title="Goal"
         visual={visualFor("goal")}
         summary={
@@ -741,7 +802,7 @@ export default function GeneratePage() {
       {/* Step 2: Brief + blueprint(s) + asset lock */}
       {intent && (
         <TimelineStep
-          stepNumber={2}
+          stepNumber={steps.indexOf("brief") + 1}
           title="Brief & blueprint"
           visual={visualFor("brief")}
           summary={
@@ -804,16 +865,12 @@ export default function GeneratePage() {
       {/* Step 3: Assembled prompt — editable */}
       {intent && (
         <TimelineStep
-          stepNumber={3}
+          stepNumber={steps.indexOf("prompt") + 1}
           title="Prompt"
           visual={visualFor("prompt")}
           summary={
             <span className="text-muted-foreground truncate">
-              {(intent === "video"
-                ? assembledVideoPrompt
-                : assembledImagePrompt
-              ).slice(0, 90) || "(auto-drafted from blueprint)"}
-              …
+              {promptSummary}
             </span>
           }
           onEdit={() => editStep("prompt")}
@@ -876,7 +933,7 @@ export default function GeneratePage() {
       {/* Step 4: Image (or step 4-of-N for pipeline) */}
       {intent && steps.includes("image") && (
         <TimelineStep
-          stepNumber={4}
+          stepNumber={steps.indexOf("image") + 1}
           title="Image"
           visual={visualFor("image")}
           summary={
@@ -903,6 +960,7 @@ export default function GeneratePage() {
             onUploadFile={handleImageFile}
             onPickFromLibrary={pickImageFromLibrary}
             onRedo={redoImage}
+            onContinue={continueFromImage}
             aiLoading={imageMut.isPending}
             uploadLoading={uploadMut.isPending}
           />
@@ -912,7 +970,7 @@ export default function GeneratePage() {
       {/* Step 5 (pipeline): postImage gate */}
       {intent === "pipeline" && (
         <TimelineStep
-          stepNumber={5}
+          stepNumber={steps.indexOf("postImage") + 1}
           title="Continue?"
           visual={visualFor("postImage")}
           summary={
@@ -938,7 +996,7 @@ export default function GeneratePage() {
       {/* Step N: Video */}
       {intent && steps.includes("video") && (
         <TimelineStep
-          stepNumber={intent === "pipeline" ? 6 : 4}
+          stepNumber={steps.indexOf("video") + 1}
           title="Video"
           visual={visualFor("video")}
           summary={
@@ -946,6 +1004,8 @@ export default function GeneratePage() {
               <span className="text-muted-foreground">Ready</span>
             ) : videoProcessing ? (
               <span className="text-muted-foreground">Rendering…</span>
+            ) : videoFailed ? (
+              <span className="text-destructive">Failed — tap Edit to retry</span>
             ) : null
           }
           onEdit={() => editStep("video")}
@@ -975,7 +1035,7 @@ export default function GeneratePage() {
       {/* Done */}
       {intent && activeStep === "done" && (
         <TimelineStep
-          stepNumber={intent === "pipeline" ? 7 : 5}
+          stepNumber={steps.indexOf("done") + 1}
           title="Done"
           visual="active"
         >

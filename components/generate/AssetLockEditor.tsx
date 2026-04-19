@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { Lock, Upload, X } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,6 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+// Must match the backend cap (~5.5 MB base64 ≈ ~4 MB raw) with margin.
+const MAX_ASSET_BYTES = 4 * 1024 * 1024;
 
 export type AssetKind = "app_ui" | "logo" | "product_photo" | "other";
 
@@ -125,12 +129,24 @@ export function AssetLockEditor({
               onChange={async (e) => {
                 const files = Array.from(e.target.files ?? []);
                 let added = assets.length;
+                let rejectedOversize = 0;
                 for (const f of files) {
                   if (added >= 3) break;
                   if (!f.type.startsWith("image/")) continue;
+                  if (f.size > MAX_ASSET_BYTES) {
+                    rejectedOversize++;
+                    continue;
+                  }
                   // Default kind is app_ui since that's the biggest pain point
                   await onAdd(f, "app_ui");
                   added++;
+                }
+                if (rejectedOversize > 0) {
+                  toast.error(
+                    rejectedOversize === 1
+                      ? "Asset too large — max 4 MB per image."
+                      : `${rejectedOversize} images skipped — max 4 MB each.`
+                  );
                 }
                 if (fileInput.current) fileInput.current.value = "";
               }}

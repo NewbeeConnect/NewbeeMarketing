@@ -11,10 +11,14 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+// Matches backend base64 cap; leave ~1 MB margin for the base64 overhead.
+const MAX_REF_BYTES = 4 * 1024 * 1024;
 import {
   Select,
   SelectContent,
@@ -143,10 +147,22 @@ export function VideoStage({
                       className="hidden"
                       onChange={async (e) => {
                         const files = Array.from(e.target.files ?? []);
+                        let rejectedOversize = 0;
                         for (const f of files) {
                           if (refPreviews.length + files.indexOf(f) >= 3) break;
                           if (!f.type.startsWith("image/")) continue;
+                          if (f.size > MAX_REF_BYTES) {
+                            rejectedOversize++;
+                            continue;
+                          }
                           await onAddReference(f);
+                        }
+                        if (rejectedOversize > 0) {
+                          toast.error(
+                            rejectedOversize === 1
+                              ? "Reference too large — max 4 MB per image."
+                              : `${rejectedOversize} images skipped — max 4 MB each.`
+                          );
                         }
                         if (refFileInput.current) refFileInput.current.value = "";
                       }}

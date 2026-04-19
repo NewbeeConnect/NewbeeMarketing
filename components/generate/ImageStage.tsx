@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import {
+  ArrowRight,
   Check,
   Download,
   FolderOpen,
@@ -36,6 +37,7 @@ export function ImageStage({
   onUploadFile,
   onPickFromLibrary,
   onRedo,
+  onContinue,
   aiLoading,
   uploadLoading,
 }: {
@@ -47,6 +49,14 @@ export function ImageStage({
   onUploadFile: (file: File) => void;
   onPickFromLibrary: (url: string) => void;
   onRedo: () => void;
+  /**
+   * Optional Continue handler — shown alongside Redo/Download when the step
+   * already has an image but the user is editing from an earlier navigation
+   * (so they need an explicit way to advance forward). In the fresh-generate
+   * path the parent auto-advances on success, so the button stays hidden
+   * until the user is actually in a "re-visit" situation.
+   */
+  onContinue?: () => void;
   aiLoading: boolean;
   uploadLoading: boolean;
 }) {
@@ -120,7 +130,15 @@ export function ImageStage({
             {COPY.imageStage.savedTo(projectMeta.name, ratio)}
           </div>
           <PreviewImage src={imageUrl} ratio={ratio} alt="Generated image" />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {onContinue && (
+              <Button size="sm" onClick={onContinue}>
+                {intent === "pipeline"
+                  ? "Continue to animate"
+                  : "Continue"}
+                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={onRedo}>
               <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
               {COPY.imageStage.redo}
