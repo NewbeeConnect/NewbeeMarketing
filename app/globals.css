@@ -203,20 +203,27 @@
     color: var(--nb-ink-3);
   }
 
+  /*
+   * Background utilities use `background-color` (longhand) instead of the
+   * `background` shorthand. The shorthand form resets background-image /
+   * -repeat / -position to their defaults, which caused select dropdowns
+   * (that paint a chevron via inline backgroundImage) to tile the SVG
+   * because the CSS cascade clobbered `background-repeat: no-repeat`.
+   */
   .bg-app {
-    background: var(--nb-app);
+    background-color: var(--nb-app);
   }
   .bg-panel {
-    background: var(--nb-panel);
+    background-color: var(--nb-panel);
   }
   .bg-soft {
-    background: var(--nb-soft);
+    background-color: var(--nb-soft);
   }
   .bg-brand {
-    background: var(--nb-brand);
+    background-color: var(--nb-brand);
   }
   .bg-brand-soft {
-    background: var(--nb-brand-soft);
+    background-color: var(--nb-brand-soft);
   }
   .text-brand-ink {
     color: var(--nb-brand-ink);
