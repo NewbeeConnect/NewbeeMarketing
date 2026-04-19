@@ -22,13 +22,12 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
 
     const serviceClient = createServiceClient();
 
-    // Fetch row first so we can (a) verify ownership and (b) derive the storage
-    // path to remove.
+    // Team-shared library: any signed-in admin can delete any asset. We
+    // fetch the row first only to derive the storage path for removal.
     const { data: generation, error: fetchError } = await serviceClient
       .from("mkt_generations")
       .select("id, user_id, type, project_slug, ratio, filename")
       .eq("id", generationId)
-      .eq("user_id", user.id)
       .maybeSingle();
 
     if (fetchError || !generation) {
@@ -55,8 +54,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
     const { error: deleteError } = await serviceClient
       .from("mkt_generations")
       .delete()
-      .eq("id", generationId)
-      .eq("user_id", user.id);
+      .eq("id", generationId);
 
     if (deleteError) {
       return NextResponse.json({ error: deleteError.message }, { status: 500 });

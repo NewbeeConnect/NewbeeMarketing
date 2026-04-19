@@ -40,11 +40,11 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     const rl = await checkRateLimit(serviceClient, user.id, "api-general");
     if (!rl.allowed) return rateLimitResponse(rl);
 
+    // Team-shared: any admin can poll any teammate's video status.
     const { data: generation, error: genError } = await serviceClient
       .from("mkt_generations")
       .select("*")
       .eq("id", generationId)
-      .eq("user_id", user.id)
       .maybeSingle();
 
     if (genError || !generation) {

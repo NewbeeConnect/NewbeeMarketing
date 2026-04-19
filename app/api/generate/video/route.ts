@@ -155,11 +155,11 @@ export async function POST(request: NextRequest) {
     // after that extension fails.
     let extendFromVeoUri: string | null = null;
     if (sourceGenerationId) {
+      // Shared library — any team member can extend any teammate's video.
       const { data: sourceRow } = await serviceClient
         .from("mkt_generations")
         .select("output_metadata, user_id, type")
         .eq("id", sourceGenerationId)
-        .eq("user_id", user.id)
         .maybeSingle();
       if (!sourceRow || sourceRow.type !== "video") {
         return NextResponse.json(

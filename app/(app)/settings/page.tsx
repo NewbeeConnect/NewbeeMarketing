@@ -18,6 +18,7 @@ import {
   useDeleteApiKeys,
   useSaveApiKeys,
 } from "@/hooks/useApiKeys";
+import { ChangePasswordSection } from "@/components/settings/ChangePasswordSection";
 
 /**
  * Hub-designed Settings. Three tabs at the top (API keys / Billing / Team)
@@ -150,6 +151,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <ChangePasswordSection />
 
       {/* Google Ads */}
       <SettingsSection

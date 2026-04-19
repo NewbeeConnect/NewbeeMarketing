@@ -23,12 +23,16 @@ export async function GET(request: NextRequest) {
     const type = params.get("type");
     const ratio = params.get("ratio");
 
+    // Team-shared library: every authenticated admin sees every row. RLS
+    // is still enforced at the DB level (zero policies → service_role
+    // only); the admin gate is the middleware. We intentionally skip a
+    // `.eq("user_id", user.id)` filter here so the whole team browses
+    // the same pool of assets.
     let query = serviceClient
       .from("mkt_generations")
       .select(
         "id, type, project_slug, ratio, filename, prompt, model, status, output_url, estimated_cost_usd, actual_cost_usd, error_message, created_at, completed_at"
       )
-      .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(500);
 

@@ -1,9 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
 
-interface AnalyticsData {
+export interface AnalyticsData {
   totalSpent: number;
   costByService: {
     gemini: number;
@@ -21,71 +20,22 @@ interface AnalyticsData {
   monthlySpend: { month: string; amount: number }[];
 }
 
+/**
+ * Fetches team-wide analytics from the server route (service-role backed).
+ * Previously this hook queried Supabase client-side which relied on RLS —
+ * with a single-tenant, team-shared setup we want every admin to see the
+ * same totals, so the server endpoint skips per-user filters.
+ */
 export function useAnalytics() {
-  const supabase = createClient();
-
-  return useQuery({
+  return useQuery<AnalyticsData>({
     queryKey: ["analytics"],
-    queryFn: async (): Promise<AnalyticsData> => {
-      const twelveMonthsAgo = new Date();
-      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-
-      const { data: usageLogs, error: usageError } = await supabase
-        .from("mkt_usage_logs")
-        .select("api_service, estimated_cost_usd, created_at")
-        .gte("created_at", twelveMonthsAgo.toISOString())
-        .order("created_at", { ascending: false })
-        .limit(5000);
-      if (usageError) throw usageError;
-
-      const logs = usageLogs ?? [];
-
-      const costByService = { gemini: 0, veo: 0, imagen: 0, tts: 0 };
-      let totalSpent = 0;
-      const monthlyMap = new Map<string, number>();
-
-      for (const log of logs) {
-        const cost = log.estimated_cost_usd ?? 0;
-        totalSpent += cost;
-
-        const service = log.api_service as keyof typeof costByService;
-        if (service in costByService) {
-          costByService[service] += cost;
-        }
-
-        const createdAt = log.created_at ?? "";
-        if (createdAt) {
-          const month = createdAt.substring(0, 7);
-          monthlyMap.set(month, (monthlyMap.get(month) ?? 0) + cost);
-        }
+    queryFn: async () => {
+      const res = await fetch("/api/analytics");
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Analytics request failed (${res.status})`);
       }
-
-      const monthlySpend = Array.from(monthlyMap.entries())
-        .map(([month, amount]) => ({ month, amount }))
-        .sort((a, b) => a.month.localeCompare(b.month));
-
-      const { data: generations, error: genError } = await supabase
-        .from("mkt_generations")
-        .select("type, status")
-        .gte("created_at", twelveMonthsAgo.toISOString())
-        .limit(5000);
-      if (genError) throw genError;
-
-      const gens = generations ?? [];
-      const generationStats = {
-        total: gens.length,
-        completed: gens.filter((g) => g.status === "completed").length,
-        failed: gens.filter((g) => g.status === "failed").length,
-        videoCount: gens.filter((g) => g.type === "video").length,
-        imageCount: gens.filter((g) => g.type === "image").length,
-      };
-
-      return {
-        totalSpent,
-        costByService,
-        generationStats,
-        monthlySpend,
-      };
+      return (await res.json()) as AnalyticsData;
     },
     staleTime: 60_000,
   });
