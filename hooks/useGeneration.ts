@@ -45,6 +45,8 @@ export function useSuggestBrief() {
       project: ProjectSlug;
       target: "image" | "video" | "pipeline";
       ratio: string;
+      /** Name of the highlight from the previous roll — Gemini avoids it this time. */
+      avoidHighlight?: string;
     }) => {
       const res = await fetch("/api/generate/suggest-brief", {
         method: "POST",
@@ -52,7 +54,10 @@ export function useSuggestBrief() {
         body: JSON.stringify(input),
       });
       if (!res.ok) throw new Error(await readApiError(res));
-      return (await res.json()) as { suggestion: string };
+      return (await res.json()) as {
+        suggestion: string;
+        pickedHighlight: string | null;
+      };
     },
   });
 }

@@ -4,7 +4,8 @@ import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server
 import { ai, MODELS, COST_ESTIMATES } from "@/lib/google-ai";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { checkBudget } from "@/lib/budget-guard";
-import { PROJECTS, PROJECT_SLUGS } from "@/lib/projects";
+import { PROJECT_SLUGS, type ProjectSlug } from "@/lib/projects";
+import { getBrandProfile } from "@/lib/generate/brand-profiles";
 
 /**
  * POST /api/generate/prompt
@@ -114,13 +115,20 @@ export async function POST(request: NextRequest) {
     }
     const { project, target, ratio, brief } = parsed.data;
 
-    const projectMeta = PROJECTS.find((p) => p.slug === project)!;
+    const profile = getBrandProfile(project as ProjectSlug);
     const systemPrompt = target === "image" ? SYSTEM_IMAGE : SYSTEM_VIDEO;
     const fieldsSchema =
       target === "image" ? imageFieldsSchema : videoFieldsSchema;
 
-    const userPrompt = `Project: ${projectMeta.name}
-Target: ${target}
+    // Pass brand voice + palette + reference look so the blueprint lands
+    // on-brand even if the user's brief is sparse.
+    const userPrompt = `PROJECT: ${profile.product}
+VALUE PROPOSITION: ${profile.valueProp}
+TONE: ${profile.tone}
+PALETTE: ${profile.palette}
+REFERENCE LOOK: ${profile.referenceLook}
+
+Target medium: ${target}
 Aspect ratio: ${ratio}
 
 Brief:

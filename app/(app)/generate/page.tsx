@@ -105,6 +105,11 @@ export default function GeneratePage() {
   // passes `sourceGenerationId` and Veo continues from that clip's last frame.
   const [extendFromId, setExtendFromId] = useState<string | null>(null);
 
+  // Track the highlight Gemini picked on the last "Roll the dice" so the
+  // next roll avoids it — prevents two-in-a-row suggestions on the same
+  // feature when the user is actively hunting for variety.
+  const [lastHighlight, setLastHighlight] = useState<string | null>(null);
+
   // ─── Mutations ────────────────────────────────────────────────────
   const promptMut = useGeneratePromptBlueprint();
   const suggestMut = useSuggestBrief();
@@ -163,6 +168,7 @@ export default function GeneratePage() {
     setImageUrl(null);
     setActiveVideoId(null);
     setExtendFromId(null);
+    setLastHighlight(null);
     setPipelineTab("image");
     // keep project + ratio as a user preference
     refFiles.forEach((r) => URL.revokeObjectURL(r.preview));
@@ -217,9 +223,15 @@ export default function GeneratePage() {
         project,
         target: intent,
         ratio,
+        avoidHighlight: lastHighlight ?? undefined,
       });
       setBrief(res.suggestion);
-      toast.success("New brief suggestion — roll again if you'd like.");
+      setLastHighlight(res.pickedHighlight);
+      toast.success(
+        res.pickedHighlight
+          ? `Brief drafted around: ${res.pickedHighlight}. Roll again for a different angle.`
+          : "New brief drafted."
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Suggestion failed");
     }

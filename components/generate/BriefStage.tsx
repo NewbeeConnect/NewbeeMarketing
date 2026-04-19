@@ -124,7 +124,9 @@ export function BriefStage({
         </div>
         <Textarea
           id="brief"
-          rows={3}
+          // 5 rows fits the richer, feature-aware briefs "Roll the dice"
+          // now returns (70–140 words). Still expands if the user types more.
+          rows={5}
           placeholder={placeholder}
           value={brief}
           onChange={(e) => onBriefChange(e.target.value)}
