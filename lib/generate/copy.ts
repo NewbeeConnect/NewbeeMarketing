@@ -52,8 +52,9 @@ export const COPY = {
   },
 
   /**
-   * Project-aware brief placeholders. Default project in the UI is Newbee, so
-   * these examples must match the brand the user sees selected.
+   * Brief placeholders per intent. This hub is Newbee-only; retained as a
+   * project-keyed shape so BriefStage's `COPY.briefPlaceholders[project][intent]`
+   * lookup keeps working without conditional logic.
    */
   briefPlaceholders: {
     newbee: {
@@ -63,14 +64,6 @@ export const COPY = {
         "e.g. Slow dolly onto a phone unlocking to the Newbee chat, amber highlights, upbeat ambient tone",
       pipeline:
         "e.g. 'Your daily Newbee' launch teaser — phone mockup hero frame, then gentle motion across the UI, honey/cream palette",
-    },
-    ateliersayin: {
-      image:
-        "e.g. Macro of a gold signet ring on burgundy velvet, editorial fashion photography, warm window light",
-      video:
-        "e.g. Slow dolly toward a candle-lit dinner scene where a gold necklace catches the light, rich palette",
-      pipeline:
-        "e.g. Mother's Day film — close-up on a gift box opening to reveal a gold pendant, warm cinematic grade",
     },
   } as const,
 

@@ -142,6 +142,13 @@ export type GenerationRow = {
   ratio: ImageRatio | VideoRatio;
   filename: string;
   prompt: string;
+  /**
+   * "user-upload" means the user uploaded the file themselves (via
+   * /api/library/upload). Anything else is the AI model id
+   * (gemini-3-pro-image-preview, veo-3.1-generate-001, ...). The Library
+   * uses this to split source assets from generated outputs.
+   */
+  model: string | null;
   status: GenerationStatus;
   output_url: string | null;
   estimated_cost_usd: number | null;

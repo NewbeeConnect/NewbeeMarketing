@@ -163,7 +163,10 @@ export default function GeneratePage() {
   }, []);
 
   // Shared selections
-  const [project, setProject] = useState<ProjectSlug>("newbee");
+  // Single-tenant hub: project is always Newbee. Kept as a constant because
+  // every server route still accepts/validates it and the storage path
+  // layout expects it.
+  const project: ProjectSlug = "newbee";
   const [ratio, setRatio] = useState<AnyRatio>("9:16");
 
   // Brief state
@@ -647,10 +650,7 @@ export default function GeneratePage() {
       });
       setActiveVideoId(res.generationId);
       toast.success(
-        COPY.toasts.videoStarted(
-          project === "newbee" ? "Newbee" : "Atelier Sayın",
-          ratio
-        )
+        COPY.toasts.videoStarted(projectMeta.name, ratio)
       );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Video generation failed");
@@ -785,8 +785,6 @@ export default function GeneratePage() {
                 onChange={resetAll}
               />
               <ProjectRatioBar
-                project={project}
-                onProjectChange={setProject}
                 ratio={ratio}
                 onRatioChange={setRatio}
                 intent={intent}

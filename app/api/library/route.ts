@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     let query = serviceClient
       .from("mkt_generations")
       .select(
-        "id, type, project_slug, ratio, filename, prompt, status, output_url, estimated_cost_usd, actual_cost_usd, error_message, created_at, completed_at"
+        "id, type, project_slug, ratio, filename, prompt, model, status, output_url, estimated_cost_usd, actual_cost_usd, error_message, created_at, completed_at"
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })

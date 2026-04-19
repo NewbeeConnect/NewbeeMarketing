@@ -30,54 +30,49 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  PROJECTS,
-  type ProjectSlug,
-} from "@/lib/projects";
 import { useDeleteGeneration, useLibrary } from "@/hooks/useLibrary";
 import type { GenerationRow } from "@/hooks/useGeneration";
 
+/**
+ * Single-tenant Library.
+ *
+ * Tree:
+ *   /library
+ *   ├── Image            (view: grid, type=image)
+ *   │   ├── Generated    — tab filter: model !== "user-upload"
+ *   │   ├── Source       — tab filter: model === "user-upload"
+ *   │   └── All          — no filter
+ *   └── Video            (view: grid, type=video, same three tabs)
+ *
+ * The "source" vs "generated" split is derived from the existing
+ * `model` column on mkt_generations — user-uploaded files are tagged
+ * `"user-upload"` by /api/library/upload; anything else came from an AI
+ * model. No schema change, no file movement — just a smarter grouping.
+ */
+
 type View =
   | { kind: "root" }
-  | { kind: "project"; project: ProjectSlug }
-  | { kind: "grid"; project: ProjectSlug; type: "image" | "video" };
+  | { kind: "grid"; type: "image" | "video" };
+
+type SourceFilter = "all" | "generated" | "source";
 
 export default function LibraryPage() {
   const [view, setView] = useState<View>({ kind: "root" });
   const [layout, setLayout] = useState<"grid" | "list">("grid");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [preview, setPreview] = useState<GenerationRow | null>(null);
   const [search, setSearch] = useState("");
-  // Delete confirmation flow — we keep the pending id here and render an
-  // AlertDialog instead of falling back to the native confirm().
   const [pendingDelete, setPendingDelete] = useState<GenerationRow | null>(
     null
   );
 
   const filter = useMemo(() => {
     if (view.kind === "root") return {};
-    if (view.kind === "project") return { project: view.project };
-    return { project: view.project, type: view.type };
+    return { type: view.type };
   }, [view]);
 
   const { data: items = [], isLoading } = useLibrary(filter);
   const del = useDeleteGeneration();
-
-  // Per-project tally. When the user is at the root we fetch ALL items
-  // (filter={}), so `items` contains everything; grouping client-side is
-  // a single pass. On deeper views the data is filter-scoped and this
-  // map is unused.
-  const rootStats = useMemo(() => {
-    const m = new Map<ProjectSlug, { images: number; videos: number }>();
-    for (const p of PROJECTS) m.set(p.slug, { images: 0, videos: 0 });
-    if (view.kind !== "root") return m;
-    for (const it of items) {
-      const entry = m.get(it.project_slug);
-      if (!entry) continue;
-      if (it.type === "image") entry.images++;
-      else if (it.type === "video") entry.videos++;
-    }
-    return m;
-  }, [items, view.kind]);
 
   async function performDelete(id: string) {
     try {
@@ -91,56 +86,84 @@ export default function LibraryPage() {
     }
   }
 
+  // Tally — always counts the current data set grouped by type + source.
+  const stats = useMemo(() => {
+    const t = {
+      image: { source: 0, generated: 0 },
+      video: { source: 0, generated: 0 },
+    };
+    for (const it of items) {
+      const bucket = it.type === "image" ? t.image : t.video;
+      if (isSource(it)) bucket.source++;
+      else bucket.generated++;
+    }
+    return t;
+  }, [items]);
+
   const filteredItems = useMemo(() => {
-    if (!search.trim()) return items;
-    const q = search.toLowerCase();
-    return items.filter(
-      (i) =>
+    const q = search.trim().toLowerCase();
+    return items.filter((i) => {
+      if (sourceFilter === "generated" && isSource(i)) return false;
+      if (sourceFilter === "source" && !isSource(i)) return false;
+      if (!q) return true;
+      return (
         i.filename.toLowerCase().includes(q) ||
         (i.prompt ?? "").toLowerCase().includes(q)
-    );
-  }, [items, search]);
+      );
+    });
+  }, [items, search, sourceFilter]);
 
-  // ── Root: project cards ─────────────────────────────────────────────
+  // ── Root: Image / Video cards ──────────────────────────────────────
   if (view.kind === "root") {
+    const totals = {
+      image: stats.image.source + stats.image.generated,
+      video: stats.video.source + stats.video.generated,
+    };
     return (
       <div className="max-w-[960px] mx-auto px-6 py-6">
         <div className="mb-5">
           <div className="serif text-[26px] ink">Library</div>
           <div className="text-[12.5px] ink-3 mt-0.5">
-            Every generation, organized by project.
+            Your uploaded sources and AI-generated outputs — grouped by type.
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {PROJECTS.map((p) => {
-            const s = rootStats.get(p.slug) ?? { images: 0, videos: 0 };
+          {(
+            [
+              { kind: "image" as const, label: "Images", Icon: ImageIcon },
+              { kind: "video" as const, label: "Videos", Icon: VideoIcon },
+            ] as const
+          ).map((x) => {
+            const s = stats[x.kind];
             return (
               <button
-                key={p.slug}
+                key={x.kind}
                 type="button"
-                onClick={() => setView({ kind: "project", project: p.slug })}
-                className="text-left rounded-xl border border-line bg-panel hover:border-brand hover:ring-brand transition overflow-hidden"
+                onClick={() => {
+                  setView({ kind: "grid", type: x.kind });
+                  setSourceFilter("all");
+                }}
+                className="text-left rounded-xl border border-line bg-panel hover:border-brand hover:ring-brand transition p-5"
               >
-                <div
-                  className="bg-soft"
-                  style={{ aspectRatio: "16/7", background: `linear-gradient(135deg, ${p.color}30, ${p.color}10)` }}
-                />
-                <div className="p-4 flex items-start justify-between">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-brand-soft text-brand-ink">
+                  <x.Icon className="h-[18px] w-[18px]" />
+                </div>
+                <div className="flex items-end justify-between mt-3">
                   <div>
-                    <div className="serif text-[18px] ink">{p.name}</div>
-                    <div className="text-[12px] ink-3 mt-0.5">
-                      {p.slug === "newbee"
-                        ? "Dating · chat app"
-                        : "Jewelry e-commerce"}
+                    <div className="serif text-[20px] ink">{x.label}</div>
+                    <div className="text-[12.5px] ink-3 mt-0.5">
+                      {isLoading ? "Loading…" : `${totals[x.kind]} saved`}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-[12.5px] ink font-medium">
-                      {s.images + s.videos}
+                  <div className="text-right text-[11px] ink-3 leading-tight">
+                    <div>
+                      <span className="ink font-medium mono">{s.generated}</span>{" "}
+                      generated
                     </div>
-                    <div className="text-[11px] ink-3">
-                      {s.images} img · {s.videos} vid
+                    <div className="mt-0.5">
+                      <span className="ink font-medium mono">{s.source}</span>{" "}
+                      source
                     </div>
                   </div>
                 </div>
@@ -152,68 +175,22 @@ export default function LibraryPage() {
     );
   }
 
-  const projectMeta = PROJECTS.find((p) => p.slug === view.project)!;
+  // ── Grid / list view ───────────────────────────────────────────────
+  const typeLabel = view.type === "image" ? "Images" : "Videos";
+  const bucket = stats[view.type];
 
-  // ── Project landing: Image / Video cards ───────────────────────────
-  if (view.kind === "project") {
-    const imgCount = items.filter((i) => i.type === "image").length;
-    const vidCount = items.filter((i) => i.type === "video").length;
-    return (
-      <div className="max-w-[960px] mx-auto px-6 py-6">
-        <Breadcrumb
-          trail={[
-            { label: "Library", onClick: () => setView({ kind: "root" }) },
-            { label: projectMeta.name },
-          ]}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          {(
-            [
-              { kind: "image" as const, label: "Images", Icon: ImageIcon, count: imgCount },
-              { kind: "video" as const, label: "Videos", Icon: VideoIcon, count: vidCount },
-            ] as const
-          ).map((x) => (
-            <button
-              key={x.kind}
-              type="button"
-              onClick={() =>
-                setView({ kind: "grid", project: view.project, type: x.kind })
-              }
-              className="text-left rounded-xl border border-line bg-panel hover:border-brand hover:ring-brand transition p-5"
-            >
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-brand-soft text-brand-ink">
-                <x.Icon className="h-[18px] w-[18px]" />
-              </div>
-              <div className="serif text-[20px] ink mt-3">{x.label}</div>
-              <div className="text-[12.5px] ink-3 mt-0.5">
-                {x.count} saved
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // ── Grid / list view ────────────────────────────────────────────────
   return (
     <div className="max-w-[1100px] mx-auto px-6 py-6">
       <Breadcrumb
         trail={[
           { label: "Library", onClick: () => setView({ kind: "root" }) },
-          {
-            label: projectMeta.name,
-            onClick: () => setView({ kind: "project", project: view.project }),
-          },
-          { label: view.type === "image" ? "Images" : "Videos" },
+          { label: typeLabel },
         ]}
       />
 
       <div className="flex items-end justify-between mt-4 mb-4 gap-3 flex-wrap">
         <div>
-          <div className="serif text-[24px] ink">
-            {projectMeta.name} · {view.type === "image" ? "Images" : "Videos"}
-          </div>
+          <div className="serif text-[24px] ink">{typeLabel}</div>
           <div className="text-[12.5px] ink-3 mt-0.5">
             {isLoading ? "Loading…" : `${items.length} saved`}
           </div>
@@ -257,6 +234,32 @@ export default function LibraryPage() {
         </div>
       </div>
 
+      {/* Source / Generated / All tabs */}
+      <div className="flex items-center gap-1 border-b border-line-2 mb-4">
+        {(
+          [
+            { k: "all", label: "All", count: bucket.source + bucket.generated },
+            { k: "generated", label: "Generated", count: bucket.generated },
+            { k: "source", label: "Source", count: bucket.source },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.k}
+            type="button"
+            onClick={() => setSourceFilter(t.k)}
+            className={`px-3 h-8 text-[12.5px] relative inline-flex items-center gap-1.5 ${
+              sourceFilter === t.k ? "ink font-medium" : "ink-3 hover:ink"
+            }`}
+          >
+            {t.label}
+            <span className="text-[10.5px] mono ink-3">{t.count}</span>
+            {sourceFilter === t.k && (
+              <div className="absolute inset-x-3 -bottom-px h-0.5 bg-brand" />
+            )}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="flex items-center justify-center py-20 ink-3">
           <Loader2 className="h-5 w-5 nb-spin" />
@@ -265,7 +268,13 @@ export default function LibraryPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <FolderOpen className="h-10 w-10 ink-3 mb-3 opacity-60" />
           <div className="text-[13px] ink-2">
-            {search ? "No matches." : "No assets here yet."}
+            {search
+              ? "No matches."
+              : sourceFilter === "source"
+              ? `No ${view.type} sources uploaded yet.`
+              : sourceFilter === "generated"
+              ? `No ${view.type}s generated yet.`
+              : "No assets here yet."}
           </div>
           <div className="text-[12px] ink-3 mt-0.5">
             {search ? (
@@ -284,18 +293,15 @@ export default function LibraryPage() {
       ) : layout === "grid" ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {filteredItems.map((it) => (
-            <AssetTile
-              key={it.id}
-              item={it}
-              onOpen={() => setPreview(it)}
-            />
+            <AssetTile key={it.id} item={it} onOpen={() => setPreview(it)} />
           ))}
         </div>
       ) : (
         <div className="rounded-xl border border-line bg-panel overflow-hidden">
-          <div className="text-[11px] ink-3 grid grid-cols-[60px_1fr_80px_100px_40px] gap-2 px-3 py-2 border-b border-line-2 uppercase tracking-wide">
+          <div className="text-[11px] ink-3 grid grid-cols-[60px_1fr_90px_80px_100px_40px] gap-2 px-3 py-2 border-b border-line-2 uppercase tracking-wide">
             <span />
             <span>Name</span>
+            <span>Origin</span>
             <span>Ratio</span>
             <span>Date</span>
             <span />
@@ -305,7 +311,7 @@ export default function LibraryPage() {
               key={it.id}
               type="button"
               onClick={() => setPreview(it)}
-              className="w-full grid grid-cols-[60px_1fr_80px_100px_40px] gap-2 items-center px-3 py-2 border-b border-line-2 last:border-b-0 hover:bg-soft text-left transition"
+              className="w-full grid grid-cols-[60px_1fr_90px_80px_100px_40px] gap-2 items-center px-3 py-2 border-b border-line-2 last:border-b-0 hover:bg-soft text-left transition"
             >
               <div className="relative w-11 h-11 rounded overflow-hidden bg-soft">
                 {it.status === "completed" && it.output_url ? (
@@ -325,8 +331,9 @@ export default function LibraryPage() {
                   )
                 ) : null}
               </div>
-              <div className="mono text-[12px] ink truncate">
-                {it.filename}
+              <div className="mono text-[12px] ink truncate">{it.filename}</div>
+              <div className="text-[11.5px] ink-2">
+                <OriginChip item={it} />
               </div>
               <div className="text-[11.5px] ink-2">{it.ratio}</div>
               <div className="text-[11.5px] ink-3">
@@ -371,6 +378,39 @@ export default function LibraryPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+/**
+ * Uploads go through /api/library/upload with model="user-upload"; every
+ * other generation has the actual model id. That's how we distinguish a
+ * source asset from an AI output without a schema change.
+ */
+function isSource(item: GenerationRow): boolean {
+  return item.model === "user-upload";
+}
+
+function OriginChip({ item }: { item: GenerationRow }) {
+  const source = isSource(item);
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-1.5 h-5 text-[10.5px] rounded-md border"
+      style={
+        source
+          ? {
+              background: "var(--nb-soft)",
+              borderColor: "var(--nb-line-2)",
+              color: "var(--nb-ink-2)",
+            }
+          : {
+              background: "var(--nb-brand-soft)",
+              borderColor: "transparent",
+              color: "var(--nb-brand-ink)",
+            }
+      }
+    >
+      {source ? "Source" : "AI"}
+    </span>
   );
 }
 
@@ -446,12 +486,8 @@ function AssetTile({
             <Loader2 className="h-4 w-4 nb-spin" />
           </div>
         )}
-        <div className="absolute top-1.5 left-1.5 bg-panel/90 rounded p-0.5 border border-line">
-          {item.type === "image" ? (
-            <ImageIcon className="h-2.5 w-2.5 ink-2" />
-          ) : (
-            <VideoIcon className="h-2.5 w-2.5 ink-2" />
-          )}
+        <div className="absolute top-1.5 left-1.5">
+          <OriginChip item={item} />
         </div>
       </div>
       <div className="p-2">
@@ -478,8 +514,6 @@ function AssetPreview({
   onRequestDelete: (item: GenerationRow) => void;
   deleting: boolean;
 }) {
-  // Close on Escape — shadcn Dialog normally provides this, but we rolled
-  // this modal by hand to match the hub design, so we re-implement it.
   useEffect(() => {
     if (!item) return;
     const onKey = (e: KeyboardEvent) => {
@@ -531,9 +565,7 @@ function AssetPreview({
         </div>
         <div className="w-full md:w-[320px] border-t md:border-t-0 md:border-l border-line-2 p-4 flex flex-col">
           <div className="flex items-start justify-between gap-2">
-            <div className="mono text-[12px] ink break-all">
-              {item.filename}
-            </div>
+            <div className="mono text-[12px] ink break-all">{item.filename}</div>
             <button
               type="button"
               onClick={onClose}
@@ -544,6 +576,7 @@ function AssetPreview({
             </button>
           </div>
           <div className="mt-3 space-y-2 text-[12px]">
+            <Row k="Origin" v={isSource(item) ? "User upload" : "AI"} />
             <Row k="Ratio" v={item.ratio} />
             <Row
               k="Created"
@@ -551,14 +584,16 @@ function AssetPreview({
             />
             <Row
               k="Model"
-              v={item.type === "video" ? "Veo 3.1" : "Nano Banana 2"}
+              v={
+                isSource(item)
+                  ? "—"
+                  : item.type === "video"
+                  ? "Veo 3.1"
+                  : "Nano Banana 2"
+              }
             />
             {item.actual_cost_usd != null && (
-              <Row
-                k="Cost"
-                v={`$${item.actual_cost_usd.toFixed(3)}`}
-                mono
-              />
+              <Row k="Cost" v={`$${item.actual_cost_usd.toFixed(3)}`} mono />
             )}
             <Row k="Status" v={item.status} />
           </div>

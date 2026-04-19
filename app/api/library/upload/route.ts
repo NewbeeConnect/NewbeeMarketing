@@ -20,7 +20,7 @@ import { buildFilename, buildStoragePath } from "@/lib/filename";
  *
  * Fields:
  *   file      File
- *   project   "newbee" | "ateliersayin"
+ *   project   "newbee"
  *   type      "image" | "video"
  *   ratio     valid ratio for that type
  *   prompt?   optional caption

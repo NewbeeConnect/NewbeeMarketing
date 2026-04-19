@@ -1,16 +1,13 @@
 /**
- * Project definitions. Hardcoded for now (2 clients); move to a DB table when
- * the third project arrives.
+ * Project definitions. This hub is Newbee-only — the single-project setup
+ * used to carry a second client (Atelier Sayın) but that was retired. We
+ * keep the array shape + slug pipeline so API routes, storage paths, and
+ * DB rows (`project_slug` column, `mkt-assets/{slug}/...` paths) continue
+ * to work unchanged. Treat the constant as "this is who we make for."
  *
- * The `slug` value is what lands in `mkt_generations.project_slug` and in the
- * storage path (`mkt-assets/{slug}/...`). It must match the CHECK constraint
- * in migration 015.
- */
-
-/**
  * `description` is used by the AI brief suggester and the prompt blueprint
- * endpoint so Gemini knows what each brand actually is. Keep these concrete —
- * vague descriptions produce vague briefs. Edit here when the product evolves.
+ * endpoint so Gemini knows what the brand actually is. Keep it concrete —
+ * vague descriptions produce vague briefs.
  */
 export const PROJECTS = [
   {
@@ -19,13 +16,6 @@ export const PROJECTS = [
     color: "#FBBF24",
     description:
       "Newbee is an AI-powered mobile companion app (iOS + Android + Web, app.newbeeapp.com). It helps users with daily life tasks through an intelligent assistant — natural-language chat, goal tracking, habit support, and community features. Target audience: digitally-native adults 20–45 looking for a smart, approachable daily helper. Tone: warm, confident, modern, a little playful. Brand palette: honey yellow / amber / cream with clean white space. Reference look: Apple-style editorial product photography, soft daylight, crisp UI mockups on real phones.",
-  },
-  {
-    slug: "ateliersayin",
-    name: "Atelier Sayın",
-    color: "#DC2626",
-    description:
-      "Atelier Sayın is a bespoke fine-jewelry atelier based in Istanbul specializing in gold and gemstones. Handcrafted statement pieces — necklaces, rings, earrings — with an editorial, heritage-craft sensibility. Target audience: discerning women 30–55 who value craftsmanship and gifting. Tone: elegant, intimate, timeless. Brand palette: deep burgundy, champagne gold, velvet black. Reference look: editorial fashion photography, macro detail shots, warm window light, silk and velvet textures.",
   },
 ] as const;
 

@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
     // Pre-insert the row so the library shows a skeleton while Veo cooks.
     const filename = buildFilename({ prompt, type: "video" });
     const storagePath = buildStoragePath({
-      project: project as "newbee" | "ateliersayin",
+      project: project as "newbee",
       type: "video",
       ratio: ratio as "9:16" | "16:9",
       filename,

@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
     // mark it failed.
     const filename = buildFilename({ prompt, type: "image" });
     const storagePath = buildStoragePath({
-      project: project as "newbee" | "ateliersayin",
+      project: project as "newbee",
       type: "image",
       ratio: ratio as "4:5" | "9:16" | "1:1",
       filename,
