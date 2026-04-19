@@ -1,8 +1,17 @@
-# Newbee Marketing Hub - AI Video Ad Platform
+# Newbee Marketing Hub — Continuous Story Video Generator
 
-> **Last Updated:** April 17, 2026
-> Enterprise AI marketing platform using Google AI (Gemini, Veo, Imagen) for video/image ad generation.
-> GitHub: `NewbeeConnect/newbeemarketing` | Hosting: Vercel | Language: Turkish
+> **Last Updated:** April 19, 2026
+> Single-feature admin tool: 4-scene / 5-keyframe continuous story video generator.
+> Uses Imagen 4 for keyframes and Veo 3.1 with `lastFrame` interpolation for seamless cuts.
+> GitHub: `NewbeeConnect/NewbeeMarketing` | Hosting: Vercel | Language: Turkish
+
+## What this app does
+
+User writes a story topic → Gemini 2.5 Flash produces 4 scene scripts + 5 frame
+prompts + a shared `style_anchor`. Imagen generates the 5 keyframes. Veo 3.1
+generates 4 clips, each with its first and last frames fixed to the adjacent
+keyframes (frame_N = clip_N first frame, frame_N+1 = clip_N last frame), so cuts
+are visually seamless. Optional final step: FFmpeg concat into a single mp4.
 
 ## Tech Stack
 
@@ -10,122 +19,123 @@
 |-------|-----------|
 | Framework | Next.js 16.1.6 (App Router, Turbopack) |
 | UI | React 19, TypeScript 5, Tailwind CSS 4, shadcn/ui |
-| State | TanStack React Query 5 (no Zustand/Redux) |
-| Database | Supabase (PostgreSQL + Auth + Storage) |
-| AI | Google Gemini 2.5 Pro/Flash, Veo 3.1, Imagen 4, Cloud TTS |
-| Forms | react-hook-form + zod |
+| State | TanStack React Query 5 |
+| Database | Supabase (PostgreSQL + Auth + Storage), project `dwwkcfunctykemwsrkkr` |
+| AI | `@google/genai` 1.42 — Gemini 2.5 Flash, Imagen 4, Veo 3.1 |
+| Video | `ffmpeg-static` (concat demuxer, Node runtime) |
+| Auth | Admin-only (user_roles + get_my_roles RPC pattern) |
 | Hosting | Vercel |
 
 ## Critical Rules
 
-1. **Never modify `components/ui/`** — shadcn/ui generated. Use `npx shadcn@latest add <component>`.
-2. **Git commits:** Always use `newbeeconnect@gmail.com` as commit email. **Check before first commit:** `git config user.email` — if not `newbeeconnect@gmail.com`, run: `git config user.email newbeeconnect@gmail.com && git config user.name newbeeconnect`
-3. **Always use `createServiceClient()`** for DB writes in API routes (bypasses RLS).
-4. **Always check `if (!ai)`** before AI operations — client is null when GOOGLE_API_KEY missing.
-5. **All tables use `mkt_` prefix** — never create tables without it.
-6. **RLS enforced on all tables** — every table needs `auth.uid() = user_id` policy.
-7. **Cost tracking:** Every AI API call must log to `mkt_usage_logs`.
-8. **Veo is async:** Returns `operation_name` for polling (5s interval). Imagen is sync.
-9. **`parseAiJson()`** must always be used to parse Gemini responses (strips markdown code blocks).
-10. **Zod schemas:** Use `.optional()` NOT `.default()` to avoid zodResolver type mismatch.
-11. **PersonGeneration:** `PersonGeneration.DONT_ALLOW` for images, `"allow_all"` for text-to-video (required for person content). Veo 3.1 also uses `generateAudio: true` by default.
-12. **Resolution:** Veo supports `720p`, `1080p`, `4k`. Note: 1080p/4k only supports 8s duration per clip.
+1. **Admin-only.** Non-admins signed out at middleware + auth callback. Add admins via `SELECT public.grant_admin('<uuid>');` in SQL editor (service_role only).
+2. **Never modify `components/ui/`** — shadcn/ui generated.
+3. **Git commits:** Always use `newbeeconnect@gmail.com` — `git config user.email` before first commit.
+4. **Always use `createServiceClient()`** for DB writes in API routes (bypasses RLS).
+5. **Always check `if (!ai)`** before AI operations — client is null when GOOGLE_API_KEY missing.
+6. **All tables use `mkt_` prefix** except `user_roles`.
+7. **RLS enforced on all tables.** `mkt_generations` has RLS enabled with zero policies → service-role-only access.
+8. **Cost tracking:** Every AI API call must log to `mkt_usage_logs` BEFORE returning response (budget drift mitigation).
+9. **Veo is async:** returns `operation_name`; client polls `/clips/[index]/status` (8s interval, 15-min timeout, 5-attempt download cap).
+10. **`parseAiJson()`** always parses Gemini responses (strips fences, bracket-scans).
+11. **Veo 3.1 keyframe interpolation:** first frame via `image: { imageBytes }`, last frame via `config.lastFrame: { imageBytes }`. Both base64 PNGs.
+12. **Upsert on frame/clip regenerate:** unique index `uniq_mkt_gen_story_role_seq` on `(story_id, story_role, sequence_index)` enables race-free replacement.
 
-## Two Workflow Systems
+## Data Model
 
-**Project Workflow (6 steps):** Brief → Strategy → Scenes → Prompts → Generate → Post-Production
-**Campaign Workflow (5 steps):** Fetch Context → AI Strategy → Media Production → Ad Distribution → Analytics
+- **`user_roles`** — admin gating; `get_my_roles()` RPC called from middleware.
+- **`mkt_stories`** — one row per story; stores topic, aspect_ratio, duration, model_tier, style_anchor, scene_scripts (JSONB `{1..4}`), frame_prompts (JSONB `{1..5}`), status, stitched_generation_id.
+- **`mkt_generations`** — rows for frames (`story_role='frame'`, `sequence_index 1..5`, `type='image'`), clips (`story_role='clip'`, `sequence_index 1..4`, `type='video'`), stitched final (`story_role='stitched'`, `sequence_index=0`, `type='stitched'`).
+- **`mkt_usage_logs`** — per-call cost tracking. Budget guard queries this for monthly total ($500/user cap).
+- **`mkt_rate_limits`** — DB-backed token bucket, categories: `ai-gemini`, `ai-media`, `api-general`, etc.
+- **`mkt_api_keys`** — Settings page persists integration keys (currently unused now that projects/campaigns are gone; retained for future).
+- **`mkt_notifications`** — ambient notification bell (kept, mostly unused post-cleanup).
 
-## Key Conventions
+Storage paths on `mkt-assets` bucket:
+- Frames: `{user_id}/stories/{story_id}/frames/{1..5}.png`
+- Clips: `{user_id}/stories/{story_id}/clips/{1..4}.mp4`
+- Stitched: `{user_id}/stories/{story_id}/stitched.mp4`
 
-- **Supabase clients:** `createClient()` (browser), `createSupabaseServer()` (server), `createServiceClient()` (bypasses RLS), `createNewbeeClient()` (read-only Newbee data)
-- **AI prompts:** Each feature has dedicated prompt builder in `lib/ai/prompts/`
-- **Hook pattern:** React Query for all data fetching, mutations invalidate queries
-- **API route pattern:** auth check → ai null check → process → save → log usage → return
-- **A/B Testing:** Strategy generation supports emotional vs technical variants (`is_ab_variant`, `parent_project_id`)
-- **Ad Distribution:** Dual-mode (stub when no API keys, real when keys provided)
-- **Storage bucket:** `mkt-assets`, path: `{user_id}/{type}/{file_id}`
-- **Budget:** $25,000 Google Cloud startup credit (`TOTAL_CREDIT_USD`)
+## API Surface (6 routes)
+
+All routes: auth → rate-limit → budget → validate → process → log → respond.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/api/stories` | Gemini script + initial story row |
+| GET  | `/api/stories/[id]` | Full bundle (story + frames + clips + stitched) |
+| PATCH | `/api/stories/[id]` | Edit scene_scripts, frame_prompts, style_anchor |
+| POST | `/api/stories/[id]/frames/[1..5]` | Imagen call, upsert row |
+| POST | `/api/stories/[id]/clips/[1..4]` | Veo call (firstFrame+lastFrame), upsert row |
+| GET  | `/api/stories/[id]/clips/[i]/status` | Poll Veo operation, upload to storage |
+| POST | `/api/stories/[id]/stitch` | FFmpeg concat demuxer, writes stitched mp4 |
+
+## UI Surface (3 pages)
+
+- **`/generate`** — 5 frame cards (row 1) + 4 clip cards (row 2) + stitch button (row 3). Topic + aspect ratio + duration + model tier inputs at top.
+- **`/analytics`** — cost tracking, budget gauge, generation stats, story count.
+- **`/settings`** — API keys (integration config).
+
+Sidebar has exactly these 3 items. `/` redirects to `/generate`. `/login`, `/auth/callback`, `/download` are public.
+
+## Cost Model
+
+Per story at **Standard tier** (default): ~$13.05 = 4 × 8s × $0.40 (Veo) + 5 × $0.04 (Imagen) + ~$0.05 (Gemini).
+
+Per story at **Fast tier**: ~$4.92 = 4 × 8s × $0.15 (Veo Fast) + 5 × $0.02 (Imagen Fast) + ~$0.02 (Gemini).
+
+Budget cap: $500/user/month (enforced in `lib/budget-guard.ts`, queries `mkt_usage_logs`).
 
 ## AI Models
 
-| Model | Use | Cost |
-|-------|-----|------|
-| Gemini 2.5 Pro | Strategy, scenes, refinement | $1.25/$10 per 1M tokens |
-| Gemini 2.5 Flash | Prompts, captions, context, insights | $0.075/$0.60 per 1M tokens |
-| Veo 3.1 | Video generation (async) | $0.40/sec (standard), $0.15/sec (fast) |
-| Imagen 4 | Image generation (sync) | $0.04/image (standard), $0.02 (fast) |
+| Model ID | Use | Cost |
+|----------|-----|------|
+| `gemini-2.5-flash` | Story script | $0.075/$0.60 per 1M tokens |
+| `veo-3.1-generate-001` | Video (standard) | $0.40/sec |
+| `veo-3.1-fast-generate-001` | Video (fast) | $0.15/sec |
+| `imagen-4.0-generate-001` | Keyframe (standard) | $0.04/image |
+| `imagen-4.0-fast-generate-001` | Keyframe (fast) | $0.02/image |
 
-## API Routes (26 total)
+Preview-env equivalents are used when `VEO_ENVIRONMENT !== "production"`.
 
-| Path | Purpose |
-|------|---------|
-| `/api/ai/*` | AI generation (strategy, scenes, captions, insights, refine, optimize-prompt) |
-| `/api/generate/*` | Media generation (image, video, video/extend, video/retry, video/status, mockup, voiceover) |
-| `/api/process/*` | Post-production (caption-embed, export, stitch, watermark) |
-| `/api/ads/*` | Ad distribution (publish, sync-performance, [deploymentId]/status) |
-| `/api/campaigns/*` | Campaign analytics ([campaignId]/performance) |
-| `/api/context/fetch` | Brand context fetching |
-| `/api/code-context/*` | Code context (upload, github, [id]) |
-| `/api/newbee/insights` | Newbee data insights (read-only cross-DB) |
+## Key Conventions
+
+- **Supabase clients:** `createClient()` (browser), `createSupabaseServer()` (server component), `createServiceClient()` (API route, bypasses RLS).
+- **Hook pattern:** React Query for all data fetching; mutations invalidate `["story", storyId]`.
+- **Polling:** `useStory` auto-polls every 8s while any frame/clip is processing, stops otherwise.
+- **Rate-limit helper:** `rateLimitResponse()` returns 429 with `Retry-After` header.
+- **Storage URLs:** public URLs from Supabase storage (no signed-URL expiry).
 
 ## Build & Deploy
 
 ```bash
-npm run dev     # Dev server (Turbopack)
-npm run build   # Production build
-npm run lint    # ESLint
+npm run dev        # Dev server on :3000
+npm run build      # Production build (verifies ffmpeg-static bundling via outputFileTracingIncludes)
+npm run lint       # ESLint
+npm run typecheck  # tsc --noEmit
 ```
 
-Vercel auto-deploys from `main` branch. Required env vars: see `.env.example` or Vercel dashboard.
+Vercel auto-deploys from `main`. GitHub Actions CI (`.github/workflows/ci.yml`) runs lint + typecheck + build on PRs.
+
+Required env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_API_KEY`, `NEXT_PUBLIC_APP_URL`, `CRON_SECRET` (32+ hex chars).
 
 ## Gotchas
 
-- **Local build requires `.env.local`** — `npm run build` fails locally without Supabase env vars. This is expected; env vars are configured on Vercel. Copy `.env.example` to `.env.local` and fill values for local builds.
-- **Security headers** — `lib/supabase/middleware.ts` sets X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy headers on all responses.
+- **Local build needs `.env.local`** — Supabase URL required at parse time.
+- **FFmpeg bundle** — `ffmpeg-static` binary is ~50MB; `next.config.ts` uses `outputFileTracingIncludes` so it only ships with the stitch route's Lambda.
+- **FFmpeg codec uniformity** — stitch relies on Veo producing identical codec/fps/resolution across clips (currently true). `lib/video/stitch.ts` detects common concat warnings and fails loudly + validates output size.
+- **Image-to-video requires `personGeneration: "allow_adult"`** (not `"allow_all"` which is text-to-video only).
+- **Veo URI retention:** 2 days. If a clip's status route runs after retention expiry the download fails; retry cap is 5.
 
-## Skills (Slash Commands)
+## Scripts / Skills (active)
 
-| Skill | Usage | Description |
-|-------|-------|-------------|
-| `/deploy` | `/deploy` | Lint + build + Vercel production deploy |
-| `/cost-report` | `/cost-report [today\|week\|month]` | AI usage cost summary |
-| `/monitor-budget` | `/monitor-budget` | Check remaining Google Cloud credit |
-| `/audit-api` | `/audit-api` | Audit API routes for security/logging |
-| `/db-check` | `/db-check` | mkt_ tablolari RLS + schema kontrolu |
-| `/test-api` | `/test-api <route>` | Tek API route test (auth, validation) |
-| `/perf-check` | `/perf-check` | Bundle size + Core Web Vitals analizi |
-| `/new-feature` | `/new-feature <name>` | Hook + API + page + types scaffold |
+- `/deploy` — lint + build + Vercel prod deploy
+- `/perf-check` — bundle + Core Web Vitals check
 
-## Agents
+Legacy skills referencing removed features (`audit-api`, `test-api`, `new-feature`, `cost-report`, `monitor-budget`, `db-check`) were removed or refactored — they pointed at deleted tables/routes.
 
-All agents are manually invoked via the `Agent` tool (`subagent_type: <name>`). None trigger automatically — use when you want a dedicated pass on a specific concern without bloating the main context.
+## Memory
 
-| Agent | Purpose | When to invoke |
-|-------|---------|----------------|
-| `ai-cost-analyzer` | AI harcama pattern analizi ve optimizasyon onerileri | Before model migration or when monthly cost spikes |
-| `seo-analyzer` | SEO metadata, sitemap, OG tag kontrolu | Before major page redesign; weekly via `/weekly-seo-check` scheduled task |
-| `security-auditor` | OWASP Top 10 guvenlik taramasi | Before production deploy of new API route |
-| `prompt-optimizer` | AI prompt token verimliligi ve maliyet optimizasyonu | When a prompt builder touches a high-volume endpoint |
-| `migration-planner` | Supabase migration planlama (RLS + rollback) | Before writing any non-trivial schema change |
-| `component-reviewer` | React component kalite, a11y, performans incelemesi | After new user-facing component or major refactor |
-
-## Hooks (Otomatik)
-
-| Hook | Tetikleyici | Eylem | Bloklama |
-|------|-------------|-------|----------|
-| shadcn guard | `components/ui/` duzenleme | Edit'i engeller | Evet |
-| Lint + tsc | Her dosya duzenleme sonrasi | ESLint fix + TypeScript kontrol | Hayir |
-| API route checklist | `app/api/*/route.ts` duzenleme | 10-adim pattern hatirlatma | Hayir |
-| Butce uyarisi | AI dosyalari duzenleme | Maliyet etkisi uyarisi | Hayir |
-| SQL guvenlik | `.sql` dosya duzenleme | RLS hatirlatma | Hayir |
-| Pre-commit guard | `git commit` komutu | Lint + tsc zorunlu kontrol | Evet |
-
-## Scheduled Tasks
-
-| Task | Zamanlama | Aciklama |
-|------|-----------|----------|
-| `daily-cost-report` | Her gun 09:03 | /cost-report today + butce uyarisi |
-| `weekly-seo-check` | Pazartesi 10:07 | seo-analyzer agent ile SEO kontrolu |
-
-> Not: Scheduled tasks session bazlidir (max 3 gun). Yeni session'da otomatik yeniden olusturulmazlar.
+A project-scoped memory file lives at
+`/Users/caglarbiber/.claude/projects/-Volumes-APP-Newbee-NewbeeMarketing/memory/`.
+Key invariant: **Marketing repo + Supabase are fully isolated** from Admin / Expert / Newbee App (which share the Newbee Supabase). Don't suggest cross-project DB patterns.

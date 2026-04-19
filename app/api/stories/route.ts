@@ -97,19 +97,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to save story" }, { status: 500 });
     }
 
+    // Log usage BEFORE responding. If the log fails, we still return the story —
+    // but we surface the failure in logs so budget accounting doesn't silently
+    // drift (the Gemini cost has been incurred regardless).
     const inputTokens = Math.ceil((STORY_SCRIPT_SYSTEM_PROMPT.length + userPrompt.length) / 4);
     const outputTokens = Math.ceil(text.length / 4);
-    await serviceClient.from("mkt_usage_logs").insert({
-      user_id: user.id,
-      api_service: "gemini",
-      model: MODELS.GEMINI_FLASH,
-      operation: "story_script",
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      estimated_cost_usd:
-        (inputTokens / 1_000_000) * COST_ESTIMATES.gemini_flash_per_1m_input +
-        (outputTokens / 1_000_000) * COST_ESTIMATES.gemini_flash_per_1m_output,
-    });
+    const { error: usageLogError } = await serviceClient
+      .from("mkt_usage_logs")
+      .insert({
+        user_id: user.id,
+        api_service: "gemini",
+        model: MODELS.GEMINI_FLASH,
+        operation: "story_script",
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        estimated_cost_usd:
+          (inputTokens / 1_000_000) * COST_ESTIMATES.gemini_flash_per_1m_input +
+          (outputTokens / 1_000_000) * COST_ESTIMATES.gemini_flash_per_1m_output,
+      });
+
+    if (usageLogError) {
+      console.error(
+        "[stories] usage_logs insert failed — budget tracking drift risk:",
+        usageLogError,
+        "user:",
+        user.id,
+        "story:",
+        storyRow.id
+      );
+    }
 
     return NextResponse.json({ story: storyRow, script });
   } catch (error) {

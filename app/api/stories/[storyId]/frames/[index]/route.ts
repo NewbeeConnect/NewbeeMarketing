@@ -29,13 +29,7 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
     const rl = await checkRateLimit(serviceClient, user.id, "ai-media");
     if (!rl.allowed) return rateLimitResponse(rl);
 
-    const estimatedCost =
-      COST_ESTIMATES.imagen_standard_per_image; // Imagen standard by default for quality
-    const budget = await checkBudget(serviceClient, user.id, estimatedCost);
-    if (!budget.allowed) {
-      return NextResponse.json({ error: budget.error }, { status: 429 });
-    }
-
+    // Fetch story first so the budget/cost estimate knows which model tier to use
     const { data: story, error: storyError } = await serviceClient
       .from("mkt_stories")
       .select("id, user_id, aspect_ratio, frame_prompts, style_anchor, model_tier")
@@ -47,6 +41,17 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Story not found" }, { status: 404 });
     }
 
+    const useFastModel = story.model_tier === "fast";
+    const model = useFastModel ? MODELS.IMAGEN_FAST : MODELS.IMAGEN;
+    const costPerImage = useFastModel
+      ? COST_ESTIMATES.imagen_fast_per_image
+      : COST_ESTIMATES.imagen_standard_per_image;
+
+    const budget = await checkBudget(serviceClient, user.id, costPerImage);
+    if (!budget.allowed) {
+      return NextResponse.json({ error: budget.error }, { status: 429 });
+    }
+
     const framePrompts = (story.frame_prompts ?? {}) as Record<string, string>;
     const framePrompt = framePrompts[String(index)];
     if (!framePrompt) {
@@ -56,40 +61,36 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
       );
     }
 
-    const useFastModel = story.model_tier === "fast";
-    const model = useFastModel ? MODELS.IMAGEN_FAST : MODELS.IMAGEN;
-    const costPerImage = useFastModel
-      ? COST_ESTIMATES.imagen_fast_per_image
-      : COST_ESTIMATES.imagen_standard_per_image;
-
     const styleAnchor = story.style_anchor ?? "";
     const finalPrompt = styleAnchor
       ? `${styleAnchor}\n\n${framePrompt}`
       : framePrompt;
 
-    // Supersede any previous frame at this index so regenerate replaces cleanly
-    await serviceClient
-      .from("mkt_generations")
-      .delete()
-      .eq("story_id", storyId)
-      .eq("story_role", "frame")
-      .eq("sequence_index", index);
-
+    // Upsert on (story_id, story_role, sequence_index) — migration 014 added the
+    // partial unique index that makes regenerate race-free (no delete-then-insert).
     const { data: generationData, error: genInsertError } = await serviceClient
       .from("mkt_generations")
-      .insert({
-        story_id: storyId,
-        story_role: "frame",
-        sequence_index: index,
-        type: "image",
-        prompt: finalPrompt,
-        model,
-        aspect_ratio: story.aspect_ratio,
-        config: { aspect_ratio: story.aspect_ratio, purpose: "story_frame" },
-        status: "processing",
-        estimated_cost_usd: costPerImage,
-        started_at: new Date().toISOString(),
-      })
+      .upsert(
+        {
+          story_id: storyId,
+          story_role: "frame",
+          sequence_index: index,
+          type: "image",
+          prompt: finalPrompt,
+          model,
+          aspect_ratio: story.aspect_ratio,
+          config: { aspect_ratio: story.aspect_ratio, purpose: "story_frame" },
+          status: "processing",
+          estimated_cost_usd: costPerImage,
+          actual_cost_usd: null,
+          output_url: null,
+          error_message: null,
+          retry_count: 0,
+          started_at: new Date().toISOString(),
+          completed_at: null,
+        },
+        { onConflict: "story_id,story_role,sequence_index" }
+      )
       .select("id")
       .single();
 

@@ -118,23 +118,25 @@ export default function GeneratePage() {
   }
 
   async function handleGenerateAllFrames() {
-    for (const index of [1, 2, 3, 4, 5]) {
-      try {
-        await frameMut.mutateAsync(index);
-      } catch {
-        toast.error(`Frame ${index} başarısız — devam ediliyor`);
+    const results = await Promise.allSettled(
+      [1, 2, 3, 4, 5].map((index) => frameMut.mutateAsync(index))
+    );
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        toast.error(`Frame ${i + 1} başarısız`);
       }
-    }
+    });
   }
 
   async function handleGenerateAllClips() {
-    for (const index of [1, 2, 3, 4]) {
-      try {
-        await clipMut.mutateAsync(index);
-      } catch {
-        toast.error(`Clip ${index} başlatılamadı — devam ediliyor`);
+    const results = await Promise.allSettled(
+      [1, 2, 3, 4].map((index) => clipMut.mutateAsync(index))
+    );
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        toast.error(`Clip ${i + 1} başlatılamadı`);
       }
-    }
+    });
   }
 
   async function handleStitch() {

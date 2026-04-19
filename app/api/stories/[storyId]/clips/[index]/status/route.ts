@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer, createServiceClient } from "@/lib/supabase/server";
 import { ai, COST_ESTIMATES } from "@/lib/google-ai";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { GenerateVideosOperation } from "@google/genai";
 
 type RouteContext = { params: Promise<{ storyId: string; index: string }> };
 
 const MAX_GENERATION_TIME_MS = 15 * 60 * 1000;
+const MAX_DOWNLOAD_RETRIES = 5;
 
 export async function GET(_request: NextRequest, { params }: RouteContext) {
   try {
@@ -23,6 +25,11 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     }
 
     const serviceClient = createServiceClient();
+
+    // Cheap rate-limit: polling is called every few seconds per in-flight clip.
+    // `api-general` = 60/min which is plenty for legitimate UI polling.
+    const rl = await checkRateLimit(serviceClient, user.id, "api-general");
+    if (!rl.allowed) return rateLimitResponse(rl);
 
     const { data: storyRow } = await serviceClient
       .from("mkt_stories")
@@ -152,16 +159,39 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       });
     }
 
-    // Download from Veo + upload to Supabase
+    // Download from Veo + upload to Supabase, with retry cap so the client
+    // doesn't poll forever if the Veo URI is expired (2-day retention) or
+    // permanently unreachable.
     const apiKey = process.env.GOOGLE_API_KEY;
     const videoResponse = await fetch(videoUri, {
       headers: apiKey ? { "x-goog-api-key": apiKey } : {},
     });
     if (!videoResponse.ok) {
+      const retryCount = (generation.retry_count ?? 0) + 1;
+      if (retryCount >= MAX_DOWNLOAD_RETRIES) {
+        await serviceClient
+          .from("mkt_generations")
+          .update({
+            status: "failed",
+            error_message: `Veo download failed (${videoResponse.status}) after ${MAX_DOWNLOAD_RETRIES} attempts`,
+            retry_count: retryCount,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", generation.id);
+        return NextResponse.json({
+          generationId: generation.id,
+          status: "failed",
+          errorMessage: `Download failed ${MAX_DOWNLOAD_RETRIES} times`,
+        });
+      }
+      await serviceClient
+        .from("mkt_generations")
+        .update({ retry_count: retryCount })
+        .eq("id", generation.id);
       return NextResponse.json({
         generationId: generation.id,
         status: "processing",
-        warning: `Download failed (${videoResponse.status}) — will retry`,
+        warning: `Download failed (${videoResponse.status}) — retry ${retryCount}/${MAX_DOWNLOAD_RETRIES}`,
       });
     }
 
@@ -176,10 +206,31 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       });
 
     if (uploadError) {
+      const retryCount = (generation.retry_count ?? 0) + 1;
+      if (retryCount >= MAX_DOWNLOAD_RETRIES) {
+        await serviceClient
+          .from("mkt_generations")
+          .update({
+            status: "failed",
+            error_message: `Storage upload failed after ${MAX_DOWNLOAD_RETRIES} attempts: ${uploadError.message}`,
+            retry_count: retryCount,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", generation.id);
+        return NextResponse.json({
+          generationId: generation.id,
+          status: "failed",
+          errorMessage: uploadError.message,
+        });
+      }
+      await serviceClient
+        .from("mkt_generations")
+        .update({ retry_count: retryCount })
+        .eq("id", generation.id);
       return NextResponse.json({
         generationId: generation.id,
         status: "processing",
-        warning: `Upload failed: ${uploadError.message}`,
+        warning: `Upload failed (retry ${retryCount}/${MAX_DOWNLOAD_RETRIES}): ${uploadError.message}`,
       });
     }
 

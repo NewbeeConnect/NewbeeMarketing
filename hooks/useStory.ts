@@ -37,13 +37,29 @@ export type StoryBundle = {
   stitched: StoryGeneration | null;
 };
 
+/**
+ * Best-effort parser for API error responses. If the body is JSON with an
+ * `error` field, uses that; otherwise truncates the text so users aren't
+ * shown a full HTML 500 page.
+ */
+async function readApiError(res: Response): Promise<string> {
+  const text = await res.text();
+  try {
+    const body = JSON.parse(text) as { error?: unknown };
+    if (typeof body.error === "string") return body.error;
+  } catch {
+    // not JSON — fall through
+  }
+  return text.length > 200 ? `${text.slice(0, 200)}…` : text;
+}
+
 export function useStory(storyId: string | null) {
   return useQuery<StoryBundle>({
     queryKey: ["story", storyId],
     enabled: !!storyId,
     queryFn: async () => {
       const res = await fetch(`/api/stories/${storyId}`);
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(await readApiError(res));
       return (await res.json()) as StoryBundle;
     },
     refetchInterval: (query) => {
@@ -52,7 +68,7 @@ export function useStory(storyId: string | null) {
       const anyProcessing = [...data.frames, ...data.clips].some(
         (g) => g.status === "processing" || g.status === "pending"
       );
-      return anyProcessing ? 4000 : false;
+      return anyProcessing ? 8000 : false;
     },
   });
 }
@@ -71,7 +87,7 @@ export function useCreateStory() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(await readApiError(res));
       return (await res.json()) as { story: StoryRow };
     },
     onSuccess: (data) => {
@@ -93,7 +109,7 @@ export function useUpdateStory(storyId: string) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(await readApiError(res));
       return (await res.json()) as { story: StoryRow };
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["story", storyId] }),
@@ -107,7 +123,7 @@ export function useGenerateFrame(storyId: string) {
       const res = await fetch(`/api/stories/${storyId}/frames/${index}`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(await readApiError(res));
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["story", storyId] }),
@@ -121,7 +137,7 @@ export function useGenerateClip(storyId: string) {
       const res = await fetch(`/api/stories/${storyId}/clips/${index}`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(await readApiError(res));
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["story", storyId] }),
@@ -135,7 +151,7 @@ export function useStitchStory(storyId: string) {
       const res = await fetch(`/api/stories/${storyId}/stitch`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(await readApiError(res));
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["story", storyId] }),

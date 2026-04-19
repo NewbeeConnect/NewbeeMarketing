@@ -55,12 +55,46 @@ export async function stitchVideos(videoBuffers: Buffer[]): Promise<Buffer> {
       });
       proc.on("error", reject);
       proc.on("close", (code) => {
-        if (code === 0) resolve();
-        else reject(new Error(`ffmpeg exited ${code}: ${stderr.slice(-500)}`));
+        if (code !== 0) {
+          return reject(new Error(`ffmpeg exited ${code}: ${stderr.slice(-500)}`));
+        }
+        // Concat-demuxer tends to emit these lines as warnings rather than
+        // errors when clips don't match exactly (codec/fps/resolution mismatch).
+        // Fail loudly so the caller reports a clear message instead of shipping
+        // a silently-broken mp4.
+        const warnings = [
+          "Non-monotonous DTS",
+          "Non-monotonic DTS",
+          "DTS out of order",
+          "Timestamps are unset",
+          "Could not find codec parameters",
+        ];
+        const triggered = warnings.find((w) => stderr.includes(w));
+        if (triggered) {
+          return reject(
+            new Error(
+              `ffmpeg concat warning treated as error: "${triggered}". Clips likely have mismatched codec/fps/resolution. stderr tail: ${stderr.slice(-500)}`
+            )
+          );
+        }
+        resolve();
       });
     });
 
-    return readFileSync(outputPath);
+    const output = readFileSync(outputPath);
+
+    // Sanity: concatenated file should be at least ~80% of the sum of inputs.
+    // Anything smaller means ffmpeg truncated silently.
+    const expectedMin = Math.floor(
+      videoBuffers.reduce((s, b) => s + b.byteLength, 0) * 0.8
+    );
+    if (output.byteLength < expectedMin) {
+      throw new Error(
+        `ffmpeg output is suspiciously small (${output.byteLength} bytes vs ${expectedMin} min) — concat likely failed partway`
+      );
+    }
+
+    return output;
   } finally {
     try {
       rmSync(workDir, { recursive: true, force: true });

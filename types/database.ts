@@ -57,18 +57,12 @@ export type Database = {
           error_message: string | null
           estimated_cost_usd: number | null
           id: string
-          language: string | null
           model: string
           operation_name: string | null
-          optimization_rationale: string | null
           output_metadata: Json | null
           output_url: string | null
-          parent_generation_id: string | null
-          platform: string | null
-          project_id: string | null
           prompt: string
           retry_count: number | null
-          scene_id: string | null
           sequence_index: number | null
           started_at: string | null
           status: string
@@ -86,18 +80,12 @@ export type Database = {
           error_message?: string | null
           estimated_cost_usd?: number | null
           id?: string
-          language?: string | null
           model: string
           operation_name?: string | null
-          optimization_rationale?: string | null
           output_metadata?: Json | null
           output_url?: string | null
-          parent_generation_id?: string | null
-          platform?: string | null
-          project_id?: string | null
           prompt: string
           retry_count?: number | null
-          scene_id?: string | null
           sequence_index?: number | null
           started_at?: string | null
           status?: string
@@ -115,18 +103,12 @@ export type Database = {
           error_message?: string | null
           estimated_cost_usd?: number | null
           id?: string
-          language?: string | null
           model?: string
           operation_name?: string | null
-          optimization_rationale?: string | null
           output_metadata?: Json | null
           output_url?: string | null
-          parent_generation_id?: string | null
-          platform?: string | null
-          project_id?: string | null
           prompt?: string
           retry_count?: number | null
-          scene_id?: string | null
           sequence_index?: number | null
           started_at?: string | null
           status?: string
@@ -136,13 +118,6 @@ export type Database = {
           type?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "mkt_generations_parent_generation_id_fkey"
-            columns: ["parent_generation_id"]
-            isOneToOne: false
-            referencedRelation: "mkt_generations"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "mkt_generations_story_id_fkey"
             columns: ["story_id"]
@@ -184,42 +159,6 @@ export type Database = {
           reference_type?: string | null
           title?: string
           type?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      mkt_performance_analyses: {
-        Row: {
-          analysis: Json
-          campaign_id: string | null
-          created_at: string | null
-          date_range_end: string
-          date_range_start: string
-          deployment_id: string | null
-          id: string
-          model: string
-          user_id: string
-        }
-        Insert: {
-          analysis: Json
-          campaign_id?: string | null
-          created_at?: string | null
-          date_range_end: string
-          date_range_start: string
-          deployment_id?: string | null
-          id?: string
-          model: string
-          user_id: string
-        }
-        Update: {
-          analysis?: Json
-          campaign_id?: string | null
-          created_at?: string | null
-          date_range_end?: string
-          date_range_start?: string
-          deployment_id?: string | null
-          id?: string
-          model?: string
           user_id?: string
         }
         Relationships: []

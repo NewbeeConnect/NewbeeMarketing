@@ -109,34 +109,37 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
       fetchStorageImageAsBase64(lastFrame.output_url),
     ]);
 
-    // Replace any existing clip at this index
-    await serviceClient
-      .from("mkt_generations")
-      .delete()
-      .eq("story_id", storyId)
-      .eq("story_role", "clip")
-      .eq("sequence_index", index);
-
+    // Upsert on (story_id, story_role, sequence_index) — migration 014 added the
+    // partial unique index that makes regenerate race-free.
     const { data: generationData, error: genInsertError } = await serviceClient
       .from("mkt_generations")
-      .insert({
-        story_id: storyId,
-        story_role: "clip",
-        sequence_index: index,
-        type: "video",
-        prompt,
-        model,
-        aspect_ratio: story.aspect_ratio,
-        config: {
-          duration_seconds: durationSeconds,
+      .upsert(
+        {
+          story_id: storyId,
+          story_role: "clip",
+          sequence_index: index,
+          type: "video",
+          prompt,
+          model,
           aspect_ratio: story.aspect_ratio,
-          first_frame_generation_id: firstFrame.sequence_index,
-          last_frame_generation_id: lastFrame.sequence_index,
+          config: {
+            duration_seconds: durationSeconds,
+            aspect_ratio: story.aspect_ratio,
+            first_frame_generation_id: firstFrame.sequence_index,
+            last_frame_generation_id: lastFrame.sequence_index,
+          },
+          status: "pending",
+          estimated_cost_usd: estimatedCost,
+          actual_cost_usd: null,
+          output_url: null,
+          operation_name: null,
+          error_message: null,
+          retry_count: 0,
+          started_at: new Date().toISOString(),
+          completed_at: null,
         },
-        status: "pending",
-        estimated_cost_usd: estimatedCost,
-        started_at: new Date().toISOString(),
-      })
+        { onConflict: "story_id,story_role,sequence_index" }
+      )
       .select("id")
       .single();
 
@@ -151,7 +154,7 @@ export async function POST(_request: NextRequest, { params }: RouteContext) {
         prompt,
         image: { imageBytes: firstImg.imageBytes, mimeType: firstImg.mimeType },
         config: {
-          aspectRatio: story.aspect_ratio === "1:1" ? "9:16" : story.aspect_ratio,
+          aspectRatio: story.aspect_ratio,
           numberOfVideos: 1,
           durationSeconds,
           resolution: "720p",
