@@ -8,6 +8,7 @@ import {
   FolderOpen,
   RefreshCw,
   RotateCcw,
+  Video as VideoIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -42,6 +43,8 @@ export function CompletionCard({
   onCreateVariant,
   onStartOver,
   onExtendVideo,
+  onAnimateImage,
+  extendStale,
 }: {
   intent: Intent;
   project: ProjectSlug;
@@ -56,6 +59,18 @@ export function CompletionCard({
    * last frame.
    */
   onExtendVideo?: () => void;
+  /**
+   * Provided for image-only completions (image intent, or pipeline stopped
+   * at image) — starts a video stage using this image as first frame without
+   * re-running the brief.
+   */
+  onAnimateImage?: () => void;
+  /**
+   * When true, the extend action is shown but visually demoted — Veo's URI
+   * retention window has likely expired. The backend will still give a clear
+   * error if it really is stale.
+   */
+  extendStale?: boolean;
 }) {
   const [resetOpen, setResetOpen] = useState(false);
   const projectMeta = PROJECTS.find((p) => p.slug === project)!;
@@ -107,14 +122,32 @@ export function CompletionCard({
 
         {/* Next actions */}
         <div className="flex flex-wrap gap-2 pt-2">
+          {onAnimateImage && imageUrl && !videoUrl && (
+            <Button onClick={onAnimateImage}>
+              <VideoIcon className="h-3.5 w-3.5 mr-1.5" />
+              Animate this image
+            </Button>
+          )}
           {onExtendVideo && videoUrl && (
-            <Button onClick={onExtendVideo}>
+            <Button
+              onClick={onExtendVideo}
+              variant={extendStale ? "outline" : "default"}
+              title={
+                extendStale
+                  ? "This video may be past Veo's 2-day retention — extension might fail."
+                  : undefined
+              }
+            >
               <FastForward className="h-3.5 w-3.5 mr-1.5" />
-              Extend this video
+              {extendStale ? "Try to extend" : "Extend this video"}
             </Button>
           )}
           <Button
-            variant={onExtendVideo && videoUrl ? "outline" : "default"}
+            variant={
+              (onExtendVideo && videoUrl) || (onAnimateImage && imageUrl && !videoUrl)
+                ? "outline"
+                : "default"
+            }
             onClick={onCreateVariant}
           >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
@@ -132,8 +165,12 @@ export function CompletionCard({
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          {onExtendVideo && videoUrl
-            ? "Extend continues from the last frame of this clip (available for ~2 days after render)."
+          {onAnimateImage && imageUrl && !videoUrl
+            ? "Animate turns this image into a 4–8 second clip — no need to re-write the brief."
+            : onExtendVideo && videoUrl
+            ? extendStale
+              ? "Heads up: extension relies on a short retention window (~2 days). This video may be past it."
+              : "Extend continues from the last frame of this clip (available for ~2 days after render)."
             : COPY.completion.variantHint}
         </p>
       </Card>

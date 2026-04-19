@@ -92,25 +92,50 @@ export function IntentPicker({
 }
 
 /**
- * Compact pill once the user has an intent. Clicking "Change" opens an
- * AlertDialog warning about data loss before firing onChange.
+ * Compact pill once the user has an intent. Shows a row of 3 small intent
+ * buttons — clicking a *different* one is a "soft switch": brief + blueprints
+ * kept, only downstream outputs cleared (no confirm dialog, lossless). The
+ * "Start over" button hard-resets everything (with confirm).
  */
 export function IntentPill({
   intent,
+  onSwitch,
   onChange,
 }: {
   intent: Intent;
+  /** Soft switch — preserves brief + blueprints, clears outputs. */
+  onSwitch: (next: Intent) => void;
+  /** Hard reset — clears everything including brief. */
   onChange: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const meta = INTENT_META[intent];
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium bg-muted/40">
-          <span className="text-primary">{meta.icon}</span>
-          <span>{intentLabel(intent)}</span>
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-0.5 rounded-full border p-0.5 bg-muted/40">
+          {(["image", "video", "pipeline"] as const).map((i) => {
+            const meta = INTENT_META[i];
+            const isActive = i === intent;
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => !isActive && onSwitch(i)}
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  isActive
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                aria-pressed={isActive}
+              >
+                <span className={isActive ? "text-primary" : ""}>
+                  {meta.icon}
+                </span>
+                <span>{intentLabel(i)}</span>
+              </button>
+            );
+          })}
         </div>
         <Button
           variant="ghost"

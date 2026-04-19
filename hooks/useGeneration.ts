@@ -47,6 +47,8 @@ export function useSuggestBrief() {
       ratio: string;
       /** Name of the highlight from the previous roll — Gemini avoids it this time. */
       avoidHighlight?: string;
+      /** When extending a video, the parent clip's brief so Gemini continues the story. */
+      extendFromBrief?: string;
     }) => {
       const res = await fetch("/api/generate/suggest-brief", {
         method: "POST",
@@ -65,6 +67,9 @@ export function useSuggestBrief() {
 /**
  * POST /api/generate/prompt — brief → structured fields (AI fills what each
  * model needs; user edits any field before assembling).
+ *
+ * Partial regen: pass `existingFields` + `regenerateFields` (subset of keys)
+ * to refresh only those fields while keeping the rest verbatim.
  */
 export function useGeneratePromptBlueprint() {
   return useMutation({
@@ -73,6 +78,8 @@ export function useGeneratePromptBlueprint() {
       target: "image" | "video";
       ratio: string;
       brief: string;
+      existingFields?: Record<string, string>;
+      regenerateFields?: string[];
     }) => {
       const res = await fetch("/api/generate/prompt", {
         method: "POST",
@@ -149,8 +156,20 @@ export type ReferenceImageInput = {
   mimeType: string;
 };
 
+export type AssetKind = "app_ui" | "logo" | "product_photo" | "other";
+
+export type LockedAssetInput = {
+  imageBytes: string; // base64
+  mimeType: string;
+  kind: AssetKind;
+};
+
 /**
  * POST /api/generate/image — synchronous. Returns the completed row.
+ *
+ * `lockedAssets` are "preserve this pixel-faithfully" references (app
+ * screenshots, logos, product photos). The server appends strict fidelity
+ * instructions to the prompt so Nano Banana doesn't hallucinate variations.
  */
 export function useGenerateImage() {
   const qc = useQueryClient();
@@ -160,6 +179,7 @@ export function useGenerateImage() {
       ratio: ImageRatio;
       prompt: string;
       referenceImages?: ReferenceImageInput[];
+      lockedAssets?: LockedAssetInput[];
     }) => {
       const res = await fetch("/api/generate/image", {
         method: "POST",
@@ -201,6 +221,12 @@ export function useGenerateVideo() {
       referenceImages?: ReferenceImageInput[];
       /** If set, Veo extends from this existing video's last frame. */
       sourceGenerationId?: string;
+      /**
+       * Asset kinds already baked into the first-frame image (pipeline flow).
+       * Server appends "keep the UI/logo/product static" instructions so Veo
+       * doesn't animate or hallucinate them during the clip.
+       */
+      lockedAssetKinds?: AssetKind[];
     }) => {
       const res = await fetch("/api/generate/video", {
         method: "POST",
@@ -219,6 +245,30 @@ export function useGenerateVideo() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["library"] });
+    },
+  });
+}
+
+/**
+ * GET /api/library?project=X&type=image&ratio=R — list user's completed
+ * images matching a project/ratio. Used by the library picker in image stage.
+ */
+export function useLibraryImages(input: {
+  project: ProjectSlug;
+  ratio?: ImageRatio;
+  enabled?: boolean;
+}) {
+  const { project, ratio, enabled = true } = input;
+  return useQuery({
+    queryKey: ["library", "images", project, ratio ?? "all"],
+    enabled,
+    queryFn: async () => {
+      const params = new URLSearchParams({ project, type: "image" });
+      if (ratio) params.set("ratio", ratio);
+      const res = await fetch(`/api/library?${params}`);
+      if (!res.ok) throw new Error(await readApiError(res));
+      const { items } = (await res.json()) as { items: GenerationRow[] };
+      return items.filter((i) => i.status === "completed" && i.output_url);
     },
   });
 }

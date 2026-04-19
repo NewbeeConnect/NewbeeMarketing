@@ -19,6 +19,46 @@ import { buildFilename, buildStoragePath } from "@/lib/filename";
  * `lastFrame`, and `video` — so no firstFrame/keyframe control in this path.
  */
 
+const assetKindSchema = z.enum([
+  "app_ui",
+  "logo",
+  "product_photo",
+  "other",
+]);
+
+/**
+ * Veo 3.1 can't "read" the asset pixels at inference time the way Nano Banana
+ * can (its referenceImages are loose subject hints, not pixel-source). In the
+ * pipeline flow, the assets are already baked into the first-frame image by
+ * stage 2, so the only job of these instructions is to tell Veo NOT to animate
+ * or mutate them. Appended to the prompt, one sentence per asset kind.
+ */
+const VIDEO_LOCK_INSTRUCTIONS: Record<z.infer<typeof assetKindSchema>, string> = {
+  app_ui:
+    "Any mobile-app UI visible in the first frame must stay pixel-static for the entire clip: buttons, labels, icons, colors, spacing, and layout identical to the first frame. Do not animate, re-letter, re-layout, or invent new UI elements.",
+  logo:
+    "Any brand logo visible in the first frame must keep its exact shape, proportions, colors, and typography for the entire clip. No morphing, no distortion, no rotation that redraws it.",
+  product_photo:
+    "The product visible in the first frame must keep its exact shape, colors, materials, and proportions. Do not invent details, textures, or geometry that weren't in the first frame.",
+  other:
+    "Treat the subject(s) from the first frame as authoritative — keep them visually faithful across the clip.",
+};
+
+function buildVideoLockInstructions(
+  kinds: z.infer<typeof assetKindSchema>[]
+): string {
+  if (!kinds.length) return "";
+  const unique = Array.from(new Set(kinds));
+  const lines: string[] = [
+    "\n\nSTRICT VISUAL FIDELITY — the first frame contains user-provided assets that must NOT be altered during the clip:",
+  ];
+  for (const kind of unique) lines.push(`- ${VIDEO_LOCK_INSTRUCTIONS[kind]}`);
+  lines.push(
+    "The camera and ambient environment may move cinematically, but the assets above remain visually identical to the first frame."
+  );
+  return lines.join("\n");
+}
+
 const bodySchema = z
   .object({
     project: z.enum(PROJECT_SLUGS as [string, ...string[]]),
@@ -44,6 +84,14 @@ const bodySchema = z
       .max(3)
       .optional(),
     sourceGenerationId: z.string().uuid().optional(),
+    /**
+     * Assets the prompt is instructed to preserve pixel-faithfully. In the
+     * pipeline flow, these were already baked into the first-frame image, so
+     * we only need to append text instructions reminding Veo to keep them
+     * still. For standalone video intent we also append refs when no
+     * firstFrame exists.
+     */
+    lockedAssetKinds: z.array(assetKindSchema).max(3).optional(),
   })
   .refine(
     (v) => {
@@ -92,7 +140,14 @@ export async function POST(request: NextRequest) {
       referenceImages,
       firstFrameUrl,
       sourceGenerationId,
+      lockedAssetKinds,
     } = parsed.data;
+
+    // Append asset-lock instructions BEFORE we call Veo. Works in all three
+    // input modes (firstFrame / references / extend) — it's just text.
+    const finalPrompt = lockedAssetKinds?.length
+      ? `${prompt}${buildVideoLockInstructions(lockedAssetKinds)}`
+      : prompt;
 
     // If this is an extension request, resolve the source Veo URI. It was
     // persisted in mkt_generations.output_metadata.veo_video_uri by the status
@@ -203,7 +258,7 @@ export async function POST(request: NextRequest) {
 
       const operation = await ai.models.generateVideos({
         model: MODELS.VEO,
-        prompt,
+        prompt: finalPrompt,
         ...(firstFrameImage && { image: firstFrameImage }),
         ...(extendFromVeoUri && { video: { uri: extendFromVeoUri } }),
         config: {

@@ -16,13 +16,19 @@ import { buildFilename, buildStoragePath } from "@/lib/filename";
  * row into `mkt_generations`.
  */
 
+const assetKindSchema = z.enum([
+  "app_ui",
+  "logo",
+  "product_photo",
+  "other",
+]);
+
 const bodySchema = z.object({
   project: z.enum(PROJECT_SLUGS as [string, ...string[]]),
   ratio: z.enum(IMAGE_RATIOS as readonly [string, ...string[]]),
-  prompt: z.string().min(3).max(2000),
+  prompt: z.string().min(3).max(4000),
   /**
-   * 1–3 base64-encoded images with mimeType. Cap each at ~5 MB encoded
-   * (≈3.75 MB raw) so we don't blow up the request body / AI payload.
+   * Generic reference images — style/subject hints, loose fidelity.
    */
   referenceImages: z
     .array(
@@ -33,7 +39,54 @@ const bodySchema = z.object({
     )
     .max(3)
     .optional(),
+  /**
+   * "Locked" assets — the model is explicitly instructed in the prompt to
+   * reproduce these faithfully (no UI hallucination on screenshots, no
+   * logo distortion, no product mutation).
+   */
+  lockedAssets: z
+    .array(
+      z.object({
+        imageBytes: z.string().min(1).max(5_500_000),
+        mimeType: z.string().regex(/^image\//),
+        kind: assetKindSchema,
+      })
+    )
+    .max(3)
+    .optional(),
 });
+
+const LOCK_INSTRUCTIONS: Record<z.infer<typeof assetKindSchema>, string> = {
+  app_ui:
+    "Reproduce this mobile-app UI pixel-for-pixel — do not invent, re-letter, or relayout any on-screen element. Keep icons, type, colors, and spacing identical to the reference.",
+  logo:
+    "Reproduce this brand logo at correct proportions, colors, and typography. Do not redraw or distort it.",
+  product_photo:
+    "Preserve the product's real shape, colors, materials, and proportions. Do not invent details that aren't in the reference.",
+  other:
+    "Treat this reference as the authoritative source for the subject it depicts — match it closely.",
+};
+
+function buildLockInstructions(
+  assets: { kind: z.infer<typeof assetKindSchema> }[]
+): string {
+  if (!assets.length) return "";
+  const byKind = new Map<string, number>();
+  for (const a of assets) byKind.set(a.kind, (byKind.get(a.kind) ?? 0) + 1);
+  const lines: string[] = [
+    "\n\nSTRICT REFERENCE HANDLING — the user has attached assets that MUST be reproduced faithfully:",
+  ];
+  for (const [kind, count] of byKind.entries()) {
+    const label = count > 1 ? `${count} images` : "image";
+    lines.push(
+      `- ${LOCK_INSTRUCTIONS[kind as keyof typeof LOCK_INSTRUCTIONS]} (${label})`
+    );
+  }
+  lines.push(
+    "Compose the rest of the scene generatively, but embed these assets exactly as provided."
+  );
+  return lines.join("\n");
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,7 +123,13 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { project, ratio, prompt, referenceImages } = parsed.data;
+    const { project, ratio, prompt, referenceImages, lockedAssets } = parsed.data;
+
+    // Append lock instructions to the user prompt so Gemini/Nano Banana treats
+    // locked assets as authoritative source material, not loose style refs.
+    const finalPrompt = lockedAssets?.length
+      ? `${prompt}${buildLockInstructions(lockedAssets)}`
+      : prompt;
 
     // 5) Pre-insert the row in "processing" so it shows up in the library
     // instantly (with a skeleton thumbnail). If anything fails below we'll
@@ -108,17 +167,25 @@ export async function POST(request: NextRequest) {
     const generationId = genRow.id as string;
 
     try {
-      // 6) Call Nano Banana 2. Reference images go into the same `parts` array
-      // as the text prompt — this is the multimodal pattern.
+      // 6) Call Nano Banana 2. Reference images + locked assets go as inline
+      // parts alongside the text prompt. Locked assets are sent AFTER
+      // references so the model weights them as "primary" material.
       const parts: Array<
         | { text: string }
         | { inlineData: { data: string; mimeType: string } }
-      > = [{ text: prompt }];
+      > = [{ text: finalPrompt }];
 
       if (referenceImages && referenceImages.length > 0) {
         for (const ref of referenceImages) {
           parts.push({
             inlineData: { data: ref.imageBytes, mimeType: ref.mimeType },
+          });
+        }
+      }
+      if (lockedAssets && lockedAssets.length > 0) {
+        for (const asset of lockedAssets) {
+          parts.push({
+            inlineData: { data: asset.imageBytes, mimeType: asset.mimeType },
           });
         }
       }

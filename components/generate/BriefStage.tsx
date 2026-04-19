@@ -72,6 +72,10 @@ export function BriefStage({
   onPipelineTabChange,
   onRollDice,
   diceLoading,
+  onRegenerateImageField,
+  onRegenerateVideoField,
+  regeneratingImageField,
+  regeneratingVideoField,
 }: {
   intent: Intent;
   project: ProjectSlug;
@@ -90,6 +94,10 @@ export function BriefStage({
   onPipelineTabChange: (t: "image" | "video") => void;
   onRollDice: () => void;
   diceLoading: boolean;
+  onRegenerateImageField?: (k: keyof ImagePromptFields & string) => void;
+  onRegenerateVideoField?: (k: keyof VideoPromptFields & string) => void;
+  regeneratingImageField?: (keyof ImagePromptFields & string) | null;
+  regeneratingVideoField?: (keyof VideoPromptFields & string) | null;
 }) {
   // Placeholder is project-aware: Newbee users should see Newbee examples,
   // Atelier Sayın users should see jewelry examples. Always matches the
@@ -143,6 +151,8 @@ export function BriefStage({
           onFillAI={onFillImage}
           aiLoading={aiLoading}
           ready={imageReady}
+          onRegenerateField={onRegenerateImageField}
+          regeneratingField={regeneratingImageField}
         />
       )}
 
@@ -156,6 +166,8 @@ export function BriefStage({
           onFillAI={onFillVideo}
           aiLoading={aiLoading}
           ready={videoReady}
+          onRegenerateField={onRegenerateVideoField}
+          regeneratingField={regeneratingVideoField}
         />
       )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Loader2, Sparkles } from "lucide-react";
+import { Check, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,10 +9,13 @@ import { COPY } from "@/lib/generate/copy";
 
 /**
  * Generic editor for a structured prompt blueprint. Each field shows a label
- * + hint + small input. "AI fill" button wraps the parent's onFillAI callback.
+ * + hint + small input. "AI fill" button regenerates the whole blueprint.
  *
- * Generics so the same component works for image and video blueprints, each
- * with their own field shape.
+ * When `onRegenerateField` is provided, each field also shows a tiny refresh
+ * button that asks the AI to rewrite *only that field* while keeping the
+ * rest as-is — cheaper and less disruptive than re-drafting the whole thing.
+ *
+ * Generics so the same component works for image and video blueprints.
  */
 export function FieldsEditor<T extends Record<string, string>>({
   title,
@@ -23,6 +26,8 @@ export function FieldsEditor<T extends Record<string, string>>({
   onFillAI,
   aiLoading,
   ready,
+  onRegenerateField,
+  regeneratingField,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -32,6 +37,12 @@ export function FieldsEditor<T extends Record<string, string>>({
   onFillAI: () => void;
   aiLoading: boolean;
   ready: boolean;
+  /**
+   * Optional — when provided, each field shows a small regenerate button that
+   * invokes this callback with just that field's key.
+   */
+  onRegenerateField?: (key: keyof T & string) => void;
+  regeneratingField?: (keyof T & string) | null;
 }) {
   return (
     <Card className="p-3 space-y-3 bg-muted/30">
@@ -62,22 +73,47 @@ export function FieldsEditor<T extends Record<string, string>>({
         </Button>
       </div>
       <div className="space-y-2">
-        {fieldList.map((f) => (
-          <div key={f.key} className="space-y-1">
-            <Label className="text-xs font-medium">
-              {f.label}
-              <span className="text-muted-foreground font-normal ml-1.5">
-                {f.hint}
-              </span>
-            </Label>
-            <Input
-              value={values[f.key] as string}
-              onChange={(e) => onChange(f.key, e.target.value)}
-              className="text-xs"
-              placeholder="…"
-            />
-          </div>
-        ))}
+        {fieldList.map((f) => {
+          const isFieldRegenerating = regeneratingField === f.key;
+          const canRegen =
+            !!onRegenerateField && (values[f.key] as string).trim().length > 0;
+          return (
+            <div key={f.key} className="space-y-1">
+              <Label className="text-xs font-medium">
+                {f.label}
+                <span className="text-muted-foreground font-normal ml-1.5">
+                  {f.hint}
+                </span>
+              </Label>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  value={values[f.key] as string}
+                  onChange={(e) => onChange(f.key, e.target.value)}
+                  className="text-xs flex-1"
+                  placeholder="…"
+                  disabled={isFieldRegenerating}
+                />
+                {canRegen && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRegenerateField?.(f.key)}
+                    disabled={aiLoading || isFieldRegenerating}
+                    className="h-8 w-8 p-0 shrink-0"
+                    title="Regenerate just this field"
+                  >
+                    {isFieldRegenerating ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </Card>
   );

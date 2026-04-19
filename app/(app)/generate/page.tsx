@@ -1,32 +1,49 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { ImageIcon, Video as VideoIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { IntentPicker, IntentPill } from "@/components/generate/IntentPicker";
-import { Stepper } from "@/components/generate/Stepper";
 import { ProjectRatioBar } from "@/components/generate/ProjectRatioBar";
 import { BriefStage } from "@/components/generate/BriefStage";
 import { ImageStage } from "@/components/generate/ImageStage";
 import { VideoStage } from "@/components/generate/VideoStage";
 import { PostImageGate } from "@/components/generate/PostImageGate";
 import { CompletionCard } from "@/components/generate/CompletionCard";
+import { TimelineStep } from "@/components/generate/TimelineStep";
+import {
+  AssembledPromptEditor,
+} from "@/components/generate/AssembledPromptEditor";
+import {
+  AssetLockEditor,
+  type LockedAsset,
+} from "@/components/generate/AssetLockEditor";
 
-import { type AnyRatio, type ProjectSlug } from "@/lib/projects";
+import { PROJECTS, type AnyRatio, type ProjectSlug } from "@/lib/projects";
 import {
   type Intent,
-  type Phase,
   asImageRatio,
   asVideoRatio,
   defaultRatioFor,
-  nextPhaseFor,
-  primaryActionFor,
+  intentLabel,
   ratiosFor,
 } from "@/lib/generate/machine";
+import {
+  type StepId,
+  type StepVisual,
+  stepsFor,
+} from "@/lib/generate/timeline";
 import { COPY } from "@/lib/generate/copy";
 import {
   useGenerateImage,
@@ -40,6 +57,7 @@ import {
   type ImagePromptFields,
   type VideoPromptFields,
   type ReferenceImageInput,
+  type LockedAssetInput,
 } from "@/hooks/useGeneration";
 
 // ─── Constants ────────────────────────────────────────────────────────
@@ -61,7 +79,7 @@ const EMPTY_VIDEO_FIELDS: VideoPromptFields = {
   audio: "",
 };
 
-async function fileToReferenceImage(file: File): Promise<ReferenceImageInput> {
+async function fileToBase64(file: File): Promise<{ imageBytes: string; mimeType: string }> {
   const arrayBuffer = await file.arrayBuffer();
   let binary = "";
   const bytes = new Uint8Array(arrayBuffer);
@@ -74,40 +92,84 @@ async function fileToReferenceImage(file: File): Promise<ReferenceImageInput> {
 export default function GeneratePage() {
   const qc = useQueryClient();
 
-  // Intent + phase drive everything
+  // Timeline: a sequence of steps that all stay on the page. Completed steps
+  // collapse to a summary; the active step is expanded. Edit on a completed
+  // step jumps the active pointer back. maxReachedIdx keeps downstream steps
+  // visible (as completed summaries) even after we jump back — so "scroll
+  // down to see what you did" always works.
   const [intent, setIntent] = useState<Intent | null>(null);
-  const [phase, setPhase] = useState<Phase>("intent");
+  const [activeStep, setActiveStep] = useState<StepId>("goal");
+  const [maxReachedIdx, setMaxReachedIdx] = useState(0);
+
+  const steps = useMemo(() => stepsFor(intent), [intent]);
+  const activeIdx = steps.indexOf(activeStep);
+
+  const visualFor = useCallback(
+    (step: StepId): StepVisual => {
+      const idx = steps.indexOf(step);
+      if (idx === -1) return "pending";
+      if (idx === activeIdx) return "active";
+      if (idx <= maxReachedIdx) return "completed";
+      return "pending";
+    },
+    [steps, activeIdx, maxReachedIdx]
+  );
+
+  const advanceTo = useCallback(
+    (next: StepId) => {
+      const idx = steps.indexOf(next);
+      if (idx === -1) return;
+      setActiveStep(next);
+      setMaxReachedIdx((m) => Math.max(m, idx));
+    },
+    [steps]
+  );
+
+  const editStep = useCallback((step: StepId) => {
+    setActiveStep(step);
+  }, []);
 
   // Shared selections
   const [project, setProject] = useState<ProjectSlug>("newbee");
   const [ratio, setRatio] = useState<AnyRatio>("9:16");
 
-  // Stage 1 state
+  // Brief state
   const [brief, setBrief] = useState("");
   const [imageFields, setImageFields] = useState<ImagePromptFields>(EMPTY_IMAGE_FIELDS);
   const [videoFields, setVideoFields] = useState<VideoPromptFields>(EMPTY_VIDEO_FIELDS);
   const [pipelineTab, setPipelineTab] = useState<"image" | "video">("image");
+  const [regeneratingImageField, setRegeneratingImageField] =
+    useState<(keyof ImagePromptFields & string) | null>(null);
+  const [regeneratingVideoField, setRegeneratingVideoField] =
+    useState<(keyof VideoPromptFields & string) | null>(null);
 
-  // Stage 2 state
+  // Assets the user wants preserved pixel-faithfully (UI screenshots, logos,
+  // product photos). Lives in the brief step but used by image + video.
+  const [lockedAssets, setLockedAssets] = useState<LockedAsset[]>([]);
+
+  // Assembled prompts — seeded from blueprint helpers, user-editable in the
+  // prompt step. Kept as separate strings so the pipeline intent can edit
+  // both in one step.
+  const [assembledImagePrompt, setAssembledImagePrompt] = useState("");
+  const [assembledVideoPrompt, setAssembledVideoPrompt] = useState("");
+
+  // Image stage
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  // Stage 3 state
+  // Video stage
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [durationSeconds, setDurationSeconds] = useState<4 | 6 | 8>(8);
-
-  // Video intent: reference images (up to 3, max 5MB each in the UI — API
-  // also rejects > 5.5MB base64).
   const [refFiles, setRefFiles] = useState<
     { file: File; preview: string }[]
   >([]);
 
-  // Extend-from-previous-video state. When set, the next Veo generation
-  // passes `sourceGenerationId` and Veo continues from that clip's last frame.
+  // Extension state (Veo continues from the last frame of this video)
   const [extendFromId, setExtendFromId] = useState<string | null>(null);
+  const [extendFromBriefText, setExtendFromBriefText] = useState<string | null>(
+    null
+  );
 
-  // Track the highlight Gemini picked on the last "Roll the dice" so the
-  // next roll avoids it — prevents two-in-a-row suggestions on the same
-  // feature when the user is actively hunting for variety.
+  // "Roll the dice" — track last highlight for variety on repeat rolls
   const [lastHighlight, setLastHighlight] = useState<string | null>(null);
 
   // ─── Mutations ────────────────────────────────────────────────────
@@ -119,7 +181,7 @@ export default function GeneratePage() {
   const videoStatus = useVideoStatus(activeVideoId);
 
   const videoDone =
-    videoStatus.data?.status === "completed" && videoStatus.data.outputUrl;
+    videoStatus.data?.status === "completed" && !!videoStatus.data.outputUrl;
   const videoProcessing =
     activeVideoId != null &&
     (videoStatus.data?.status === "processing" ||
@@ -127,6 +189,15 @@ export default function GeneratePage() {
       !videoStatus.data);
   const videoFailed = videoStatus.data?.status === "failed";
   const videoUrl = videoDone ? videoStatus.data?.outputUrl ?? null : null;
+
+  // When video completes, auto-advance activeStep to "done". Derived from
+  // polling status in useEffect so we don't setState during render.
+  useEffect(() => {
+    if (videoDone && activeStep === "video") {
+      setActiveStep("done");
+      setMaxReachedIdx((m) => Math.max(m, steps.indexOf("done")));
+    }
+  }, [videoDone, activeStep, steps]);
 
   const imageBlueprintReady = useMemo(
     () => Object.values(imageFields).every((v) => v.trim().length > 2),
@@ -147,75 +218,125 @@ export default function GeneratePage() {
   }, [intent, pipelineTab, imageBlueprintReady, videoBlueprintReady]);
 
   // ─── Intent handling ──────────────────────────────────────────────
-  const pickIntent = useCallback((i: Intent) => {
-    setIntent(i);
-    setPhase("brief");
-    // Snap ratio to a valid default for this intent
-    const options = ratiosFor(i);
-    setRatio((r) => ((options as readonly string[]).includes(r) ? r : defaultRatioFor(i)));
-  }, []);
+  const pickIntent = useCallback(
+    (i: Intent) => {
+      setIntent(i);
+      const options = ratiosFor(i);
+      setRatio((r) => ((options as readonly string[]).includes(r) ? r : defaultRatioFor(i)));
+      advanceTo("brief");
+    },
+    [advanceTo]
+  );
+
+  const switchIntent = useCallback(
+    (next: Intent) => {
+      if (intent === next) return;
+      // Soft switch: keep brief + blueprint + locked assets, clear downstream
+      if (activeVideoId) {
+        qc.removeQueries({ queryKey: ["video-status", activeVideoId] });
+      }
+      setIntent(next);
+      const options = ratiosFor(next);
+      setRatio((r) => ((options as readonly string[]).includes(r) ? r : defaultRatioFor(next)));
+      setImageUrl(null);
+      setActiveVideoId(null);
+      setExtendFromId(null);
+      setExtendFromBriefText(null);
+      refFiles.forEach((r) => URL.revokeObjectURL(r.preview));
+      setRefFiles([]);
+      setAssembledImagePrompt("");
+      setAssembledVideoPrompt("");
+      // Jump back to brief; drop any prior "reached" past brief.
+      const newSteps = stepsFor(next);
+      setActiveStep("brief");
+      setMaxReachedIdx(newSteps.indexOf("brief"));
+      toast.success(`Switched to ${intentLabel(next)} — brief kept.`);
+    },
+    [intent, activeVideoId, qc, refFiles]
+  );
 
   const resetAll = useCallback(() => {
-    // Clear video polling for the old id so we don't leak a query
     if (activeVideoId) {
       qc.removeQueries({ queryKey: ["video-status", activeVideoId] });
     }
     setIntent(null);
-    setPhase("intent");
+    setActiveStep("goal");
+    setMaxReachedIdx(0);
     setBrief("");
     setImageFields(EMPTY_IMAGE_FIELDS);
     setVideoFields(EMPTY_VIDEO_FIELDS);
     setImageUrl(null);
     setActiveVideoId(null);
     setExtendFromId(null);
+    setExtendFromBriefText(null);
     setLastHighlight(null);
     setPipelineTab("image");
-    // keep project + ratio as a user preference
+    setAssembledImagePrompt("");
+    setAssembledVideoPrompt("");
+    lockedAssets.forEach((a) => URL.revokeObjectURL(a.preview));
+    setLockedAssets([]);
     refFiles.forEach((r) => URL.revokeObjectURL(r.preview));
     setRefFiles([]);
-  }, [activeVideoId, qc, refFiles]);
+  }, [activeVideoId, qc, refFiles, lockedAssets]);
 
   const createVariant = useCallback(() => {
-    // Keep intent/brief/blueprint/project/ratio; clear outputs. Also clears
-    // any extend context so a variant is a fresh take on the same brief.
+    if (!intent) return;
     if (activeVideoId) {
       qc.removeQueries({ queryKey: ["video-status", activeVideoId] });
     }
     setImageUrl(null);
     setActiveVideoId(null);
     setExtendFromId(null);
-    if (intent) setPhase(intent === "pipeline" ? "image" : intent === "image" ? "image" : "video");
-  }, [intent, activeVideoId, qc]);
+    setExtendFromBriefText(null);
+    // Drop back to the first "making" step for this intent so user can re-run.
+    const target: StepId =
+      intent === "pipeline" ? "image" : intent === "image" ? "image" : "video";
+    setActiveStep(target);
+    setMaxReachedIdx(steps.indexOf(target));
+  }, [intent, activeVideoId, qc, steps]);
 
   /**
-   * Start a new cycle that extends from the current video's last frame.
-   * Works for both "video" and "pipeline" intents — they both produced a
-   * Veo video in `activeVideoId`. The flow is a "video" intent from here on:
-   * the user writes a fresh brief for the next beat, Veo continues the story.
+   * Extension: start a new video that continues from the current video's
+   * last frame. We keep the same intent="video" flow but pre-feed brief
+   * context so Gemini writes the next beat in the same story.
    */
   const extendVideo = useCallback(() => {
     if (!activeVideoId) return;
-    // Save the source id BEFORE we clear activeVideoId
     setExtendFromId(activeVideoId);
-    // Remove the stale polling query
+    setExtendFromBriefText(brief); // so next roll/draft continues the story
     qc.removeQueries({ queryKey: ["video-status", activeVideoId] });
-    // Reset outputs + blueprint + brief, keep project/ratio
     setImageUrl(null);
     setActiveVideoId(null);
     setBrief("");
     setVideoFields(EMPTY_VIDEO_FIELDS);
-    // Force into video intent (extension is always a video)
+    setAssembledVideoPrompt("");
     setIntent("video");
-    setPhase("brief");
+    const next = stepsFor("video");
+    setActiveStep("brief");
+    setMaxReachedIdx(next.indexOf("brief"));
     toast.success("Continuing from your last video — write the next beat.");
-  }, [activeVideoId, qc]);
+  }, [activeVideoId, brief, qc]);
 
-  // When intent changes and ratio is invalid, snap with toast
-  const handleRatioChange = useCallback((r: AnyRatio) => setRatio(r), []);
+  /**
+   * Animate-later: user is in "done" with only an image, decides to animate it
+   * now. Switch to pipeline intent, image stage is already "reached", user
+   * writes a fresh video brief in the brief step.
+   */
+  const animateImage = useCallback(() => {
+    if (!imageUrl) return;
+    setIntent("pipeline");
+    setActiveVideoId(null);
+    setVideoFields(EMPTY_VIDEO_FIELDS);
+    setBrief("");
+    setAssembledVideoPrompt("");
+    setPipelineTab("video");
+    const pipe = stepsFor("pipeline");
+    setActiveStep("brief");
+    setMaxReachedIdx(pipe.indexOf("brief"));
+    toast.info("Write the animation brief — your image is the first frame.");
+  }, [imageUrl]);
 
-  // Intent switch from ratio: no-op; ratio validity enforced by ProjectRatioBar options.
-
-  // ─── Stage 1 handlers ─────────────────────────────────────────────
+  // ─── Brief handlers ──────────────────────────────────────────────
   async function rollDice() {
     if (!intent) return;
     try {
@@ -224,6 +345,7 @@ export default function GeneratePage() {
         target: intent,
         ratio,
         avoidHighlight: lastHighlight ?? undefined,
+        extendFromBrief: extendFromBriefText ?? undefined,
       });
       setBrief(res.suggestion);
       setLastHighlight(res.pickedHighlight);
@@ -257,9 +379,88 @@ export default function GeneratePage() {
     }
   }
 
+  // Per-field regenerate — asks Gemini to rewrite only one field
+  async function regenerateImageField(key: keyof ImagePromptFields & string) {
+    if (!brief.trim()) {
+      toast.error(COPY.toasts.briefNeeded);
+      return;
+    }
+    setRegeneratingImageField(key);
+    try {
+      const res = await promptMut.mutateAsync({
+        project,
+        target: "image",
+        ratio,
+        brief: brief.trim(),
+        existingFields: imageFields,
+        regenerateFields: [key],
+      });
+      const fresh = (res.fields as ImagePromptFields)[key];
+      if (fresh && fresh.trim().length > 0) {
+        setImageFields((prev) => ({ ...prev, [key]: fresh }));
+        toast.success(`Regenerated ${key}.`);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Field regeneration failed");
+    } finally {
+      setRegeneratingImageField(null);
+    }
+  }
+  async function regenerateVideoField(key: keyof VideoPromptFields & string) {
+    if (!brief.trim()) {
+      toast.error(COPY.toasts.briefNeeded);
+      return;
+    }
+    setRegeneratingVideoField(key);
+    try {
+      const res = await promptMut.mutateAsync({
+        project,
+        target: "video",
+        ratio,
+        brief: brief.trim(),
+        existingFields: videoFields,
+        regenerateFields: [key],
+      });
+      const fresh = (res.fields as VideoPromptFields)[key];
+      if (fresh && fresh.trim().length > 0) {
+        setVideoFields((prev) => ({ ...prev, [key]: fresh }));
+        toast.success(`Regenerated ${key}.`);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Field regeneration failed");
+    } finally {
+      setRegeneratingVideoField(null);
+    }
+  }
+
+  // ─── Asset lock handlers ─────────────────────────────────────────
+  async function addLockedAsset(file: File, kind: LockedAsset["kind"]) {
+    if (lockedAssets.length >= 3) return;
+    if (!file.type.startsWith("image/")) return;
+    setLockedAssets((prev) => [
+      ...prev,
+      { file, preview: URL.createObjectURL(file), kind },
+    ]);
+  }
+  function removeLockedAsset(i: number) {
+    setLockedAssets((prev) => {
+      const next = [...prev];
+      URL.revokeObjectURL(next[i].preview);
+      next.splice(i, 1);
+      return next;
+    });
+  }
+  function changeLockedKind(i: number, kind: LockedAsset["kind"]) {
+    setLockedAssets((prev) => {
+      const next = [...prev];
+      next[i] = { ...next[i], kind };
+      return next;
+    });
+  }
+
+  // ─── Continue from brief ─────────────────────────────────────────
   function continueFromBrief() {
     if (!intent) return;
-    // Validate the blueprint(s) needed for this intent
     if (intent === "image" && !imageBlueprintReady) {
       toast.error(COPY.toasts.blueprintIncomplete);
       return;
@@ -274,23 +475,48 @@ export default function GeneratePage() {
       else setPipelineTab("video");
       return;
     }
-    const next = nextPhaseFor(intent, "brief");
-    if (next) setPhase(next);
+    // Seed assembled prompts from the blueprint helpers. User edits win.
+    if (intent === "image" || intent === "pipeline") {
+      setAssembledImagePrompt(assembleImagePrompt(imageFields));
+    }
+    if (intent === "video" || intent === "pipeline") {
+      setAssembledVideoPrompt(assembleVideoPrompt(videoFields));
+    }
+    advanceTo("prompt");
   }
 
-  // ─── Stage 2 handlers ─────────────────────────────────────────────
+  function rebuildImagePromptFromBlueprint() {
+    setAssembledImagePrompt(assembleImagePrompt(imageFields));
+    toast.success("Image prompt rebuilt from blueprint.");
+  }
+  function rebuildVideoPromptFromBlueprint() {
+    setAssembledVideoPrompt(assembleVideoPrompt(videoFields));
+    toast.success("Video prompt rebuilt from blueprint.");
+  }
+
+  function continueFromPrompt() {
+    if (!intent) return;
+    if (intent === "video") advanceTo("video");
+    else advanceTo("image");
+  }
+
+  // ─── Image handlers ──────────────────────────────────────────────
   async function handleGenerateImage() {
     if (!intent) return;
     try {
-      const prompt = assembleImagePrompt(imageFields);
+      const lockedPayload: LockedAssetInput[] = [];
+      for (const a of lockedAssets) {
+        const { imageBytes, mimeType } = await fileToBase64(a.file);
+        lockedPayload.push({ imageBytes, mimeType, kind: a.kind });
+      }
       const res = await imageMut.mutateAsync({
         project,
         ratio: asImageRatio(ratio),
-        prompt,
+        prompt: assembledImagePrompt || assembleImagePrompt(imageFields),
+        lockedAssets: lockedPayload.length ? lockedPayload : undefined,
       });
       setImageUrl(res.outputUrl);
-      const next = nextPhaseFor(intent, "image");
-      if (next) setPhase(next);
+      advanceTo(intent === "pipeline" ? "postImage" : "done");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Image generation failed");
     }
@@ -305,38 +531,44 @@ export default function GeneratePage() {
         type: "image",
         ratio,
         prompt: imageBlueprintReady
-          ? assembleImagePrompt(imageFields)
+          ? assembledImagePrompt || assembleImagePrompt(imageFields)
           : "User-uploaded image",
       });
       setImageUrl(res.outputUrl);
-      const next = nextPhaseFor(intent, "image");
-      if (next) setPhase(next);
+      advanceTo(intent === "pipeline" ? "postImage" : "done");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Image upload failed");
     }
   }
 
+  function pickImageFromLibrary(url: string) {
+    if (!intent) return;
+    setImageUrl(url);
+    advanceTo(intent === "pipeline" ? "postImage" : "done");
+  }
+
   function redoImage() {
     setImageUrl(null);
-    setPhase("image");
+    setActiveStep("image");
   }
 
-  // ─── postImage gate handlers ──────────────────────────────────────
+  // ─── postImage gate ──────────────────────────────────────────────
   function continueToVideo() {
-    setPhase("video");
+    advanceTo("video");
   }
-
   function stopAtImage() {
-    setPhase("done");
+    advanceTo("done");
   }
 
-  // ─── Stage 3 handlers ─────────────────────────────────────────────
+  // ─── Video handlers ──────────────────────────────────────────────
   async function handleAddReference(file: File) {
     if (refFiles.length >= 3) return;
     if (!file.type.startsWith("image/")) return;
-    setRefFiles((prev) => [...prev, { file, preview: URL.createObjectURL(file) }]);
+    setRefFiles((prev) => [
+      ...prev,
+      { file, preview: URL.createObjectURL(file) },
+    ]);
   }
-
   function handleRemoveReference(i: number) {
     setRefFiles((prev) => {
       const next = [...prev];
@@ -348,19 +580,8 @@ export default function GeneratePage() {
 
   async function handleGenerateVideo() {
     if (!intent) return;
-
-    const refsBase64: ReferenceImageInput[] = [];
-    // Only standalone video intent passes references — pipeline uses firstFrameUrl
-    if (intent === "video") {
-      for (const r of refFiles) {
-        refsBase64.push(await fileToReferenceImage(r.file));
-      }
-    }
-
     try {
-      const prompt = assembleVideoPrompt(videoFields);
-      // Veo's SDK enforces mutual exclusion between firstFrame / refs /
-      // extend. We pick exactly one based on the current page state.
+      const prompt = assembledVideoPrompt || assembleVideoPrompt(videoFields);
       const usingExtend = !!extendFromId;
       const usingPipelineFirstFrame =
         !usingExtend && intent === "pipeline" && !!imageUrl;
@@ -368,7 +589,15 @@ export default function GeneratePage() {
         !usingExtend &&
         !usingPipelineFirstFrame &&
         intent === "video" &&
-        refsBase64.length > 0;
+        refFiles.length > 0;
+
+      const refsBase64: ReferenceImageInput[] = [];
+      if (usingRefs) {
+        for (const r of refFiles) {
+          const { imageBytes, mimeType } = await fileToBase64(r.file);
+          refsBase64.push({ imageBytes, mimeType });
+        }
+      }
 
       const res = await videoMut.mutateAsync({
         project,
@@ -378,6 +607,12 @@ export default function GeneratePage() {
         firstFrameUrl: usingPipelineFirstFrame ? imageUrl! : undefined,
         referenceImages: usingRefs ? refsBase64 : undefined,
         sourceGenerationId: usingExtend ? extendFromId! : undefined,
+        // Pipeline path: the first-frame image already baked the locked
+        // assets in. Tell Veo to keep them still.
+        lockedAssetKinds:
+          usingPipelineFirstFrame && lockedAssets.length
+            ? lockedAssets.map((a) => a.kind)
+            : undefined,
       });
       setActiveVideoId(res.generationId);
       toast.success(
@@ -400,10 +635,11 @@ export default function GeneratePage() {
         type: "video",
         ratio,
         prompt: videoBlueprintReady
-          ? assembleVideoPrompt(videoFields)
+          ? assembledVideoPrompt || assembleVideoPrompt(videoFields)
           : "User-uploaded video",
       });
       setActiveVideoId(res.generationId);
+      advanceTo("done");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Video upload failed");
     }
@@ -416,33 +652,14 @@ export default function GeneratePage() {
     setActiveVideoId(null);
   }
 
-  // When a video completes, auto-move to "done" phase
-  if (videoDone && phase === "video") {
-    // setPhase during render is legal when derived from props/state unchanged —
-    // but to be safe we use a microtask. However React 19 warns on this. Easier:
-    // do it in onSuccess of useGenerateVideo — but completion happens via
-    // polling, not the mutation. We handle done-state by checking in render.
-  }
-
-  // ─── Derived: auto-transition to "done" ───────────────────────────
-  // For image intent we hit "done" as soon as an image exists.
-  // For video intent we wait for Veo to finish.
-  // For pipeline intent: after the video is done, or after "stopAtImage".
-  // Explicit `phase === "done"` (from stopAtImage) always wins.
-  const activePhase: Phase = useMemo(() => {
-    if (phase === "done") return "done";
-    if (!intent) return phase;
-    if (intent === "image" && phase === "image" && imageUrl) return "done";
-    if (intent === "video" && phase === "video" && videoDone) return "done";
-    if (intent === "pipeline" && phase === "video" && videoDone) return "done";
-    return phase;
-  }, [intent, phase, imageUrl, videoDone]);
-
-  const primary = intent ? primaryActionFor(intent, activePhase) : null;
+  // ─── Summaries for completed steps ────────────────────────────────
+  const briefSummary =
+    brief.length > 90 ? `${brief.slice(0, 90)}…` : brief || "(empty)";
+  const projectMeta = PROJECTS.find((p) => p.slug === project)!;
 
   // ─── Render ───────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-4xl w-full mx-auto">
+    <div className="flex flex-col gap-4 p-6 max-w-4xl w-full mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -454,29 +671,8 @@ export default function GeneratePage() {
         </Button>
       </div>
 
-      {/* Intent: picker on first visit, compact pill after */}
-      {phase === "intent" || !intent ? (
-        <IntentPicker onPick={pickIntent} />
-      ) : (
-        <div className="flex items-center justify-between">
-          <IntentPill intent={intent} onChange={resetAll} />
-          <Stepper intent={intent} phase={activePhase} />
-        </div>
-      )}
-
-      {/* Project + context-aware ratio picker (always visible) */}
-      <Card className="p-4">
-        <ProjectRatioBar
-          project={project}
-          onProjectChange={setProject}
-          ratio={ratio}
-          onRatioChange={handleRatioChange}
-          intent={intent}
-        />
-      </Card>
-
-      {/* Extend banner — shows on any phase once extendFromId is set */}
-      {extendFromId && (
+      {/* Extend banner — sticks at top once set */}
+      {extendFromId && intent && activeStep !== "done" && (
         <Card className="p-3 border-primary/50 bg-primary/5 flex items-center justify-between gap-3">
           <p className="text-sm">
             <span className="font-medium">Extending from your last video.</span>{" "}
@@ -487,7 +683,10 @@ export default function GeneratePage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setExtendFromId(null)}
+            onClick={() => {
+              setExtendFromId(null);
+              setExtendFromBriefText(null);
+            }}
             className="shrink-0"
           >
             Cancel extend
@@ -495,97 +694,307 @@ export default function GeneratePage() {
         </Card>
       )}
 
-      {/* Phase content */}
-      {intent && phase === "brief" && (
-        <>
-          <BriefStage
+      {/* Step 1: Goal — IntentPicker + Project/Ratio */}
+      <TimelineStep
+        stepNumber={1}
+        title="Goal"
+        visual={visualFor("goal")}
+        summary={
+          intent ? (
+            <span>
+              <span className="font-medium">{intentLabel(intent)}</span>{" "}
+              <span className="text-muted-foreground">
+                · {projectMeta.name} · {ratio}
+              </span>
+            </span>
+          ) : null
+        }
+        onEdit={() => editStep("goal")}
+      >
+        {!intent ? (
+          <IntentPicker onPick={pickIntent} />
+        ) : (
+          <div className="space-y-4">
+            <IntentPill
+              intent={intent}
+              onSwitch={switchIntent}
+              onChange={resetAll}
+            />
+            <Card className="p-4">
+              <ProjectRatioBar
+                project={project}
+                onProjectChange={setProject}
+                ratio={ratio}
+                onRatioChange={setRatio}
+                intent={intent}
+              />
+            </Card>
+            <div className="flex justify-end">
+              <Button onClick={() => advanceTo("brief")}>
+                Continue
+              </Button>
+            </div>
+          </div>
+        )}
+      </TimelineStep>
+
+      {/* Step 2: Brief + blueprint(s) + asset lock */}
+      {intent && (
+        <TimelineStep
+          stepNumber={2}
+          title="Brief & blueprint"
+          visual={visualFor("brief")}
+          summary={
+            <span className="text-muted-foreground truncate">{briefSummary}</span>
+          }
+          onEdit={() => editStep("brief")}
+        >
+          <div className="space-y-4">
+            <BriefStage
+              intent={intent}
+              project={project}
+              brief={brief}
+              onBriefChange={setBrief}
+              imageFields={imageFields}
+              onImageFieldsChange={(k, v) =>
+                setImageFields((prev) => ({ ...prev, [k]: v }))
+              }
+              videoFields={videoFields}
+              onVideoFieldsChange={(k, v) =>
+                setVideoFields((prev) => ({ ...prev, [k]: v }))
+              }
+              onFillImage={() => fillBlueprintWithAI("image")}
+              onFillVideo={() => fillBlueprintWithAI("video")}
+              aiLoading={promptMut.isPending}
+              imageReady={imageBlueprintReady}
+              videoReady={videoBlueprintReady}
+              pipelineTab={pipelineTabEffective}
+              onPipelineTabChange={setPipelineTab}
+              onRollDice={rollDice}
+              diceLoading={suggestMut.isPending}
+              onRegenerateImageField={regenerateImageField}
+              onRegenerateVideoField={regenerateVideoField}
+              regeneratingImageField={regeneratingImageField}
+              regeneratingVideoField={regeneratingVideoField}
+            />
+
+            {/* Asset lock editor — only for intents that actually produce pixels
+                to which assets would attach (image + pipeline). Standalone video
+                uses reference-image slots in the video stage instead. */}
+            {(intent === "image" || intent === "pipeline") && (
+              <Card className="p-4">
+                <AssetLockEditor
+                  assets={lockedAssets}
+                  onAdd={addLockedAsset}
+                  onRemove={removeLockedAsset}
+                  onKindChange={changeLockedKind}
+                />
+              </Card>
+            )}
+
+            <div className="flex justify-end">
+              <Button onClick={continueFromBrief}>
+                Continue to prompt
+              </Button>
+            </div>
+          </div>
+        </TimelineStep>
+      )}
+
+      {/* Step 3: Assembled prompt — editable */}
+      {intent && (
+        <TimelineStep
+          stepNumber={3}
+          title="Prompt"
+          visual={visualFor("prompt")}
+          summary={
+            <span className="text-muted-foreground truncate">
+              {(intent === "video"
+                ? assembledVideoPrompt
+                : assembledImagePrompt
+              ).slice(0, 90) || "(auto-drafted from blueprint)"}
+              …
+            </span>
+          }
+          onEdit={() => editStep("prompt")}
+        >
+          <div className="space-y-4">
+            {intent === "pipeline" ? (
+              <Tabs defaultValue="image">
+                <TabsList className="grid grid-cols-2">
+                  <TabsTrigger value="image">
+                    <ImageIcon className="h-3.5 w-3.5 mr-1.5" />
+                    Image prompt
+                  </TabsTrigger>
+                  <TabsTrigger value="video">
+                    <VideoIcon className="h-3.5 w-3.5 mr-1.5" />
+                    Video prompt
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="image" className="pt-3">
+                  <AssembledPromptEditor
+                    value={assembledImagePrompt}
+                    onChange={setAssembledImagePrompt}
+                    onResetFromBlueprint={rebuildImagePromptFromBlueprint}
+                    hint="Nano Banana 2 sees this exactly as written."
+                  />
+                </TabsContent>
+                <TabsContent value="video" className="pt-3">
+                  <AssembledPromptEditor
+                    value={assembledVideoPrompt}
+                    onChange={setAssembledVideoPrompt}
+                    onResetFromBlueprint={rebuildVideoPromptFromBlueprint}
+                    hint="Veo 3.1 sees this exactly as written."
+                  />
+                </TabsContent>
+              </Tabs>
+            ) : intent === "image" ? (
+              <AssembledPromptEditor
+                value={assembledImagePrompt}
+                onChange={setAssembledImagePrompt}
+                onResetFromBlueprint={rebuildImagePromptFromBlueprint}
+                hint="Nano Banana 2 sees this exactly as written."
+              />
+            ) : (
+              <AssembledPromptEditor
+                value={assembledVideoPrompt}
+                onChange={setAssembledVideoPrompt}
+                onResetFromBlueprint={rebuildVideoPromptFromBlueprint}
+                hint="Veo 3.1 sees this exactly as written."
+              />
+            )}
+
+            <div className="flex justify-end">
+              <Button onClick={continueFromPrompt}>
+                {intent === "video" ? "Continue to video" : "Continue to image"}
+              </Button>
+            </div>
+          </div>
+        </TimelineStep>
+      )}
+
+      {/* Step 4: Image (or step 4-of-N for pipeline) */}
+      {intent && steps.includes("image") && (
+        <TimelineStep
+          stepNumber={4}
+          title="Image"
+          visual={visualFor("image")}
+          summary={
+            imageUrl ? (
+              <span className="flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imageUrl}
+                  alt="Image summary"
+                  className="h-8 w-8 rounded object-cover"
+                />
+                <span className="text-muted-foreground">Ready</span>
+              </span>
+            ) : null
+          }
+          onEdit={() => editStep("image")}
+        >
+          <ImageStage
             intent={intent}
             project={project}
-            brief={brief}
-            onBriefChange={setBrief}
-            imageFields={imageFields}
-            onImageFieldsChange={(k, v) =>
-              setImageFields((prev) => ({ ...prev, [k]: v }))
-            }
-            videoFields={videoFields}
-            onVideoFieldsChange={(k, v) =>
-              setVideoFields((prev) => ({ ...prev, [k]: v }))
-            }
-            onFillImage={() => fillBlueprintWithAI("image")}
-            onFillVideo={() => fillBlueprintWithAI("video")}
-            aiLoading={promptMut.isPending}
-            imageReady={imageBlueprintReady}
-            videoReady={videoBlueprintReady}
-            pipelineTab={pipelineTabEffective}
-            onPipelineTabChange={setPipelineTab}
-            onRollDice={rollDice}
-            diceLoading={suggestMut.isPending}
+            ratio={ratio}
+            imageUrl={imageUrl}
+            onGenerate={handleGenerateImage}
+            onUploadFile={handleImageFile}
+            onPickFromLibrary={pickImageFromLibrary}
+            onRedo={redoImage}
+            aiLoading={imageMut.isPending}
+            uploadLoading={uploadMut.isPending}
           />
-
-          <div className="flex justify-end">
-            <Button onClick={continueFromBrief} disabled={!primary}>
-              {primary?.label}
-            </Button>
-          </div>
-        </>
+        </TimelineStep>
       )}
 
-      {intent && phase === "image" && activePhase !== "done" && (
-        <ImageStage
-          intent={intent}
-          project={project}
-          ratio={ratio}
-          imageUrl={imageUrl}
-          onGenerate={handleGenerateImage}
-          onUploadFile={handleImageFile}
-          onRedo={redoImage}
-          aiLoading={imageMut.isPending}
-          uploadLoading={uploadMut.isPending}
-        />
+      {/* Step 5 (pipeline): postImage gate */}
+      {intent === "pipeline" && (
+        <TimelineStep
+          stepNumber={5}
+          title="Continue?"
+          visual={visualFor("postImage")}
+          summary={
+            activeStep === "done" && !videoUrl ? (
+              <span className="text-muted-foreground">Stopped at image</span>
+            ) : (
+              <span className="text-muted-foreground">Continuing to video</span>
+            )
+          }
+          onEdit={() => editStep("postImage")}
+        >
+          {imageUrl && (
+            <PostImageGate
+              imageUrl={imageUrl}
+              ratio={ratio}
+              onContinue={continueToVideo}
+              onStop={stopAtImage}
+            />
+          )}
+        </TimelineStep>
       )}
 
-      {intent === "pipeline" && phase === "postImage" && imageUrl && (
-        <PostImageGate
-          imageUrl={imageUrl}
-          ratio={ratio}
-          onContinue={continueToVideo}
-          onStop={stopAtImage}
-        />
+      {/* Step N: Video */}
+      {intent && steps.includes("video") && (
+        <TimelineStep
+          stepNumber={intent === "pipeline" ? 6 : 4}
+          title="Video"
+          visual={visualFor("video")}
+          summary={
+            videoUrl ? (
+              <span className="text-muted-foreground">Ready</span>
+            ) : videoProcessing ? (
+              <span className="text-muted-foreground">Rendering…</span>
+            ) : null
+          }
+          onEdit={() => editStep("video")}
+        >
+          <VideoStage
+            intent={intent}
+            project={project}
+            ratio={ratio}
+            durationSeconds={durationSeconds}
+            onDurationChange={setDurationSeconds}
+            refPreviews={refFiles}
+            onAddReference={handleAddReference}
+            onRemoveReference={handleRemoveReference}
+            onGenerate={handleGenerateVideo}
+            onUploadFile={handleVideoFile}
+            onRedo={redoVideo}
+            aiLoading={videoMut.isPending}
+            uploadLoading={uploadMut.isPending}
+            processing={videoProcessing}
+            failed={videoFailed}
+            errorMessage={videoStatus.data?.errorMessage}
+            videoUrl={videoUrl}
+          />
+        </TimelineStep>
       )}
 
-      {intent && phase === "video" && activePhase !== "done" && (
-        <VideoStage
-          intent={intent}
-          project={project}
-          ratio={ratio}
-          durationSeconds={durationSeconds}
-          onDurationChange={setDurationSeconds}
-          refPreviews={refFiles}
-          onAddReference={handleAddReference}
-          onRemoveReference={handleRemoveReference}
-          onGenerate={handleGenerateVideo}
-          onUploadFile={handleVideoFile}
-          onRedo={redoVideo}
-          aiLoading={videoMut.isPending}
-          uploadLoading={uploadMut.isPending}
-          processing={videoProcessing}
-          failed={videoFailed}
-          errorMessage={videoStatus.data?.errorMessage}
-          videoUrl={videoUrl}
-        />
-      )}
-
-      {intent && activePhase === "done" && (
-        <CompletionCard
-          intent={intent}
-          project={project}
-          ratio={ratio}
-          imageUrl={imageUrl}
-          videoUrl={videoUrl}
-          onCreateVariant={createVariant}
-          onStartOver={resetAll}
-          onExtendVideo={videoUrl && activeVideoId ? extendVideo : undefined}
-        />
+      {/* Done */}
+      {intent && activeStep === "done" && (
+        <TimelineStep
+          stepNumber={intent === "pipeline" ? 7 : 5}
+          title="Done"
+          visual="active"
+        >
+          <CompletionCard
+            intent={intent}
+            project={project}
+            ratio={ratio}
+            imageUrl={imageUrl}
+            videoUrl={videoUrl}
+            onCreateVariant={createVariant}
+            onStartOver={resetAll}
+            onExtendVideo={
+              videoUrl && activeVideoId ? extendVideo : undefined
+            }
+            onAnimateImage={
+              imageUrl && !videoUrl ? animateImage : undefined
+            }
+          />
+        </TimelineStep>
       )}
     </div>
   );

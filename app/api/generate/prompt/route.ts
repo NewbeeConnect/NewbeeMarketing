@@ -22,6 +22,15 @@ const bodySchema = z.object({
   target: z.enum(["image", "video"]),
   ratio: z.string().min(3).max(5),
   brief: z.string().min(3).max(1000),
+  /**
+   * Partial-regenerate mode. When `regenerateFields` is non-empty, Gemini
+   * regenerates ONLY those fields; the others are preserved (they still get
+   * sent as context so the regenerated fields fit the whole blueprint).
+   *
+   * Omit both to generate a brand-new blueprint from the brief.
+   */
+  existingFields: z.record(z.string(), z.string()).optional(),
+  regenerateFields: z.array(z.string()).max(8).optional(),
 });
 
 // Fields map to Nano Banana 2 best-practice prompt structure.
@@ -113,12 +122,29 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { project, target, ratio, brief } = parsed.data;
+    const { project, target, ratio, brief, existingFields, regenerateFields } =
+      parsed.data;
 
     const profile = getBrandProfile(project as ProjectSlug);
     const systemPrompt = target === "image" ? SYSTEM_IMAGE : SYSTEM_VIDEO;
     const fieldsSchema =
       target === "image" ? imageFieldsSchema : videoFieldsSchema;
+
+    const isPartial = !!(
+      regenerateFields &&
+      regenerateFields.length > 0 &&
+      existingFields &&
+      Object.keys(existingFields).length > 0
+    );
+
+    // Build the blueprint context block the model can see.
+    const existingContext = isPartial
+      ? `\n\nCURRENT BLUEPRINT (keep these unchanged unless listed as REGENERATE):\n${Object.entries(
+          existingFields!
+        )
+          .map(([k, v]) => `- ${k}: ${v}`)
+          .join("\n")}\n\nREGENERATE ONLY these fields with fresh ideas: ${regenerateFields!.join(", ")}.\nReturn the COMPLETE blueprint JSON — kept fields verbatim, regenerated fields replaced.`
+      : "";
 
     // Pass brand voice + palette + reference look so the blueprint lands
     // on-brand even if the user's brief is sparse.
@@ -132,7 +158,7 @@ Target medium: ${target}
 Aspect ratio: ${ratio}
 
 Brief:
-${brief.trim()}`;
+${brief.trim()}${existingContext}`;
 
     const response = await ai.models.generateContent({
       model: MODELS.GEMINI_PRO,

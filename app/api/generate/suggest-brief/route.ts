@@ -33,6 +33,13 @@ const bodySchema = z.object({
    * else so rolls don't feel repetitive.
    */
   avoidHighlight: z.string().optional(),
+  /**
+   * Optional: when the user is extending a prior video, we pass the previous
+   * video's brief. Gemini writes the NEXT beat in the same story — same
+   * characters, same setting, continuation of the action — rather than a
+   * fresh unrelated brief.
+   */
+  extendFromBrief: z.string().max(2000).optional(),
 });
 
 const SYSTEM = `You are a senior creative director at an ad agency. A client
@@ -100,10 +107,15 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { project, target, ratio, avoidHighlight } = parsed.data;
+    const { project, target, ratio, avoidHighlight, extendFromBrief } =
+      parsed.data;
 
     const profile = getBrandProfile(project as ProjectSlug);
     const profileContext = profileAsPromptContext(profile);
+
+    const extendBlock = extendFromBrief
+      ? `\nPREVIOUS BEAT (this is an EXTENSION — continue the same story with the SAME subject, setting, palette, and tone; Veo will continue from the prior clip's final frame, so the opening of this beat should visually follow naturally):\n${extendFromBrief.trim()}\n`
+      : "";
 
     const userPrompt = `BRAND PROFILE:
 ${profileContext}
@@ -111,9 +123,9 @@ ${profileContext}
 TARGET MEDIUM: ${target}
 ASPECT RATIO: ${ratio}
 ${avoidHighlight ? `AVOID HIGHLIGHT (pick a different one): ${avoidHighlight}` : ""}
+${extendBlock}
 
-Write one on-brand ad brief that picks one highlight and spells it out per
-the rules.`;
+Write one on-brand ad brief${extendFromBrief ? " that continues the previous beat" : " that picks one highlight and spells it out"} per the rules.`;
 
     const response = await ai.models.generateContent({
       model: MODELS.GEMINI_PRO,
