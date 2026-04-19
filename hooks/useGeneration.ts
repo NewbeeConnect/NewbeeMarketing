@@ -3,6 +3,101 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ProjectSlug, ImageRatio, VideoRatio } from "@/lib/projects";
 
+export type ImagePromptFields = {
+  subject: string;
+  style: string;
+  composition: string;
+  lighting: string;
+  mood: string;
+  technical: string;
+};
+
+export type VideoPromptFields = {
+  subject: string;
+  camera: string;
+  action: string;
+  lighting: string;
+  mood: string;
+  audio: string;
+};
+
+/**
+ * Assemble Nano Banana 2 prompt from structured fields. Order mirrors the
+ * SYSTEM prompt in /api/generate/prompt so the model sees fields in the
+ * sequence it was trained to produce them.
+ */
+export function assembleImagePrompt(f: ImagePromptFields): string {
+  return `${f.subject}. ${f.style}. Composition: ${f.composition}. Lighting: ${f.lighting}. Mood: ${f.mood}. ${f.technical}.`;
+}
+
+export function assembleVideoPrompt(f: VideoPromptFields): string {
+  return `${f.subject}. Camera: ${f.camera}. Action: ${f.action}. Lighting: ${f.lighting}. Mood: ${f.mood}. Audio: ${f.audio}.`;
+}
+
+/**
+ * POST /api/generate/prompt — brief → structured fields (AI fills what each
+ * model needs; user edits any field before assembling).
+ */
+export function useGeneratePromptBlueprint() {
+  return useMutation({
+    mutationFn: async (input: {
+      project: ProjectSlug;
+      target: "image" | "video";
+      ratio: string;
+      brief: string;
+    }) => {
+      const res = await fetch("/api/generate/prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) throw new Error(await readApiError(res));
+      return (await res.json()) as {
+        fields: ImagePromptFields | VideoPromptFields;
+        estimatedCost: number;
+      };
+    },
+  });
+}
+
+/**
+ * POST /api/library/upload — user-provided image or video file.
+ */
+export function useUploadToLibrary() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      file: File;
+      project: ProjectSlug;
+      type: "image" | "video";
+      ratio: ImageRatio | VideoRatio;
+      prompt?: string;
+    }) => {
+      const form = new FormData();
+      form.append("file", input.file);
+      form.append("project", input.project);
+      form.append("type", input.type);
+      form.append("ratio", input.ratio);
+      if (input.prompt) form.append("prompt", input.prompt);
+
+      const res = await fetch("/api/library/upload", {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) throw new Error(await readApiError(res));
+      return (await res.json()) as {
+        generationId: string;
+        outputUrl: string;
+        filename: string;
+        project: ProjectSlug;
+        type: "image" | "video";
+        ratio: ImageRatio | VideoRatio;
+      };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["library"] }),
+  });
+}
+
 export type GenerationStatus = "pending" | "processing" | "completed" | "failed";
 
 export type GenerationRow = {
@@ -62,6 +157,9 @@ export function useGenerateImage() {
 /**
  * POST /api/generate/video — async. Returns an operation; client polls
  * `useVideoStatus(generationId)` until completed.
+ *
+ * `firstFrameUrl` handles the "use the stage-2 image as the first frame"
+ * pipeline path. Mutually exclusive with `referenceImages`.
  */
 export function useGenerateVideo() {
   const qc = useQueryClient();
@@ -71,6 +169,7 @@ export function useGenerateVideo() {
       ratio: VideoRatio;
       prompt: string;
       durationSeconds?: 4 | 6 | 8;
+      firstFrameUrl?: string;
       referenceImages?: ReferenceImageInput[];
     }) => {
       const res = await fetch("/api/generate/video", {

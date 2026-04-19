@@ -17,7 +17,9 @@ import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 type RouteContext = { params: Promise<{ generationId: string }> };
 
 const MAX_GENERATION_TIME_MS = 15 * 60 * 1000;
-const MAX_DOWNLOAD_RETRIES = 5;
+// With ~8s client-side polling, 10 retries = ~80s of retry window — enough
+// to weather transient 5xx or storage writes without giving up prematurely.
+const MAX_DOWNLOAD_RETRIES = 10;
 
 export async function GET(_request: NextRequest, { params }: RouteContext) {
   try {
@@ -157,17 +159,29 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       });
     }
 
-    // Download from Veo (needs API key header). Use the pre-committed storage
-    // path that was persisted in config.storage_path.
-    const storagePath =
+    // Download from Veo (needs API key header). Prefer the pre-committed
+    // `config.storage_path`, but fall back to reconstructing it from the row's
+    // project/type/ratio/filename so corrupted config never blocks completion.
+    let storagePath =
       (generation.config as { storage_path?: string } | null)?.storage_path ??
       null;
+    if (!storagePath) {
+      if (
+        generation.project_slug &&
+        generation.ratio &&
+        generation.filename
+      ) {
+        storagePath = `${generation.project_slug}/${generation.type}/${
+          (generation.ratio as string).replace(":", "-")
+        }/${generation.filename}`;
+      }
+    }
     if (!storagePath) {
       await serviceClient
         .from("mkt_generations")
         .update({
           status: "failed",
-          error_message: "Missing storage_path in config",
+          error_message: "Could not derive storage path (missing metadata)",
           completed_at: new Date().toISOString(),
         })
         .eq("id", generation.id);
@@ -218,7 +232,8 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       .from("mkt-assets")
       .upload(storagePath, videoBuffer, {
         contentType: "video/mp4",
-        upsert: false,
+        // upsert so retries can overwrite a partial upload cleanly
+        upsert: true,
       });
 
     if (uploadError) {

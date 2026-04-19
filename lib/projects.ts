@@ -40,7 +40,12 @@ export function getProject(slug: ProjectSlug) {
  *   many more — we restrict to these three to match folder layout).
  * - Veo 3.1 only supports 9:16 and 16:9 per SDK (no 4:5, no 1:1).
  */
-export const IMAGE_RATIOS = ["4:5", "9:16", "1:1"] as const;
+// 16:9 is also in IMAGE_RATIOS because the 3-stage pipeline generates an
+// image at the same ratio as the video, and Veo supports 16:9.
+// The fixed library folder layout still shows only 4:5 / 9:16 / 1:1 for
+// images — 16:9 images exist as pipeline intermediates and are sorted with
+// the video they belong to.
+export const IMAGE_RATIOS = ["4:5", "9:16", "1:1", "16:9"] as const;
 export const VIDEO_RATIOS = ["9:16", "16:9"] as const;
 
 export type ImageRatio = (typeof IMAGE_RATIOS)[number];

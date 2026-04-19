@@ -19,21 +19,33 @@ import { buildFilename, buildStoragePath } from "@/lib/filename";
  * `lastFrame`, and `video` — so no firstFrame/keyframe control in this path.
  */
 
-const bodySchema = z.object({
-  project: z.enum(PROJECT_SLUGS as [string, ...string[]]),
-  ratio: z.enum(VIDEO_RATIOS as readonly [string, ...string[]]),
-  prompt: z.string().min(3).max(5000),
-  durationSeconds: z.union([z.literal(4), z.literal(6), z.literal(8)]).default(8),
-  referenceImages: z
-    .array(
-      z.object({
-        imageBytes: z.string().min(1),
-        mimeType: z.string().regex(/^image\//),
-      })
-    )
-    .max(3)
-    .optional(),
-});
+const bodySchema = z
+  .object({
+    project: z.enum(PROJECT_SLUGS as [string, ...string[]]),
+    ratio: z.enum(VIDEO_RATIOS as readonly [string, ...string[]]),
+    prompt: z.string().min(3).max(5000),
+    durationSeconds: z.union([z.literal(4), z.literal(6), z.literal(8)]).default(8),
+    /**
+     * Veo input modes are mutually exclusive: either
+     *   (a) first-frame image-to-video (`firstFrameUrl`) for the 3-stage
+     *       pipeline where stage 2's image is handed to stage 3, OR
+     *   (b) up to 3 reference images (ASSET type) for subject consistency.
+     */
+    firstFrameUrl: z.string().url().optional(),
+    referenceImages: z
+      .array(
+        z.object({
+          imageBytes: z.string().min(1).max(5_500_000),
+          mimeType: z.string().regex(/^image\//),
+        })
+      )
+      .max(3)
+      .optional(),
+  })
+  .refine(
+    (v) => !(v.firstFrameUrl && v.referenceImages && v.referenceImages.length),
+    { message: "firstFrameUrl and referenceImages cannot be combined" }
+  );
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,7 +71,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { project, ratio, prompt, durationSeconds, referenceImages } = parsed.data;
+    const { project, ratio, prompt, durationSeconds, referenceImages, firstFrameUrl } = parsed.data;
 
     const estimatedCost = durationSeconds * COST_ESTIMATES.veo_per_second;
     const budget = await checkBudget(serviceClient, user.id, estimatedCost);
@@ -109,11 +121,26 @@ export async function POST(request: NextRequest) {
     const generationId = genRow.id as string;
 
     try {
-      // Veo accepts an optional `referenceImages` config (mutually exclusive
-      // with image/lastFrame/video). Each reference needs a type: ASSET for
-      // subjects/products/scenes, STYLE for aesthetics.
+      // Two input modes, mutually exclusive:
+      //   firstFrameUrl  → image-to-video (pipeline stage 2 hands its image here)
+      //   referenceImages → subject-reference video (up to 3 ASSET)
+      let firstFrameImage:
+        | { imageBytes: string; mimeType: string }
+        | undefined;
+      if (firstFrameUrl) {
+        const res = await fetch(firstFrameUrl);
+        if (!res.ok) {
+          throw new Error(`Could not fetch firstFrameUrl (${res.status})`);
+        }
+        const ab = await res.arrayBuffer();
+        firstFrameImage = {
+          imageBytes: Buffer.from(ab).toString("base64"),
+          mimeType: res.headers.get("content-type") ?? "image/png",
+        };
+      }
+
       const veoRefs =
-        referenceImages && referenceImages.length > 0
+        !firstFrameImage && referenceImages && referenceImages.length > 0
           ? referenceImages.slice(0, 3).map((ref) => ({
               image: { imageBytes: ref.imageBytes, mimeType: ref.mimeType },
               referenceType: VideoGenerationReferenceType.ASSET,
@@ -123,12 +150,14 @@ export async function POST(request: NextRequest) {
       const operation = await ai.models.generateVideos({
         model: MODELS.VEO,
         prompt,
+        ...(firstFrameImage && { image: firstFrameImage }),
         config: {
           aspectRatio: ratio,
           numberOfVideos: 1,
           durationSeconds,
           resolution: "720p",
-          personGeneration: veoRefs ? "allow_adult" : "allow_all",
+          // image-to-video needs allow_adult; text-to-video with refs stays allow_adult too
+          personGeneration: firstFrameImage || veoRefs ? "allow_adult" : "allow_all",
           ...(veoRefs && { referenceImages: veoRefs }),
         },
       });

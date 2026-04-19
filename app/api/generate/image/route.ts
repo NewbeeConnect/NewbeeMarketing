@@ -20,11 +20,14 @@ const bodySchema = z.object({
   project: z.enum(PROJECT_SLUGS as [string, ...string[]]),
   ratio: z.enum(IMAGE_RATIOS as readonly [string, ...string[]]),
   prompt: z.string().min(3).max(2000),
-  /** 1–3 base64-encoded images with mimeType. */
+  /**
+   * 1–3 base64-encoded images with mimeType. Cap each at ~5 MB encoded
+   * (≈3.75 MB raw) so we don't blow up the request body / AI payload.
+   */
   referenceImages: z
     .array(
       z.object({
-        imageBytes: z.string().min(1),
+        imageBytes: z.string().min(1).max(5_500_000),
         mimeType: z.string().regex(/^image\//),
       })
     )
@@ -161,7 +164,8 @@ export async function POST(request: NextRequest) {
         .from("mkt-assets")
         .upload(storagePath, buffer, {
           contentType: imagePart.inlineData.mimeType,
-          upsert: false,
+          // upsert so a retry doesn't fail with "already exists"
+          upsert: true,
         });
 
       if (uploadError) {
