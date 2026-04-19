@@ -92,6 +92,13 @@ const bodySchema = z
      * firstFrame exists.
      */
     lockedAssetKinds: z.array(assetKindSchema).max(3).optional(),
+    /**
+     * Veo 3.1 `config.negativePrompt` — a comma-separated list of nouns/
+     * adjectives the model should avoid. Google requires positive phrasing
+     * (never "no X"). Used to stack artifact/stability exclusions (sliding
+     * objects, morphing geometry, hallucinated UI, extra fingers, etc.).
+     */
+    negativePrompt: z.string().max(1000).optional(),
   })
   .refine(
     (v) => {
@@ -141,6 +148,7 @@ export async function POST(request: NextRequest) {
       firstFrameUrl,
       sourceGenerationId,
       lockedAssetKinds,
+      negativePrompt,
     } = parsed.data;
 
     // Append asset-lock instructions BEFORE we call Veo. Works in all three
@@ -256,6 +264,18 @@ export async function POST(request: NextRequest) {
             }))
           : undefined;
 
+      // Stack the model's baseline artifact/stability exclusions with any
+      // brief-specific additions from the planner. Google's prompt guide is
+      // explicit: use nouns + adjectives only, never "no X" phrasing — the
+      // parser reads these tokens directly, not as instructions.
+      const BASELINE_NEGATIVE =
+        "blurry, distorted geometry, morphing objects, sliding objects, " +
+        "drifting props, text artifacts, fake logos, extra fingers, " +
+        "deformed hands, low quality, jittery motion, watermarks";
+      const mergedNegativePrompt = negativePrompt
+        ? `${BASELINE_NEGATIVE}, ${negativePrompt}`
+        : BASELINE_NEGATIVE;
+
       const operation = await ai.models.generateVideos({
         model: MODELS.VEO,
         prompt: finalPrompt,
@@ -266,6 +286,7 @@ export async function POST(request: NextRequest) {
           numberOfVideos: 1,
           durationSeconds,
           resolution: "720p",
+          negativePrompt: mergedNegativePrompt,
           // Restrict to adults whenever we hand Veo any image/video input —
           // extensions and image-to-video both imply real subjects.
           personGeneration:

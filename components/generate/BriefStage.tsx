@@ -159,6 +159,20 @@ export function BriefStage({
           </button>
         </div>
 
+        {/* Post-draft inspection banner — shown the moment Gemini has
+             filled at least one field relevant to the active intent, so the
+             user doesn't stop at the "Gemini doldurdu" chip and miss that
+             the fields below ARE the AI output and ARE editable. */}
+        {((intent === "image" && imageReady) ||
+          (intent === "video" && videoReady) ||
+          (intent === "pipeline" && (imageReady || videoReady))) && (
+          <div
+            className="rounded-md border-l-2 border-brand bg-brand-soft text-brand-ink px-3 py-2 text-[13px] leading-relaxed mb-2"
+          >
+            {s.blueprintReadyNote}
+          </div>
+        )}
+
         {intent === "pipeline" ? (
           <>
             <div className="flex items-center gap-1 mb-2 border-b border-line-2">

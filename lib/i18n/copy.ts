@@ -237,7 +237,9 @@ const generate = {
       blueprintLabel: "Şema",
       blueprintHint:
         "Her alan, AI'ın göreceği son prompt'un bir parçası. Brief'ten otomatik doldurulur; istediğini elle düzelt.",
-      blueprintReady: "Hazır",
+      blueprintReady: "Gemini doldurdu",
+      blueprintReadyNote:
+        "Aşağıdaki 6 kutucuğa Gemini'nin yazdıklarını yerleştirdik. İncele, istediğini değiştir, yanındaki ⟳ ile sadece tek alanı yeniden yazdır.",
       draftWithGemini: "Gemini ile taslak yaz",
       drafting: "Yazılıyor…",
       pipelineTabImage: "Görsel şeması",
@@ -247,12 +249,14 @@ const generate = {
         "Şemayı tek bir metne çevirip modele gönderecek son hâlini göstereceğiz.",
       whatIsThis: {
         title: "Hikayeni anlat",
-        body: "İki alan var: Brief ve Şema.",
+        body: "Üç bölüm var: Brief, Şema ve Sabit tutulacak görseller.",
         bullets: [
           "**Brief**: Ne yapmak istediğini kendi cümlelerinle yaz. Örn: 'Sabah sahnesi, kadın kahvesini içerken telefondan Newbee'yi açar.'",
-          "**Şema**: Gemini brief'ini 6 teknik parçaya böler (konu, ışık, kompozisyon vb.). 'Gemini ile taslak yaz' otomatik doldurur. Her alanı elle düzeltebilir, yanındaki ⟳ ikonuyla sadece onu yeniden yazdırabilirsin.",
+          "**Şema**: Gemini brief'ini 6 teknik parçaya böler (konu, ışık, kompozisyon vb.). 'Gemini ile taslak yaz' butonu otomatik doldurur. Her alanın yazdığı tamamını görebilirsin — kutucuklar içeriği sığdırmak için genişliyor. İstediğin alanı elle düzelt, yanındaki ⟳ ikonuyla sadece onu yeniden yazdırabilirsin.",
           "**Sabit tutulacak görseller**: Çıktıda birebir korunması gereken görseller varsa (uygulama ekranı, logo, ürün fotoğrafı) buraya yükle. AI halüsinasyon yapmadan aynen çizer.",
         ],
+        note:
+          "Görsel → Video modundaysan hem Görsel şeması hem Video şeması görünür — çünkü sırayla iki farklı model çalıştıracağız (görsel için Nano Banana 2, video için Veo 3.1). İkisini aynı anda doldurmak, ikisi arasındaki tutarlılığı (aynı hikaye, aynı stil) garantiliyor.",
       } satisfies WhatIsThis,
       errorNeedBrief: "Önce bir brief yaz.",
       errorBlueprintIncomplete: "Her şema alanını doldur.",

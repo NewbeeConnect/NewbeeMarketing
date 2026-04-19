@@ -19,6 +19,13 @@ export type VideoPromptFields = {
   lighting: string;
   mood: string;
   audio: string;
+  /**
+   * Comma-separated nouns/adjectives Veo must avoid (NOT user-visible as
+   * a "blueprint" field, but planner emits it alongside the 6 visible
+   * fields). Baseline artifact list is stacked server-side; this carries
+   * brief-specific additions.
+   */
+  negativePrompt: string;
 };
 
 /**
@@ -234,6 +241,12 @@ export function useGenerateVideo() {
        * doesn't animate or hallucinate them during the clip.
        */
       lockedAssetKinds?: AssetKind[];
+      /**
+       * Brief-specific nouns/adjectives Veo should avoid (sliding objects,
+       * morphing geometry, hallucinated UI, etc.). Server stacks this with a
+       * baseline artifact list before passing to Veo's `config.negativePrompt`.
+       */
+      negativePrompt?: string;
     }) => {
       const res = await fetch("/api/generate/video", {
         method: "POST",

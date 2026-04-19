@@ -84,6 +84,7 @@ const EMPTY_VIDEO_FIELDS: VideoPromptFields = {
   lighting: "",
   mood: "",
   audio: "",
+  negativePrompt: "",
 };
 
 // Step subtitles shown next to the active step title. Centralized Turkish
@@ -701,6 +702,11 @@ export default function GeneratePage() {
           usingPipelineFirstFrame && lockedAssets.length
             ? lockedAssets.map((a) => a.kind)
             : undefined,
+        // Gemini fills this alongside the 6 visible blueprint fields — it
+        // carries brief-specific exclusions (objects to stabilize, UI
+        // elements to not hallucinate, era contamination, etc.). Server
+        // stacks this with a baseline artifact list before calling Veo.
+        negativePrompt: videoFields.negativePrompt?.trim() || undefined,
       });
       setActiveVideoId(res.generationId);
       toast.success(

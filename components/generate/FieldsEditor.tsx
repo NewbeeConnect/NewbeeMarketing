@@ -118,13 +118,23 @@ export function FieldsEditor<T extends Record<string, string>>({
                   </button>
                 )}
               </div>
-              <input
+              {/*
+                Textarea (not input) with auto-resize — Gemini writes long,
+                specific sentences ("slow dolly-in from locked tripod,
+                12mm focal length") that single-line inputs crop silently.
+                rows={2} keeps the collapsed state tight, and `field-sizing:
+                content` lets it grow to fit on input. Safari still crops
+                to rows — acceptable fallback.
+              */}
+              <textarea
                 value={values[f.key] as string}
                 onChange={(e) => onChange(f.key, e.target.value)}
                 placeholder={f.hint}
                 disabled={isRegen}
                 title={f.hint}
-                className="w-full mt-1 text-[14.5px] ink bg-transparent outline-none placeholder:ink-3"
+                rows={2}
+                style={{ fieldSizing: "content" } as React.CSSProperties}
+                className="w-full mt-1 text-[14.5px] ink bg-transparent outline-none placeholder:ink-3 resize-y min-h-[2.25rem] leading-snug"
               />
             </div>
           );

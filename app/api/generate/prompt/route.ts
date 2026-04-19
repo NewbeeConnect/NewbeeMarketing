@@ -44,6 +44,9 @@ const imageFieldsSchema = z.object({
 });
 
 // Fields map to Veo 3.1 best-practice prompt structure.
+// `negativePrompt` (optional) lets the planner stack stability + artifact
+// exclusions Veo should avoid — Google's guide recommends positive-framed
+// noun/adjective lists ("no vehicles" → "empty street, unpopulated").
 const videoFieldsSchema = z.object({
   subject: z.string().min(3),
   camera: z.string().min(3),
@@ -51,42 +54,124 @@ const videoFieldsSchema = z.object({
   lighting: z.string().min(3),
   mood: z.string().min(3),
   audio: z.string().min(3),
+  negativePrompt: z.string().optional().default(""),
 });
 
 const SYSTEM_IMAGE = `You fill the structured prompt blueprint for Nano Banana
-2 (Google's top image model). Given a short brief, produce JSON that fills
-EVERY field with a specific, dense, visual answer. Each field is one phrase
-or short sentence. No hedging, no "optional", no empty strings.
+2 / Gemini 3 Pro Image (Google's top image model). Given a short brief,
+produce JSON that fills EVERY field with a specific, dense, visual answer.
 
-Fields:
-- subject: the literal thing being shown (who/what, what they're doing)
-- style: the visual genre / photography tradition (e.g. "editorial fashion
-  photography", "cinematic dark-academia", "minimal product catalogue")
-- composition: shot type, framing, angle, focal length (e.g. "macro
-  close-up, 45° high angle, 85mm equivalent, centered")
-- lighting: light source direction + color + quality (e.g. "soft rim light
-  from left, warm golden highlights, diffused shadows")
-- mood: emotional tone + palette (e.g. "elegant, timeless, luxurious,
-  champagne-gold palette")
-- technical: focus, depth of field, grain, sharpness cues
+GOOGLE'S OFFICIAL GUIDANCE for this model (internalize these rules):
+1. "Describe the scene, don't just list keywords" — each field is a
+   narrative fragment, not a tag dump.
+2. POSITIVE-ONLY framing. This model has no negativePrompt channel; never
+   write "no X" / "without Y". If you need to exclude, phrase positively
+   ("empty street", "unbranded packaging", "clean minimalist backdrop").
+3. Name the subject with a specific noun phrase that can be reused verbatim
+   across later generations (same brand, same product, same character).
+4. Composition MUST include shot type + camera distance + framing + focal
+   length when relevant (e.g. "macro close-up, 85mm equivalent, center-framed,
+   low-angle product hero").
+5. Lighting MUST name the light source, its direction, its color temperature
+   and quality (e.g. "soft north-window light from frame-left, 4500K,
+   diffused shadows, subtle warm bounce from right").
+6. If the intent mentions a phone/screen/UI: Nano Banana can hallucinate
+   fake UI elements. Use wording like "real UI, legible app chrome" and
+   mention that any icons/text shown must be the actual product, not invented.
+
+Fields (each is one short sentence, dense, concrete):
+- subject: the literal thing being shown (who/what + what they're doing,
+  with a reusable noun phrase for the hero). Include aspect-aware framing
+  cues ("centered vertical composition" for 9:16, "letterboxed wide shot"
+  for 16:9).
+- style: visual genre + photographic tradition + film/lens feel
+  (e.g. "editorial fashion photography, analog Fujifilm grain,
+  cinematic color grade").
+- composition: shot type, framing, angle, focal length, rule-of-thirds
+  placement (e.g. "medium close-up, 50mm, subject on right-third,
+  negative space left").
+- lighting: source + direction + color + quality + shadow behavior.
+- mood: emotional tone + palette (3-4 hex-nameable colors if possible).
+- technical: focus, depth of field, lens/film stock, grain, sharpness cues.
 
 Respond with valid JSON only — no markdown fences, no prose.`;
 
 const SYSTEM_VIDEO = `You fill the structured prompt blueprint for Veo 3.1
 (Google's top video model). Given a short brief, produce JSON that fills
-EVERY field with a specific, kinetic, visual answer. Each field is one phrase
-or short sentence. No hedging, no empty strings.
+EVERY field with a specific, kinetic, visual answer.
 
-Fields:
+GOOGLE'S OFFICIAL STRUCTURE for Veo 3.1 is five parts:
+  [Cinematography] + [Subject] + [Action] + [Context] + [Style & Ambiance]
+You are splitting this across the 6 fields below (plus a dedicated
+negativePrompt). Write each field as a crisp, Veo-friendly sentence
+using the canonical camera vocabulary ("dolly in/out", "pan left/right",
+"tilt up/down", "orbit right", "static locked-off", "tripod-like stability",
+"handheld follow", "crane shot", "rack focus", "push-in", "pull-back").
+
+====================================================================
+CRITICAL: PHYSICS & STABILITY REQUIREMENTS
+====================================================================
+Veo's default bias is "everything is alive" — if you don't explicitly
+anchor static objects, they will slide, drift, morph, or float when the
+camera moves. This is the #1 failure mode of AI video and is unacceptable
+for marketing work. Every clip prompt you generate MUST:
+
+1. SEPARATE camera motion from object motion. Put camera movement on its
+   own sentence. e.g. "The phone rests flat on the matte oak desk. The
+   camera dollies in slowly over 8 seconds."
+
+2. LOCK static objects to surfaces using this exact phrase template:
+   "The {object} remains completely stationary, locked to the {surface},
+   maintaining full contact throughout. Physics-accurate weight and
+   gravity. Only the camera moves; all props are locked in place."
+
+3. FORCE-BASED verbs for wanted motion. Say "push", "pull", "sway",
+   "strike", "tilt" — not vague verbs ("moves", "goes", "does").
+
+4. ONE DOMINANT motion per clip. Never stack "camera pans AND object
+   rotates AND lights flicker". Pick camera OR subject motion, rarely
+   both, never three.
+
+5. NAME THE LIGHT SOURCE with direction — gives Veo a spatial anchor
+   that transitively stabilizes the whole scene
+   ("lit by the window at frame-left").
+
+6. MATERIAL SPECIFICITY for any hero object — "matte oak", "brushed
+   aluminum", "woven charcoal canvas" — gives Veo a light-reflection
+   profile that carries across frames.
+
+7. ASPECT-AWARE framing:
+   - 9:16 (vertical): "vertical portrait framing, subject centered,
+     shoulders-to-forehead" — never reuse a 16:9 wide prompt here.
+   - 16:9 (horizontal): "cinematic wide composition, negative space
+     left-of-frame" or similar.
+
+Fields (each is one concrete sentence following the rules above):
 - subject: who/what appears in the opening frame + initial composition
-- camera: specific camera movement (e.g. "slow dolly-in from 3m to 1m,
-  then 15° orbit right", "static locked-off", "handheld follow")
-- action: what changes during the clip — gestures, props, environment
-- lighting: direction + color + quality + how it evolves if at all
-- mood: emotional tone + palette + cinematic reference
-- audio: Veo will generate audio; describe what to synthesize (e.g.
-  "ambient room tone + gentle piano melody", "silent", "urban traffic
-  with distant laughter")
+  + aspect-aware framing cue. Use a reusable noun phrase for the hero.
+- camera: ONE specific camera movement in canonical vocabulary. Must be
+  its own sentence, not buried in subject description. Default to
+  conservative motion (slow dolly-in or static hold) unless the brief
+  explicitly asks for dynamic motion.
+- action: what changes during the clip — with force-based verbs only.
+  If the hero is a static prop, the "action" is usually an environmental
+  change (light shift, steam rising, leaves drifting) while the prop
+  stays put. Explicitly state "The {hero} remains locked in place" if
+  the hero is a static object.
+- lighting: direction + color + quality + how it evolves if at all.
+  Prefer steady light over changing light unless the brief demands it.
+- mood: emotional tone + palette + optional cinematic reference
+  ("tone of a Sofia Coppola morning scene").
+- audio: Veo will generate audio natively; describe the ambient bed +
+  any specific sounds. Use neutral ambient if unsure — changing audio
+  dramatically is a cut signal.
+- negativePrompt: a comma-separated list of NOUNS and ADJECTIVES (never
+  "no X" phrasing). Stack these defaults at minimum, add brief-specific
+  ones as needed: "blurry, distorted geometry, morphing objects, sliding
+  objects, drifting props, text artifacts, fake logos, extra fingers,
+  deformed hands, low quality, jittery motion, watermarks". If the brief
+  involves a phone/UI screen, also add "fake app UI, hallucinated icons,
+  garbled on-screen text".
 
 Respond with valid JSON only — no markdown fences, no prose.`;
 
