@@ -30,7 +30,11 @@ are visually seamless. Optional final step: FFmpeg concat into a single mp4.
 
 1. **Admin-only.** Non-admins signed out at middleware + auth callback. Add admins via `SELECT public.grant_admin('<uuid>');` in SQL editor (service_role only).
 2. **Never modify `components/ui/`** — shadcn/ui generated.
-3. **Git commits:** Always use `newbeeconnect@gmail.com` — `git config user.email` before first commit.
+3. **GitHub identity — THREE checks required BEFORE first git/gh command in any session** (local config alone is insufficient; on 2026-05-21 Newbee App PR #268 squash merge was attributed to `cglrbbr@gmail.com` → Vercel deploy `BLOCKED` because the team's SAML SSO rejects caglarbiber90):
+   1. **`gh auth status`** — Active account must be **NewbeeConnect**. Fix: `gh auth switch -h github.com -u NewbeeConnect`. The active gh account determines PR.author; GitHub squash-merge UI rewrites commit author to PR.author's email, so local-correct commits can still produce wrong-author squash commits.
+   2. **`git config --local --get user.email`** — must be `newbeeconnect@gmail.com`. Fix: `git config user.email newbeeconnect@gmail.com && git config user.name newbeeconnect`.
+   3. **`git config --global --get user.email`** — must be `newbeeconnect@gmail.com`. Fix: `git config --global user.email newbeeconnect@gmail.com && git config --global user.name newbeeconnect`.
+   - **Vercel deploy canary:** After a merge, if `mcp__ad22df44__list_deployments` shows the deploy as `BLOCKED`/`ERROR`, check `meta.githubCommitAuthorLogin` — if it's `caglarbiber90`, wrong account was used. Fix: open a follow-up commit from NewbeeConnect to re-trigger Vercel.
 4. **Always use `createServiceClient()`** for DB writes in API routes (bypasses RLS).
 5. **Always check `if (!ai)`** before AI operations — client is null when GOOGLE_API_KEY missing.
 6. **All tables use `mkt_` prefix** except `user_roles`.
