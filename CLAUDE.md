@@ -1,6 +1,6 @@
 # Newbee Marketing Hub — Continuous Story Video Generator
 
-> **Last Updated:** April 19, 2026
+> **Last Updated:** May 27, 2026
 > Single-feature admin tool: 4-scene / 5-keyframe continuous story video generator.
 > Uses Imagen 4 for keyframes and Veo 3.1 with `lastFrame` interpolation for seamless cuts.
 > GitHub: `NewbeeConnect/NewbeeMarketing` | Hosting: Vercel | Language: Turkish
@@ -84,6 +84,8 @@ Sidebar has exactly these 3 items. `/` redirects to `/generate`. `/login`, `/aut
 
 ## Cost Model
 
+*Pricing as of April 2026 — verify against [Google AI Studio pricing](https://ai.google.dev/pricing) before billing decisions; Veo/Imagen rates have changed twice in 2026.*
+
 Per story at **Standard tier** (default): ~$13.05 = 4 × 8s × $0.40 (Veo) + 5 × $0.04 (Imagen) + ~$0.05 (Gemini).
 
 Per story at **Fast tier**: ~$4.92 = 4 × 8s × $0.15 (Veo Fast) + 5 × $0.02 (Imagen Fast) + ~$0.02 (Gemini).
@@ -140,6 +142,8 @@ Legacy skills referencing removed features (`audit-api`, `test-api`, `new-featur
 
 ## Memory
 
-A project-scoped memory file lives at
-`/Users/caglarbiber/.claude/projects/-Volumes-APP-Newbee-NewbeeMarketing/memory/`.
-Key invariant: **Marketing repo + Supabase are fully isolated** from Admin / Expert / Newbee App (which share the Newbee Supabase). Don't suggest cross-project DB patterns.
+Project-scoped memory lives under `~/.claude/projects/<project-hash>/memory/` — the hash is derived from the project CWD so it differs on Mac vs Windows:
+- Mac (`/Volumes/SSD 2TB/APP/Newbee/MarketingNewbee/`): `~/.claude/projects/-Volumes-SSD-2TB-APP-Newbee-MarketingNewbee/memory/`
+- Windows (`C:\Users\c.biber\Documents\APP\Newbee\MarketingNewbee\`): `~/.claude/projects/C--Users-c-biber-Documents-APP-Newbee-MarketingNewbee/memory/`
+
+Key invariant: **Marketing repo + Supabase are fully isolated** from Admin / Expert / Newbee App (which share the Newbee Supabase `ccuiumdacqwsfhfxsjdm`). Don't suggest cross-project DB patterns. Marketing Supabase project: `dwwkcfunctykemwsrkkr` with `mkt_`-prefixed tables.
