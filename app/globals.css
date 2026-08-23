@@ -6,9 +6,10 @@
 
 /*
  * Newbee Marketing design system — warm honey palette, Geist + Fraunces
- * typography, custom `ink/bg/brand/line` utility namespace. Ported from
- * /Volumes/APP/Newbee/MarketingDesign/hub. Tailwind's shadcn theme vars
- * (below) stay in place because shadcn/ui components read them, but the
+ * typography, custom `ink/bg/brand/line` utility namespace. Originally ported
+ * from a separate MarketingDesign/hub prototype that no longer exists on disk;
+ * this file is now the source of truth for the palette. Tailwind's shadcn theme
+ * vars (below) stay in place because shadcn/ui components read them, but the
  * custom utilities are what every Newbee component actually uses.
  */
 

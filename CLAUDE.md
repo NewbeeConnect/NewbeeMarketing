@@ -142,8 +142,13 @@ Legacy skills referencing removed features (`audit-api`, `test-api`, `new-featur
 
 ## Memory
 
-Project-scoped memory lives under `~/.claude/projects/<project-hash>/memory/` — the hash is derived from the project CWD so it differs on Mac vs Windows:
-- Mac (`/Volumes/SSD 2TB/APP/Newbee/MarketingNewbee/`): `~/.claude/projects/-Volumes-SSD-2TB-APP-Newbee-MarketingNewbee/memory/`
-- Windows (`C:\Users\c.biber\Documents\APP\Newbee\MarketingNewbee\`): `~/.claude/projects/C--Users-c-biber-Documents-APP-Newbee-MarketingNewbee/memory/`
+Project-scoped memory lives under `~/.claude/projects/<encoded-cwd>/memory/` — the directory name is derived from the session's working directory, so it depends on where the session was started, not on the repo:
+
+| Session started in | Memory store |
+|---|---|
+| `~/Developer/newbee/newbeemarketing/` (this repo) | `~/.claude/projects/-Users-caglarbiber-Developer-newbee-newbeemarketing/memory/` |
+| `~/Developer/newbee/` (the whole ecosystem) | `~/.claude/projects/-Users-caglarbiber-Developer-newbee/memory/` — the shared Newbee store, **not** this one |
+
+Both are real directories, not symlinks. Open this repo directly if you want Marketing's own memory; a session started one level up loads the ecosystem store instead. (The pre-move `/Volumes/SSD 2TB/...` and Windows `C:\Users\c.biber\...` paths this section used to list are dead — the repo now lives under `~/Developer/newbee/`.)
 
 Key invariant: **Marketing repo + Supabase are fully isolated** from Admin / Expert / Newbee App (which share the Newbee Supabase `ccuiumdacqwsfhfxsjdm`). Don't suggest cross-project DB patterns. Marketing Supabase project: `dwwkcfunctykemwsrkkr` with `mkt_`-prefixed tables.
