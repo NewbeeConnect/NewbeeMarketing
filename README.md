@@ -1,8 +1,8 @@
-# Newbee Marketing Hub - AI Video Ad Platform
+# Newbee Marketing Hub — AI Video & Story Generator
 
-> **Last Updated:** March 04, 2026 | Hosting: Vercel (auto-deploy from `main`)
+> **Last Updated:** September 22, 2026 | Hosting: Vercel (auto-deploy from `main`)
 
-AI-powered marketing platform for Newbee. Generates video ads, image creatives, and campaign strategies using Google AI models (Gemini, Veo, Imagen).
+AI-powered continuous story video generator and asset platform for Newbee. Uses Google AI models (Gemini 2.5 Flash, Imagen 4, Veo 3.1) with keyframe interpolation for seamless video ad generation.
 
 ---
 
@@ -30,13 +30,11 @@ Open [http://localhost:3000](http://localhost:3000)
 **For comprehensive project documentation, see [CLAUDE.md](CLAUDE.md)**
 
 This includes:
-- AI model reference (Gemini, Veo 3.1, Imagen 4) with pricing
-- Two workflow systems (Project 6-step, Campaign 5-step)
-- Supabase client patterns (`createServiceClient`, `createNewbeeClient`)
-- Cost tracking conventions (`mkt_usage_logs`)
-- Security headers and middleware
-- Slash commands (/deploy, /cost-report, /monitor-budget, /audit-api)
-
+- 4-scene / 5-keyframe continuous story generation with seamless cuts
+- AI model reference (Gemini 2.5 Flash, Imagen 4, Veo 3.1) and pricing
+- Single-tenant media library (`/library`) and cost tracking (`/analytics`)
+- Device-aware download redirect (`/download`) powering `download.newbeeapp.com`
+- Service client patterns (`createServiceClient`) and budget guard ($500/user/mo cap)
 ---
 
 ## Tech Stack
@@ -44,7 +42,7 @@ This includes:
 - **Framework:** Next.js 16 (App Router, Turbopack)
 - **UI:** React 19 + TypeScript 5 + Tailwind CSS 4 + shadcn/ui
 - **Database:** Supabase (own instance, `mkt_` prefixed tables)
-- **AI:** Gemini 2.5 Pro/Flash, Veo 3.1 (async video), Imagen 4 (sync image)
+- **AI:** Gemini 2.5 Flash, Veo 3.1 (async video), Imagen 4 (keyframe images)
 - **Hosting:** Vercel (auto-deploy)
 - **Budget:** $25,000 Google Cloud startup credit
 
@@ -55,7 +53,7 @@ This includes:
 | Resource | Link |
 |----------|------|
 | Vercel Dashboard | https://vercel.com/newbeeconnect/newbeemarketing |
-| Supabase Dashboard | https://supabase.com/dashboard/project/mkt_project |
+| Supabase Dashboard | https://supabase.com/dashboard/project/dwwkcfunctykemwsrkkr |
 | Google AI Studio | https://aistudio.google.com |
 
 ---

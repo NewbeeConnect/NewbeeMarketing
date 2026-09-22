@@ -1,6 +1,6 @@
 # Newbee Marketing Hub — Continuous Story Video Generator
 
-> **Last Updated:** May 27, 2026
+> **Last Updated:** September 22, 2026
 > Single-feature admin tool: 4-scene / 5-keyframe continuous story video generator.
 > Uses Imagen 4 for keyframes and Veo 3.1 with `lastFrame` interpolation for seamless cuts.
 > GitHub: `NewbeeConnect/NewbeeMarketing` | Hosting: Vercel | Language: Turkish
@@ -60,27 +60,31 @@ Storage paths on `mkt-assets` bucket:
 - Clips: `{user_id}/stories/{story_id}/clips/{1..4}.mp4`
 - Stitched: `{user_id}/stories/{story_id}/stitched.mp4`
 
-## API Surface (6 routes)
+## API Surface
 
 All routes: auth → rate-limit → budget → validate → process → log → respond.
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/api/stories` | Gemini script + initial story row |
-| GET  | `/api/stories/[id]` | Full bundle (story + frames + clips + stitched) |
-| PATCH | `/api/stories/[id]` | Edit scene_scripts, frame_prompts, style_anchor |
-| POST | `/api/stories/[id]/frames/[1..5]` | Imagen call, upsert row |
-| POST | `/api/stories/[id]/clips/[1..4]` | Veo call (firstFrame+lastFrame), upsert row |
-| GET  | `/api/stories/[id]/clips/[i]/status` | Poll Veo operation, upload to storage |
-| POST | `/api/stories/[id]/stitch` | FFmpeg concat demuxer, writes stitched mp4 |
+| POST | `/api/generate/prompt` | Gemini prompt generation & refinement |
+| POST | `/api/generate/suggest-brief` | AI-assisted brief suggestion from story topic |
+| POST | `/api/generate/image` | Imagen 4 keyframe generation |
+| POST | `/api/generate/video` | Veo 3.1 video clip generation (firstFrame + lastFrame) |
+| GET  | `/api/generate/video/[generationId]/status` | Poll Veo operation status & upload to Supabase storage |
+| GET  | `/api/library` | List stored generations with search & type filter |
+| POST | `/api/library/upload` | Upload local media to library storage |
+| DELETE | `/api/library/[generationId]` | Delete media asset from library & storage |
+| GET  | `/api/analytics` | Usage logs, cost metrics & budget status |
+| GET  | `/download` | Smart device-aware redirect (iOS → App Store, Android → Play Store, Desktop → web app); target of `download.newbeeapp.com` |
 
-## UI Surface (3 pages)
+## UI Surface (4 pages)
 
-- **`/generate`** — 5 frame cards (row 1) + 4 clip cards (row 2) + stitch button (row 3). Topic + aspect ratio + duration + model tier inputs at top.
-- **`/analytics`** — cost tracking, budget gauge, generation stats, story count.
-- **`/settings`** — API keys (integration config).
+- **`/generate`** — Interactive generator: topic brief, keyframe cards, clip cards, model tier selection, stitch workflow.
+- **`/library`** — Media asset library: images, videos, and stitched stories with preview, search, and download.
+- **`/analytics`** — Cost tracking, budget gauge, token usage logs, generation stats.
+- **`/settings`** — API keys and environment configuration.
 
-Sidebar has exactly these 3 items. `/` redirects to `/generate`. `/login`, `/auth/callback`, `/download` are public.
+Public routes: `/login`, `/auth/callback`, `/download`.
 
 ## Cost Model
 
