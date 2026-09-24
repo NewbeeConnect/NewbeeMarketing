@@ -87,11 +87,6 @@ export const adDeploymentSchema = z.object({
   }),
 });
 
-export const apiKeysSchema = z.object({
-  platform: z.enum(["google_ads", "meta_ads", "github"]),
-  keys: z.record(z.string(), z.string()),
-});
-
 export const sceneSchema = z.object({
   title: z.string().min(1, "Scene title is required").max(200),
   description: z.string().min(1, "Scene description is required").max(2000),
@@ -147,4 +142,3 @@ export type SceneFormData = z.infer<typeof sceneSchema>;
 export type TemplateFormData = z.infer<typeof templateSchema>;
 export type CalendarEventFormData = z.infer<typeof calendarEventSchema>;
 export type AdDeploymentFormData = z.infer<typeof adDeploymentSchema>;
-export type ApiKeysFormData = z.infer<typeof apiKeysSchema>;

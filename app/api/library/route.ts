@@ -5,8 +5,8 @@ import { PROJECT_SLUGS, IMAGE_RATIOS, VIDEO_RATIOS } from "@/lib/projects";
 /**
  * GET /api/library?project=newbee&type=image&ratio=9:16
  *
- * List the current user's generations, optionally filtered by project / type
- * / ratio. Returns rows ordered newest-first.
+ * List the team's generations (every user's rows, up to 500), optionally
+ * filtered by project / type / ratio. Returns rows ordered newest-first.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -24,10 +24,12 @@ export async function GET(request: NextRequest) {
     const ratio = params.get("ratio");
 
     // Team-shared library: every authenticated admin sees every row. RLS
-    // is still enforced at the DB level (zero policies → service_role
-    // only); the admin gate is the middleware. We intentionally skip a
-    // `.eq("user_id", user.id)` filter here so the whole team browses
-    // the same pool of assets.
+    // is enabled, but its only policy (migration 015, "Users manage own
+    // generations": auth.uid() = user_id) would limit a user-scoped client
+    // to their own rows — so this reads through the service client, which
+    // bypasses RLS; the admin gate is the proxy (`lib/supabase/middleware.ts`).
+    // We intentionally skip a `.eq("user_id", user.id)` filter here so the
+    // whole team browses the same pool of assets.
     let query = serviceClient
       .from("mkt_generations")
       .select(

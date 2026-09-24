@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { HOME_ROUTE, isValidRedirect } from "@/lib/auth-redirect";
 
 // Versioned cookie name — bump the suffix to flush stale caches.
 const ROLE_COOKIE_NAME = "x-mkt-role-v1";
@@ -64,18 +65,6 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("Content-Security-Policy", csp);
 
   return response;
-}
-
-const ALLOWED_REDIRECT_PREFIXES = [
-  "/generate",
-  "/library",
-  "/analytics",
-  "/settings",
-];
-
-export function isValidRedirect(path: string): boolean {
-  if (!path || !path.startsWith("/")) return false;
-  return ALLOWED_REDIRECT_PREFIXES.some((prefix) => path.startsWith(prefix));
 }
 
 export async function updateSession(request: NextRequest) {
@@ -216,11 +205,14 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Authenticated admin on /login → send to dashboard
+  // Authenticated admin on /login → honour a valid ?redirect=, else go home
   if (user && pathname === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return addSecurityHeaders(NextResponse.redirect(url));
+    const requested = request.nextUrl.searchParams.get("redirect");
+    const target =
+      requested && isValidRedirect(requested) ? requested : HOME_ROUTE;
+    return addSecurityHeaders(
+      NextResponse.redirect(new URL(target, request.url))
+    );
   }
 
   return addSecurityHeaders(supabaseResponse);

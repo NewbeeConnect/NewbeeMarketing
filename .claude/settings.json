@@ -20,7 +20,7 @@
     "Always check if (!ai) before AI operations - client is null when GOOGLE_API_KEY missing",
     "All tables use mkt_ prefix - never create tables without it",
     "Every AI API call must log to mkt_usage_logs for cost tracking",
-    "Use parseAiJson() to parse Gemini responses (strips markdown code blocks)",
+    "Parse Gemini JSON by requesting responseMimeType \"application/json\", stripping code fences, and validating with a Zod schema (return 502 on malformed output) - there is no shared parseAiJson() helper",
     "Commit messages must be in English and descriptive",
     "Use Turkish when communicating with the user",
     "Use English for code comments and commit messages",
@@ -43,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "case \"$TOOL_INPUT_FILE_PATH\" in */app/api/*/route.ts) echo '📋 API Route Checklist: 1)Auth(createSupabaseServer+getUser) 2)AI null check 3)Rate limit 4)Budget guard 5)Zod validation 6)Data fetch 7)AI call+parseAiJson 8)Save results 9)Log to mkt_usage_logs 10)Return response';; esac"
+            "command": "case \"$TOOL_INPUT_FILE_PATH\" in */app/api/*/route.ts) echo '📋 API Route Checklist: 1)Auth(createSupabaseServer+getUser) 2)AI null check 3)Rate limit 4)Budget guard 5)Zod validation 6)Data fetch 7)AI call + Zod-validated JSON 8)Save results 9)Log to mkt_usage_logs 10)Return response';; esac"
           }
         ]
       },
@@ -52,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "case \"$TOOL_INPUT_FILE_PATH\" in */lib/ai/*|*/app/api/ai/*|*/app/api/generate/*) echo '💰 AI dosyasi duzenleniyor. Degisiklikler maliyet etkisi olabilir. /monitor-budget ile butce durumunu kontrol edin.';; esac"
+            "command": "case \"$TOOL_INPUT_FILE_PATH\" in */lib/google-ai.ts|*/lib/budget-guard.ts|*/app/api/generate/*) echo '💰 AI dosyasi duzenleniyor. Degisiklikler maliyet etkisi olabilir: COST_ESTIMATES (lib/google-ai.ts), mkt_usage_logs kaydi ve lib/budget-guard.ts ile /analytics sayfasini kontrol edin.';; esac"
           }
         ]
       },
@@ -70,7 +70,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "case \"$TOOL_INPUT\" in *'git commit'*) cd \"/Volumes/SSD 2TB/APP/Newbee/NewbeeMarketing\" && echo '🔍 Pre-commit kontrol...' && npm run lint --silent 2>&1 | tail -5 && npx tsc --noEmit 2>&1 | tail -10; if [ $? -ne 0 ]; then echo 'BLOCKED: Lint veya TypeScript hatalari var. Commit yapilamaz.'; exit 2; fi;; esac"
+            "command": "cmd=$(node -e 'let s=\"\";process.stdin.on(\"data\",d=>s+=d).on(\"end\",()=>{try{const c=JSON.parse(s)?.tool_input?.command;if(typeof c===\"string\")process.stdout.write(c)}catch{}})' 2>/dev/null); [ -z \"$cmd\" ] && cmd=\"${TOOL_INPUT:-}\"; case \"$cmd\" in *'git commit'*) ;; *) exit 0;; esac; root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; cd \"$root\" || exit 0; echo \"🔍 Pre-commit kontrol: lint + typecheck ($root)\"; fail=0; out=$(npm run lint --silent 2>&1) || { fail=1; printf '%s\\n' \"$out\" | tail -15 >&2; }; out=$(npx tsc --noEmit 2>&1) || { fail=1; printf '%s\\n' \"$out\" | tail -15 >&2; }; if [ \"$fail\" -ne 0 ]; then echo 'BLOCKED: Lint veya TypeScript hatalari var. Commit yapilamaz.' >&2; exit 2; fi"
           }
         ]
       }

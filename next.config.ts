@@ -15,9 +15,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "1mb",
     },
   },
-  outputFileTracingIncludes: {
-    "/api/stories/[storyId]/stitch": ["./node_modules/ffmpeg-static/ffmpeg"],
-  },
 };
 
 export default nextConfig;

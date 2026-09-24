@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { isValidRedirect } from "@/lib/supabase/middleware";
+import { HOME_ROUTE, isValidRedirect } from "@/lib/auth-redirect";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const rawRedirect = searchParams.get("next") ?? searchParams.get("redirect") ?? "/dashboard";
-  const redirectTo = isValidRedirect(rawRedirect) ? rawRedirect : "/dashboard";
+  const rawRedirect = searchParams.get("next") ?? searchParams.get("redirect") ?? HOME_ROUTE;
+  const redirectTo = isValidRedirect(rawRedirect) ? rawRedirect : HOME_ROUTE;
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=auth_failed`);

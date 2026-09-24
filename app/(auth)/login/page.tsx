@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Mail } from "lucide-react";
 import { COPY } from "@/lib/i18n/copy";
+import { HOME_ROUTE, isValidRedirect } from "@/lib/auth-redirect";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -37,7 +38,9 @@ function LoginForm() {
         toast.error(error.message);
         return;
       }
-      const redirectTo = searchParams.get("redirect") ?? "/generate";
+      const requested = searchParams.get("redirect");
+      const redirectTo =
+        requested && isValidRedirect(requested) ? requested : HOME_ROUTE;
       router.push(redirectTo);
       router.refresh();
     } catch {

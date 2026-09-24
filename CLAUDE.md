@@ -24,7 +24,8 @@ video can be **extended** from its last frame while Veo still holds its source
 URI (~2 days).
 
 The earlier 4-scene / 5-keyframe "continuous story" generator (`mkt_stories`,
-`/api/stories/*`, FFmpeg stitching, `useStory`) has been removed from the code;
+`/api/stories/*`, FFmpeg stitching, `useStory`) has been removed from the code
+(its `ffmpeg-static` dependency and `next.config.ts` tracing entry too);
 migration `015_library_pivot.sql` drops its table and columns. What is left of
 it is marked **legacy** below.
 
@@ -38,13 +39,12 @@ it is marked **legacy** below.
 | Database | Supabase (PostgreSQL + Auth + Storage), project `dwwkcfunctykemwsrkkr` |
 | AI | `@google/genai` 1.42 — Gemini 3 Pro (preview), Nano Banana 2 (Gemini 3 Pro Image preview), Veo 3.1 |
 | Image post-processing | `sharp` — logo compositing in `lib/image/composite.ts` |
-| Legacy dep | `ffmpeg-static` — still in `package.json`, imported nowhere (served the removed stitch route) |
 | Auth | Admin-only (user_roles + get_my_roles RPC pattern) |
 | Hosting | Vercel |
 
 ## Critical Rules
 
-1. **Admin-only.** `proxy.ts` (Next 16's replacement for `middleware.ts`) calls `updateSession()` in `lib/supabase/middleware.ts`, which redirects signed-out users to `/login` and signs non-admins out (`get_my_roles` RPC, result cached 10 min in the `x-mkt-role-v1` cookie); `/auth/callback` repeats the admin check. If the RPC itself errors, the proxy lets the request through (deliberate fail-open, see the code comment). Add admins via `SELECT public.grant_admin('<uuid>');` in SQL editor (service_role only).
+1. **Admin-only.** `proxy.ts` (Next 16's replacement for `middleware.ts`) calls `updateSession()` in `lib/supabase/middleware.ts`, which redirects signed-out users to `/login` and signs non-admins out (`get_my_roles` RPC, result cached 10 min in the `x-mkt-role-v1` cookie); `/auth/callback` repeats the admin check. If the RPC itself errors, the proxy lets the request through (deliberate fail-open, see the code comment). Post-login redirects (the proxy's signed-in-on-`/login` bounce, `/auth/callback`, and the login form) all go through `lib/auth-redirect.ts`: a `redirect`/`next` target is honoured only if `isValidRedirect()` accepts it (prefixes `/generate`, `/library`, `/analytics`, `/settings`), otherwise the admin lands on `HOME_ROUTE` (`/generate`). Add admins via `SELECT public.grant_admin('<uuid>');` in SQL editor (service_role only).
 2. **Never modify `components/ui/`** — shadcn/ui generated.
 3. **GitHub identity — verify, never switch.** PRs must be authored by **NewbeeConnect**: GitHub's squash merge rewrites the commit author to the PR author, and on 2026-05-21 Newbee App PR #268 came out as `cglrbbr@gmail.com` → Vercel deploy `BLOCKED`, because the team's SAML SSO rejects caglarbiber90.
    - **Never run `gh auth switch`.** It rewrites one global gh config and flips the account under every other session. Identity is pinned per project via `GH_CONFIG_DIR`, set in the machine-local, untracked `.claude/settings.local.json`. Setup (including the Windows `%AppData%\GitHub CLI` layout) and the reasoning are in the Newbee app repo's `docs/github-identity.md`. This checkout has no `.claude/settings.local.json` yet — pin it before the first `gh` write, or prefix one-offs: `GH_CONFIG_DIR=<pinned dir> gh pr create …`.
@@ -56,7 +56,7 @@ it is marked **legacy** below.
 7. **RLS enabled on all tables.** `mkt_generations` ran with RLS and zero policies until migration 015 added an owner policy (`auth.uid() = user_id`). The API routes still read and write it through the service client, because the library is team-shared: `/api/library`, the status route and DELETE deliberately skip any `user_id` filter.
 8. **Cost tracking:** Every AI API call must log to `mkt_usage_logs` BEFORE returning its response (budget drift mitigation). Veo is logged by the status route when it finalizes the video, not at kick-off. Nano Banana images are logged with `api_service: "gemini"`.
 9. **Veo is async:** `POST /api/generate/video` pre-inserts the row, stores `operation_name` and returns `generationId`; the client polls `GET /api/generate/video/[generationId]/status` via `useVideoStatus` (8s interval). The status route enforces a 15-min timeout and a 10-attempt download/upload retry cap (`MAX_DOWNLOAD_RETRIES`).
-10. **Gemini JSON parsing:** there is no shared `parseAiJson()` helper. `/api/generate/prompt` requests `responseMimeType: "application/json"`, strips code fences inline, then validates with a Zod schema and returns 502 on malformed output. (The `rules` list in `.claude/settings.json` still names `parseAiJson()`.)
+10. **Gemini JSON parsing:** there is no shared `parseAiJson()` helper. `/api/generate/prompt` requests `responseMimeType: "application/json"`, strips code fences inline, then validates with a Zod schema and returns 502 on malformed output. The `rules` list in `.claude/settings.json` says the same.
 11. **Veo input modes are mutually exclusive** (Zod `refine` in the video route): at most one of `firstFrameUrl` (image-to-video — the pipeline hands over its stage-2 image), `referenceImages` (≤3 `ASSET` references), or `sourceGenerationId` (extend from the source video's `output_metadata.veo_video_uri`). No `lastFrame` interpolation is used.
 12. **Canonical storage layout:** `buildFilename()` + `buildStoragePath()` in `lib/filename.ts` → `mkt-assets/{project}/{image|video}/{ratio, ":"→"-"}/{ISO-timestamp}_{prompt-slug}_{6-hex}.{png|mp4}`. The DELETE and status routes re-derive paths from `project_slug`/`type`/`ratio`/`filename`, so don't change the layout without migrating the stored objects.
 
@@ -66,7 +66,7 @@ it is marked **legacy** below.
 - **`mkt_generations`** — one row per library asset (AI output or upload). Key columns: `type` (`image`|`video`), `project_slug` (`newbee`), `ratio`, `filename`, `prompt`, `model` (`"user-upload"` marks manual uploads — the Library's Generated/Source split), `status` (`pending`→`processing`→`completed`|`failed`), `output_url`, `operation_name` (Veo), `config` (video: `duration_seconds`, `storage_path`), `output_metadata` (`file_size_mb`, `veo_video_uri` for extension), `retry_count`, cost columns, `user_id`.
 - **`mkt_usage_logs`** — per-call cost tracking. Budget guard queries this for monthly total ($500/user cap).
 - **`mkt_rate_limits`** — DB-backed token bucket via the `mkt_check_rate_limit` RPC. Live categories: `ai-gemini`, `ai-media`, `api-general`; the `social-*` and `autopilot` presets in `lib/rate-limit.ts` are legacy.
-- **`mkt_api_keys`** — the Settings page reads/writes Google Ads, Meta Ads and GitHub keys here from the browser client (own-row RLS). Nothing server-side consumes them, and they are stored as plain JSON despite the column name `keys_encrypted` (`lib/encryption.ts` exists but is imported nowhere).
+- **`mkt_api_keys`** — **legacy, no code reads or writes it.** The Settings page used to save Google Ads / Meta Ads / GitHub keys here from the browser client as **plain JSON** in the misleadingly named `keys_encrypted` column; nothing ever consumed them (no route, hook or lib calls those APIs), so the forms and `hooks/useApiKeys.ts` were removed on 2026-09-24 rather than wired to `lib/encryption.ts` (still present, imported nowhere; it would need an `ENCRYPTION_KEY` env var). The table and column are kept. **Owner action:** any rows already stored there are plaintext secrets — clear them (and rotate those credentials if they were real) from the Supabase dashboard; the agents do not touch the DB.
 - **`mkt_notifications`** — legacy: only `hooks/useNotifications.ts` → `NotificationBell` → `AppHeader` touch it, and `AppHeader` is rendered nowhere.
 - **`mkt_stories`** — **legacy**: created by migration 012 for the removed story generator and dropped by migration 015 (together with `mkt_generations.story_id/story_role/sequence_index` and the `uniq_mkt_gen_story_role_seq` index that depended on them). No code references it. The `mkt_generations.type` CHECK still allows the legacy values `voiceover` and `stitched` (last rewritten in migration 012); the app only writes `image` and `video`.
 
@@ -98,7 +98,7 @@ AI routes: auth → `if (!ai)` → rate-limit → budget → validate → proces
 - **`/generate`** — Intent-first timeline (`lib/generate/machine.ts` + `timeline.ts`): Goal (intent + ratio) → Brief & blueprint (suggest brief, edit fields, reference images, locked assets) → Prompt (assembled, editable) → Image and/or Video (generate, upload, or pick an image from the library) → Done (create a variant, or extend the video). Pipeline adds a "Continue?" gate between image and video.
 - **`/library`** — Image / Video folders with Generated / Source / All tabs, client-side search, preview, download, delete.
 - **`/analytics`** — Spend gauge against the $25,000 credit (`TOTAL_CREDIT_USD` in `lib/constants.ts`), stat cards, monthly trend, spend by service.
-- **`/settings`** — Account status, change password, and the Google Ads / Meta Ads / GitHub key forms backed by `mkt_api_keys` (see Data Model).
+- **`/settings`** — Account status, change password, and a read-only list of the server-side services. (The old API-key forms are gone — see `mkt_api_keys` under Data Model.)
 
 `/` redirects to `/generate`. Public routes: `/login`, `/auth/callback`, `/download`.
 
@@ -149,20 +149,18 @@ Env vars read by live code: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_AN
 ## Gotchas
 
 - **Local build needs `.env.local`** — Supabase URL required at parse time.
-- **Legacy FFmpeg tracing** — `next.config.ts` `outputFileTracingIncludes` still maps `/api/stories/[storyId]/stitch` → `./node_modules/ffmpeg-static/ffmpeg`. That route (and `lib/video/stitch.ts`) no longer exists, so the entry is dead config and `ffmpeg-static` an unused dependency; remove both together if cleaning up.
 - **Logos drift in video** — the image route composites user logos pixel-perfect with `sharp`, but Veo re-renders every frame, so brand text inside a logo can drift during a clip. The prompt-level lock text is the only guard; an FFmpeg overlay pass on the finished clip is an unbuilt follow-up (comment in `app/api/generate/video/route.ts`).
 - **Image/video input requires `personGeneration: "allow_adult"`** — the video route sets it whenever a first frame, references or a source video is passed, and `"allow_all"` only for pure text-to-video.
 - **Veo URI retention:** ~2 days. A status poll after expiry fails the download (retry cap 10), and extending a video needs `output_metadata.veo_video_uri` inside that window — otherwise the video route returns 410.
-- **Stale `/dashboard` redirect** — `updateSession()` sends a signed-in admin who opens `/login` to `/dashboard`, and `/auth/callback` falls back to `/dashboard`; no such page exists (`/` redirects to `/generate`).
 
 ## Scripts / Skills (active)
 
 This repo has no project skills or commands — there is no `.claude/skills` or `.claude/commands` directory. `.claude/` holds only:
 
-- `settings.json` — permissions, a `rules` list, and hooks (block edits to `components/ui/`, API-route and SQL checklists, a pre-commit lint + typecheck, post-edit `eslint --fix` + `tsc`).
+- `settings.json` — permissions, a `rules` list, and hooks (block edits to `components/ui/`, API-route, AI-cost and SQL checklists, a pre-commit lint + typecheck that runs from `git rev-parse --show-toplevel`, reads the command from the stdin JSON (falling back to `$TOOL_INPUT`) and exits 2 to block on failure, post-edit `eslint --fix` + `tsc`).
 - `launch.json` — `marketing-dev` preview config (`npm run dev` on :3000).
 
-Config drift to know about: the pre-commit hook `cd`s into the old Mac path `/Volumes/SSD 2TB/APP/Newbee/NewbeeMarketing`, and the AI-file hook points at a `/monitor-budget` skill that no longer exists. Earlier skills (`/deploy`, `/perf-check`, `audit-api`, `test-api`, `new-feature`, `cost-report`, `monitor-budget`, `db-check`) are all gone.
+Config drift to know about: the other hooks still read `$TOOL_INPUT_FILE_PATH` from the environment, while current Claude Code passes tool input as JSON on stdin (the Newbee app's `require-newbee-account.sh` notes the same) — if that variable is unset they match nothing, so the `components/ui/` block and the checklists may be silently inert. Earlier skills (`/deploy`, `/perf-check`, `audit-api`, `test-api`, `new-feature`, `cost-report`, `monitor-budget`, `db-check`) are all gone.
 
 ## Memory
 

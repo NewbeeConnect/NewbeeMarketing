@@ -13,7 +13,7 @@
  *   COPY.generate     → /generate sayfasındaki TÜM metinler (7 step dahil)
  *   COPY.library      → /library sayfası
  *   COPY.analytics    → /analytics sayfası
- *   COPY.settings     → /settings sayfası (şifre değiştirme + API key section'ları)
+ *   COPY.settings     → /settings sayfası (hesap, şifre değiştirme, bağlı servisler)
  *   COPY.concepts     → Tooltip ve info box'larda paylaşılan sözlük tanımları
  */
 
@@ -697,14 +697,13 @@ const analytics = {
 
 const settings = {
   pageTitle: "Ayarlar",
-  pageSub: "Hesap, API anahtarları ve entegrasyonlar.",
+  pageSub: "Hesap, şifre ve bağlı servisler.",
   whatIsThis: {
     title: "Ayarlar neler içeriyor?",
-    body: "Dört bölüm var:",
+    body: "Üç bölüm var:",
     bullets: [
       "**Hesap**: Kiminle giriş yaptığının özeti",
       "**Şifre değiştir**: Mevcut şifrenle doğrulama + yeni şifre",
-      "**API anahtarları**: Google Ads, Meta Ads, GitHub entegrasyonları (opsiyonel — girersen gerçek kampanya yayınlanır)",
       "**Bağlı servisler**: Gemini/Nano Banana/Veo/Supabase — env var'larla yönetilir, read-only",
     ],
   } satisfies WhatIsThis,
@@ -750,98 +749,6 @@ const settings = {
     } satisfies WhatIsThis,
   },
 
-  googleAds: {
-    title: "Google Ads API anahtarları",
-    hint: "Gerçek kampanya yayınlamak için kendi anahtarlarını gir.",
-    whatIsThis: {
-      title: "Neden buraya anahtarlar giriliyor?",
-      body:
-        "Google Ads API'ı ile (opsiyonel) otomatik kampanya oluşturma + raporlama. Anahtar yoksa sadece simülasyon modunda çalışır.",
-      bullets: [
-        "**Client ID / Secret**: Google Cloud Console > OAuth credentials'dan alınır.",
-        "**Developer Token**: Google Ads > Tools > API Center.",
-        "**Refresh Token**: OAuth consent flow'undan çıkar.",
-      ],
-    } satisfies WhatIsThis,
-    fields: {
-      clientId: "Client ID *",
-      clientSecret: "Client Secret",
-      developerToken: "Developer Token *",
-      refreshToken: "Refresh Token",
-    },
-    placeholders: {
-      clientId: "Client ID",
-      clientSecret: "Client Secret",
-      developerToken: "Developer Token",
-      refreshToken: "Refresh Token",
-    },
-    errorRequired: "Client ID ve Developer Token zorunlu",
-    saveSuccess: "Google Ads anahtarları kaydedildi",
-    removeSuccess: "Google Ads anahtarları silindi",
-  },
-
-  metaAds: {
-    title: "Meta Ads API anahtarları",
-    hint: "Facebook + Instagram reklam yayınlama.",
-    whatIsThis: {
-      title: "Hangi alanlar gerekli?",
-      body:
-        "Meta Business Manager'dan alacağın ID'ler ve uzun-ömürlü token.",
-      bullets: [
-        "**App ID / Secret**: Meta for Developers > Apps.",
-        "**Access Token**: System User > Generate New Token (long-lived).",
-        "**Ad Account ID**: Business Manager > Ad Accounts (act_ ile başlar).",
-        "**Page ID**: Facebook Page Settings > About.",
-        "**Instagram Account ID**: Business Manager > Accounts > Instagram.",
-      ],
-    } satisfies WhatIsThis,
-    fields: {
-      appId: "App ID *",
-      appSecret: "App Secret",
-      accessToken: "Access Token *",
-      adAccountId: "Ad Account ID *",
-      pageId: "Facebook Page ID *",
-      instagramAccountId: "Instagram Account ID *",
-    },
-    placeholders: {
-      appId: "Meta App ID",
-      appSecret: "App Secret",
-      accessToken: "Uzun ömürlü System User Token",
-      adAccountId: "act_XXXXXXXXX",
-      pageId: "Page ID (Instagram'a bağlı)",
-      instagramAccountId: "Instagram Business Account ID",
-    },
-    hintRow:
-      "Ad Account ID, Page ID ve Instagram Account ID Meta Business Manager'dan bulunabilir.",
-    errorRequired:
-      "App ID, Access Token, Ad Account ID, Page ID ve Instagram Account ID gerekli",
-    saveSuccess: "Meta Ads anahtarları kaydedildi",
-    removeSuccess: "Meta Ads anahtarları silindi",
-  },
-
-  github: {
-    title: "GitHub entegrasyonu",
-    hint: "Özel repo'lar üzerinde AI kod analizi. Token'in `repo` scope'u olmalı.",
-    whatIsThis: {
-      title: "Token nereden alınır?",
-      body:
-        "GitHub > Settings > Developer settings > Personal access tokens > Generate new token.",
-      bullets: [
-        "`repo` scope'unu işaretle (private repolara erişim için).",
-        "Token `ghp_...` ile başlar. Üretimden sonra sadece o an gösterilir, kaybettiysen yenile.",
-      ],
-    } satisfies WhatIsThis,
-    fields: {
-      token: "Personal Access Token *",
-    },
-    placeholders: {
-      token: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    },
-    errorRequired: "Personal Access Token zorunlu",
-    saveSuccess: "GitHub token kaydedildi",
-    removeSuccess: "GitHub token silindi",
-  },
-
   services: {
     title: "Bağlı servisler",
     sub: "Server-side env var'larla yönetilen entegrasyonlar.",
@@ -857,16 +764,6 @@ const settings = {
       },
       { name: "Supabase", role: "Giriş + depolama + rate limit" },
     ],
-  },
-
-  buttons: {
-    save: "Kaydet",
-    saving: "Kaydediliyor…",
-    remove: "Kaldır",
-    connected: "Bağlı",
-    notConfigured: "Yapılandırılmamış",
-    copy: "Kopyala",
-    copied: "Kopyalandı",
   },
 } as const;
 
