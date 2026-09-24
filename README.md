@@ -1,8 +1,8 @@
-# Newbee Marketing Hub — AI Video & Story Generator
+# Newbee Marketing Hub — AI Image & Video Asset Generator
 
-> **Last Updated:** September 22, 2026 | Hosting: Vercel (auto-deploy from `main`)
+> **Last Updated:** September 24, 2026 | Hosting: Vercel (auto-deploy from `main`)
 
-AI-powered continuous story video generator and asset platform for Newbee. Uses Google AI models (Gemini 2.5 Flash, Imagen 4, Veo 3.1) with keyframe interpolation for seamless video ad generation.
+Admin-only tool for producing Newbee ad creatives: one image, one video, or an image → video pipeline per run, stored in a team-shared asset library. Uses Google AI models — Gemini 3 Pro for briefs and structured prompts, Nano Banana 2 (Gemini 3 Pro Image) for stills, Veo 3.1 for video.
 
 ---
 
@@ -30,8 +30,8 @@ Open [http://localhost:3000](http://localhost:3000)
 **For comprehensive project documentation, see [CLAUDE.md](CLAUDE.md)**
 
 This includes:
-- 4-scene / 5-keyframe continuous story generation with seamless cuts
-- AI model reference (Gemini 2.5 Flash, Imagen 4, Veo 3.1) and pricing
+- Intent-first `/generate` flow (image, video, or image → video pipeline; brief suggestion, prompt blueprints, video extension)
+- AI model reference (Gemini 3 Pro, Nano Banana 2, Veo 3.1) and pricing
 - Single-tenant media library (`/library`) and cost tracking (`/analytics`)
 - Device-aware download redirect (`/download`) powering `download.newbeeapp.com`
 - Service client patterns (`createServiceClient`) and budget guard ($500/user/mo cap)
@@ -42,7 +42,7 @@ This includes:
 - **Framework:** Next.js 16 (App Router, Turbopack)
 - **UI:** React 19 + TypeScript 5 + Tailwind CSS 4 + shadcn/ui
 - **Database:** Supabase (own instance, `mkt_` prefixed tables)
-- **AI:** Gemini 2.5 Flash, Veo 3.1 (async video), Imagen 4 (keyframe images)
+- **AI:** Gemini 3 Pro (briefs, prompt blueprints), Nano Banana 2 (images), Veo 3.1 (async video)
 - **Hosting:** Vercel (auto-deploy)
 - **Budget:** $25,000 Google Cloud startup credit
 
