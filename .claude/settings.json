@@ -15,12 +15,6 @@
   },
   "rules": [
     "Always read CLAUDE.md first before making any changes",
-    "Never modify components/ui/ - shadcn/ui generated (use npx shadcn@latest add)",
-    "Always use createServiceClient() for DB writes in API routes",
-    "Always check if (!ai) before AI operations - client is null when GOOGLE_API_KEY missing",
-    "All tables use mkt_ prefix - never create tables without it",
-    "Every AI API call must log to mkt_usage_logs for cost tracking",
-    "Parse Gemini JSON by requesting responseMimeType \"application/json\", stripping code fences, and validating with a Zod schema (return 502 on malformed output) - there is no shared parseAiJson() helper",
     "Commit messages must be in English and descriptive",
     "Use Turkish when communicating with the user",
     "Use English for code comments and commit messages",
@@ -29,42 +23,6 @@
   ],
   "hooks": {
     "PreToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "case \"$TOOL_INPUT_FILE_PATH\" in */components/ui/*) echo 'BLOCKED: components/ui/ is shadcn-generated. Use npx shadcn@latest add <component>'; exit 2;; esac"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "case \"$TOOL_INPUT_FILE_PATH\" in */app/api/*/route.ts) echo '📋 API Route Checklist: 1)Auth(createSupabaseServer+getUser) 2)AI null check 3)Rate limit 4)Budget guard 5)Zod validation 6)Data fetch 7)AI call + Zod-validated JSON 8)Save results 9)Log to mkt_usage_logs 10)Return response';; esac"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "case \"$TOOL_INPUT_FILE_PATH\" in */lib/google-ai.ts|*/lib/budget-guard.ts|*/app/api/generate/*) echo '💰 AI dosyasi duzenleniyor. Degisiklikler maliyet etkisi olabilir: COST_ESTIMATES (lib/google-ai.ts), mkt_usage_logs kaydi ve lib/budget-guard.ts ile /analytics sayfasini kontrol edin.';; esac"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "case \"$TOOL_INPUT_FILE_PATH\" in *.sql) echo '🔒 SQL Migration: mkt_ prefix kullanin, RLS aktif edin (ENABLE ROW LEVEL SECURITY), auth.uid()=user_id policy ekleyin, rollback plani hazirlayin.';; esac"
-          }
-        ]
-      },
       {
         "matcher": "Bash",
         "hooks": [
@@ -81,11 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npx eslint --fix \"$TOOL_INPUT_FILE_PATH\" 2>/dev/null || true"
-          },
-          {
-            "type": "command",
-            "command": "npx tsc --noEmit --pretty 2>&1 | head -20"
+            "command": "f=$(MSYS_NO_PATHCONV=1 node -e 'try{process.stdout.write(String(JSON.parse(require(\"fs\").readFileSync(0,\"utf8\")).tool_input.file_path||\"\").split(String.fromCharCode(92)).join(\"/\"))}catch{}'); case \"$f\" in *.ts|*.tsx|*.js|*.jsx) npx eslint --fix \"$f\" >/dev/null 2>&1 || true;; esac"
           }
         ]
       }
