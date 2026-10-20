@@ -40,13 +40,6 @@ would also need a new Supabase project (the schema is in that tag's
 
 ## Build & Deploy
 
-```bash
-npm run dev        # Dev server on :3000
-npm run build      # Production build
-npm run lint       # ESLint
-npm run typecheck  # tsc --noEmit
-```
-
 No env vars are needed. Vercel auto-deploys from `main`. GitHub Actions CI
 (`.github/workflows/ci.yml`) runs lint + typecheck + build on PRs to `main` and
 pushes to `main`.
