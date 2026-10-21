@@ -22,7 +22,8 @@ Branch: fix/security-dependency-updates, based on current origin/main.
 - npm audit still flags the upstream braces version and its development-tool
   dependents: it cannot detect a local source patch. The advisory is mitigated
   locally, not suppressed. Remove the patch when upstream releases a fixed version.
-- Review and deploy separately; no commit, push or deployment performed.
+- Draft PR open: https://github.com/NewbeeConnect/NewbeeMarketing/pull/6
+- Review and deploy separately; no merge or production deployment performed.
 
 ## Notes
 
