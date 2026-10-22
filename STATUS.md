@@ -1,18 +1,22 @@
-# Current work
+# Newbee Website (`newbeeapp.com`) — Status
 
-Goal: Replace the legacy Wix site on `newbeeapp.com` with a modern Next.js website inside `newbee-website` while preserving the `download.newbeeapp.com` / `/download` device-aware redirect.
-Branch: `main`
+## Goal
+Minimal, 100% English slide-by-slide scroll-snapping website (`neoklinik.io` style) for Newbee (`newbeeapp.com` & `www.newbeeapp.com`).
 
-## Completed
+## Core Slogan
+> **"One-stop app to navigate all challenges of moving and living abroad."**
 
-- Merged security PR #6 (Next.js 16.4.2, React 19.3.1, local `braces` recursion guard).
-- Renamed GitHub repository (`NewbeeConnect/NewbeeMarketing` → `NewbeeConnect/newbee-website`), local folder (`newbee-website`), and Vercel project (`newbee-website`).
-- Added `newbeeapp.com`, `www.newbeeapp.com`, and `newbee-website.vercel.app` domains to the Vercel project.
-- Built the full `newbeeapp.com` website using the `beeyondapps.com` architectural design system (`/`, `/communities`, `/businesses`, `/about`, `/contact`, `/privacy`, `/termsandconditions`, `robots.ts`, `sitemap.ts`).
-- Preserved `GET /download` and host-aware root rewrite in `proxy.ts` for `download.newbeeapp.com` and `marketing.newbeeapp.com`.
-- Added permanent 308 redirects in `next.config.ts` for legacy Wix routes.
-- Updated `newbeeapp.com` DNS in Wix (`A @ -> 76.76.21.21`, `CNAME www -> 3fe3bfc93e7b27f0.vercel-dns-017.com`, `_vercel` TXT verifications) and verified live HTTPS on `https://newbeeapp.com` and `https://www.newbeeapp.com`.
+## Completed (2026-10-23)
+- **Minimal Slide-Deck Architecture (`neoklinik.io` style):**
+  - Ported `components/scroll-controller.ts` for full-viewport slide snapping (`section[data-snap]`), keyboard navigation, left slide dots (`.nk-slide-dots`), top scroll progress bar (`.nk-scroll-progress`), and floating bottom-right `"Next · [Slide] ↓"` pill (`.nk-next-pill`).
+  - **Slide 00 (`#start`):** Hero with slogan `"One-stop app to navigate all challenges of moving and living abroad."`, primary CTAs (**Download Newbee** `/download` + **Continue on Web** `https://app.newbeeapp.com`), iPhone mockup (`/screens/home.png`), and out-of-phone pop-out cards.
+  - **Slide 01 (`#ask` — Ask Questions):** `Ask anything. Get real answers.` with `/screens/feed.png`, `/screens/feed-ask.png`, `/illustrations/ask-illustration.jpg`, and verified answer bubbles.
+  - **Slide 02 (`#events` — Organize Events):** `Host or join events in your city.` with `/screens/events.png`, real event photos (`/events/wine-tasting-group.jpg`, `/events/summer-picnic.jpg`), and `/illustrations/events-illustration.jpg`.
+  - **Slide 03 (`#meet` — Meet New People):** `Turn a new city into home.` with `/screens/people.png`, `/screens/communities.png`, `/events/sunday-brunch.jpg`, and `/illustrations/meet-illustration.jpg`.
+  - **Slide 04 (`#get-started`):** Closing slide with side-by-side **Download Newbee (iOS & Android)** and **Continue on Newbee Web (`app.newbeeapp.com`)** cards.
+- **Language & Copy Rules:**
+  - 100% English across the entire site (`lang="en"`), including `/privacy`, `/termsandconditions`, and `/contact`.
+  - Zero occurrences of `"diaspora"` anywhere in the repository.
 
-## Status
-
-- Live in production on `https://newbeeapp.com`, `https://www.newbeeapp.com`, and `https://download.newbeeapp.com`.
+## Next Steps
+- Monitor live production deployment on `https://newbeeapp.com` and `https://www.newbeeapp.com`.

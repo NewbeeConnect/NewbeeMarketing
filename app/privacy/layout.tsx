@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy & KVKK Clarification",
+  title: "Privacy Policy & Data Protection",
   description:
-    "Official Newbee Privacy Policy, GDPR Data Protection Notice, and KVKK Clarification Text in English, Turkish, and German (BEEYONDAPPS TEKNOLOJİ LİMİTED ŞİRKETİ).",
+    "Official Newbee Privacy Policy and Data Protection Notice (Beeyondapps Technology Ltd.).",
 };
 
 export default function PrivacyLayout({

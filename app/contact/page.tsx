@@ -30,8 +30,8 @@ export default function ContactPage() {
       general: "Newbee Platform Support / General Inquiry",
       "city-lead": "Newbee City Lead Application",
       expert: "Newbee Verified Expert Onboarding",
-      event: "Newbee Cultural Event / Brand Partnership",
-      deletion: "Newbee GDPR / KVKK Account & Data Deletion Request",
+      event: "Newbee Event / Brand Partnership",
+      deletion: "Newbee GDPR Account & Data Deletion Request",
     };
 
     const subject = encodeURIComponent(
@@ -48,30 +48,30 @@ export default function ContactPage() {
   };
 
   return (
-    <section className="nk-section" style={{ paddingTop: 64 }}>
+    <section className="nk-section" style={{ paddingTop: 96 }}>
       <div className="nk-section-header">
         <div className="nk-eyebrow">
-          <span className="nk-eyebrow-dot nk-pulse" />
+          <span className="nk-eyebrow-dot" />
           <span>Support · City Leads · Experts · Privacy Center</span>
         </div>
         <h1 className="nk-h1">
           Let&apos;s <HandDrawnUnderline>connect</HandDrawnUnderline> with the{" "}
-          <span className="nk-accent">Newbee team.</span>
+          Newbee team.
         </h1>
         <p className="nk-lead">
           Reach out for member support, City Lead applications, Verified Expert
-          onboarding, cultural event collaborations, or GDPR/KVKK data requests.
+          onboarding, event collaborations, or data deletion requests.
         </p>
       </div>
 
       <div className="nk-contact-grid">
-        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div className="nk-editorial-col">
             <div>
               <span className="nk-editorial-tag">01 · Direct Channels</span>
               <h2 className="nk-editorial-title">Official Contact Details</h2>
               <p className="nk-editorial-body">
-                <strong>General, Partnerships &amp; City Leads:</strong>
+                <strong>General, Partnerships &amp; Support:</strong>
                 <br />
                 <a
                   href="mailto:info@beeyondapps.com"
@@ -85,7 +85,7 @@ export default function ContactPage() {
                 </a>
               </p>
               <p className="nk-editorial-body">
-                <strong>Privacy, GDPR &amp; KVKK Data Protection:</strong>
+                <strong>Privacy &amp; Data Protection:</strong>
                 <br />
                 <a
                   href="mailto:privacy@beeyondapps.com"
@@ -115,8 +115,8 @@ export default function ContactPage() {
                 profile data at any time directly inside the Newbee iOS,
                 Android, or Web app under{" "}
                 <strong>Profile → Settings → Delete Account</strong>. You may
-                also submit a formal GDPR / KVKK erasure request using this form
-                or by emailing{" "}
+                also submit a formal erasure request using this form or by
+                emailing{" "}
                 <a
                   href="mailto:privacy@beeyondapps.com"
                   style={{ textDecoration: "underline", fontWeight: 600 }}
@@ -128,7 +128,7 @@ export default function ContactPage() {
             </div>
             <div className="nk-editorial-foot">
               <Link href="/privacy" style={{ fontWeight: 700, color: "#111111" }}>
-                Read Full Privacy Policy &amp; KVKK Notice →
+                Read Full Privacy Policy →
               </Link>
             </div>
           </div>
@@ -136,15 +136,11 @@ export default function ContactPage() {
           <div className="nk-editorial-col">
             <div>
               <span className="nk-editorial-tag">03 · Operating Entity</span>
-              <h2 className="nk-editorial-title">
-                BEEYONDAPPS TEKNOLOJİ LİMİTED ŞİRKETİ
-              </h2>
+              <h2 className="nk-editorial-title">Beeyondapps Technology Ltd.</h2>
               <p className="nk-editorial-body">
-                Abdurrahmangazi Mah. Ebubekir Cad. No: 73 İç Kapı No: 1
-                <br />
-                Sancaktepe / İstanbul, Türkiye
-                <br />
                 Community &amp; Product Hub: Frankfurt am Main, Germany
+                <br />
+                Registered Office: Istanbul
               </p>
             </div>
             <div className="nk-editorial-foot">
@@ -194,10 +190,10 @@ export default function ContactPage() {
                   Apply as a Verified Expert (expert.newbeeapp.com)
                 </option>
                 <option value="event">
-                  Cultural Event Listing / Brand Partnership
+                  Event Listing / Brand Partnership
                 </option>
                 <option value="deletion">
-                  GDPR / KVKK Account &amp; Data Deletion Request
+                  Account &amp; Data Deletion Request
                 </option>
               </select>
             </label>
@@ -233,7 +229,7 @@ export default function ContactPage() {
               <input
                 type="text"
                 className="nk-input"
-                placeholder="e.g. Frankfurt am Main, Berlin, Munich"
+                placeholder="e.g. Frankfurt, Berlin, Munich, London"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
               />
@@ -262,8 +258,7 @@ export default function ContactPage() {
               <div className="nk-notice-coral">
                 <strong>Privacy Routing:</strong> Account and personal data
                 deletion requests are routed directly to our Data Protection
-                team at <strong>privacy@beeyondapps.com</strong> and processed in
-                accordance with GDPR Art. 17 &amp; KVKK Art. 11.
+                team at <strong>privacy@beeyondapps.com</strong>.
               </div>
             )}
 

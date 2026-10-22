@@ -21,29 +21,29 @@ const marketingMono = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.newbeeapp.com"),
   title: {
-    default: "Newbee — Diaspora & Expat Community Super-App in Germany",
+    default:
+      "Newbee — One-stop app to navigate all challenges of moving and living abroad",
     template: "%s | Newbee",
   },
   description:
-    "From 'Help?!' to 'Heeey!' — Newbee connects newcomers, expats, and local communities across Germany with city hubs, cultural events with QR tickets, relocation guides, and verified native-speaking experts. Available on iOS, Android, and Web.",
+    "One-stop app to navigate all challenges of moving and living abroad. Ask questions, organize and join local events, and meet new people in your city. Available on iOS, Android, and Web at app.newbeeapp.com.",
   keywords: [
     "Newbee",
     "Newbee App",
     "newbeeapp.com",
-    "Expat Community Germany",
-    "Turkish Community Germany",
-    "Frankfurt Expats",
-    "Berlin Expats",
-    "Munich Expats",
-    "Verified Experts Germany",
+    "Moving Abroad",
+    "Living Abroad",
+    "Expat Community",
+    "Local Events",
+    "Meet New People",
+    "Ask Questions Abroad",
     "Beeyondapps",
-    "Frankfurt School Accelerator",
-    "Hessen Ideen",
   ],
   openGraph: {
-    title: "Newbee — Diaspora & Expat Community Super-App in Germany",
+    title:
+      "Newbee — One-stop app to navigate all challenges of moving and living abroad",
     description:
-      "City communities, cultural events with instant QR tickets, and verified native-speaking experts across Germany. Available on iOS, Android, and app.newbeeapp.com.",
+      "Ask questions, organize and join local events, and meet new people in your city. Download Newbee on iOS & Android or continue on app.newbeeapp.com.",
     url: "https://www.newbeeapp.com",
     siteName: "Newbee",
     locale: "en_US",
@@ -51,9 +51,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Newbee — Diaspora & Expat Community Super-App in Germany",
+    title:
+      "Newbee — One-stop app to navigate all challenges of moving and living abroad",
     description:
-      "From 'Help?!' to 'Heeey!' — City communities, local events, and verified native-speaking experts on iOS, Android, and Web.",
+      "Ask questions, organize and join local events, and meet new people in your city. Available on iOS, Android, and Web.",
   },
   icons: {
     icon: "/brand/newbee-logo.png",

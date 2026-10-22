@@ -4,21 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import legalData from "@/data/legal-pages.json";
 
-type DocKey =
-  | "privacy/en"
-  | "kvkk/en"
-  | "privacy/tr"
-  | "kvkk/tr"
-  | "privacy/de"
-  | "kvkk/de";
+type DocKey = "privacy/en" | "kvkk/en";
 
 const TABS: { key: DocKey; label: string }[] = [
-  { key: "privacy/en", label: "Privacy Policy (EN)" },
-  { key: "kvkk/en", label: "KVKK Clarification (EN)" },
-  { key: "privacy/tr", label: "Gizlilik Politikası (TR)" },
-  { key: "kvkk/tr", label: "KVKK Aydınlatma Metni (TR)" },
-  { key: "privacy/de", label: "Datenschutzerklärung (DE)" },
-  { key: "kvkk/de", label: "KVKK Datenschutzhinweis (DE)" },
+  { key: "privacy/en", label: "Privacy Policy" },
+  { key: "kvkk/en", label: "Data Protection Notice (GDPR / KVKK)" },
 ];
 
 export default function PrivacyPage() {
@@ -30,10 +20,7 @@ export default function PrivacyPage() {
       <div>
         <div className="nk-eyebrow">
           <span className="nk-eyebrow-num">LEGAL</span>
-          <span>
-            NEWBEE · BEEYONDAPPS TEKNOLOJİ LİMİTED ŞİRKETİ · PRIVACY &amp; KVKK
-            CENTER
-          </span>
+          <span>NEWBEE · BEEYONDAPPS TECHNOLOGY LTD. · PRIVACY CENTER</span>
         </div>
         <h1 className="nk-h2">{doc.title}</h1>
       </div>
@@ -47,9 +34,9 @@ export default function PrivacyPage() {
           <div>
             <div className="nk-legal-meta-label">DATA CONTROLLER</div>
             <div className="nk-legal-meta-val">
-              BEEYONDAPPS TEKNOLOJİ LİMİTED ŞİRKETİ
+              Beeyondapps Technology Ltd.
               <br />
-              Sancaktepe / İstanbul, Türkiye
+              Istanbul &amp; Frankfurt am Main
             </div>
           </div>
           <div>
@@ -80,7 +67,7 @@ export default function PrivacyPage() {
           <div
             className="nk-legal-tabs"
             role="tablist"
-            aria-label="Language and Document Selector"
+            aria-label="Document Selector"
           >
             {TABS.map((t) => (
               <button

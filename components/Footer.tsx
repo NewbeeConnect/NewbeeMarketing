@@ -5,7 +5,7 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="nk-footer">
+    <footer className="nk-footer" data-snap="">
       <div className="nk-footer-grid">
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -29,66 +29,45 @@ export default function Footer() {
               color: "#262521",
             }}
           >
-            From &ldquo;Help?!&rdquo; to &ldquo;Heeey!&rdquo; — the community
-            and discovery platform for newcomers, expats, and diaspora life in
-            Germany. Built by{" "}
-            <a
-              href="https://www.beeyondapps.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                textDecoration: "underline",
-                textDecorationColor: "#ffb72a",
-                textDecorationThickness: 2,
-                fontWeight: 600,
-              }}
-            >
-              Beeyondapps Teknoloji Ltd. Şti.
-            </a>
+            One-stop app to navigate all challenges of moving and living abroad.
+            Ask questions, organize events, and meet new people in your city.
           </p>
         </div>
 
         <div>
-          <div className="nk-footer-col-title">Platform</div>
+          <div className="nk-footer-col-title">Get Newbee</div>
           <div className="nk-footer-links">
             <a
               href="https://app.newbeeapp.com"
               target="_blank"
               rel="noopener noreferrer"
             >
-              Newbee Web App ↗
+              Continue on Web (app.newbeeapp.com) ↗
             </a>
             <a
-              href="https://apps.apple.com/app/newbee/id6474511885"
+              href="https://apps.apple.com/de/app/newbee-connect/id6474511885?l=en-GB"
               target="_blank"
               rel="noopener noreferrer"
             >
-              Newbee on App Store (iOS) ↗
+              Download on the App Store ↗
             </a>
             <a
               href="https://play.google.com/store/apps/details?id=com.beeyondapps.newbee"
               target="_blank"
               rel="noopener noreferrer"
             >
-              Newbee on Google Play ↗
+              Get it on Google Play ↗
             </a>
-            <a
-              href="https://expert.newbeeapp.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Newbee Expert Portal ↗
-            </a>
-            <Link href="/download">Direct App Download (/download)</Link>
+            <Link href="/download">Smart Download Link (/download)</Link>
           </div>
         </div>
 
         <div>
-          <div className="nk-footer-col-title">Community &amp; Ecosystem</div>
+          <div className="nk-footer-col-title">Explore</div>
           <div className="nk-footer-links">
-            <Link href="/communities">Communities &amp; City Leads</Link>
-            <Link href="/businesses">Verified Experts &amp; Partners</Link>
-            <Link href="/about">About &amp; Backing</Link>
+            <Link href="/#ask">01 · Ask Questions</Link>
+            <Link href="/#events">02 · Organize Events</Link>
+            <Link href="/#meet">03 · Meet New People</Link>
             <a
               href="https://www.instagram.com/newbeeappsocials/"
               target="_blank"
@@ -96,24 +75,16 @@ export default function Footer() {
             >
               Instagram (@newbeeappsocials) ↗
             </a>
-            <a
-              href="https://www.linkedin.com/company/newbeeapp/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              LinkedIn ↗
-            </a>
           </div>
         </div>
 
         <div>
           <div className="nk-footer-col-title">Legal &amp; Support</div>
           <div className="nk-footer-links">
-            <Link href="/privacy">Privacy Policy &amp; KVKK</Link>
+            <Link href="/privacy">Privacy Policy</Link>
             <Link href="/termsandconditions">Terms &amp; Conditions</Link>
             <Link href="/contact">Contact &amp; Account Deletion</Link>
             <a href="mailto:info@beeyondapps.com">info@beeyondapps.com</a>
-            <a href="mailto:privacy@beeyondapps.com">privacy@beeyondapps.com</a>
           </div>
         </div>
       </div>
@@ -121,14 +92,8 @@ export default function Footer() {
       <NewbeeFooterWordmark />
 
       <div className="nk-footer-bottom">
-        <span>
-          © {year} Newbee · BEEYONDAPPS TEKNOLOJİ LİMİTED ŞİRKETİ. All rights
-          reserved.
-        </span>
-        <span>
-          Frankfurt am Main · backed by Frankfurt School Accelerator, Hessen
-          Ideen &amp; Google for Startups
-        </span>
+        <span>© {year} Newbee · Beeyondapps Technology Ltd. All rights reserved.</span>
+        <span>You&apos;re home, wherever you are.</span>
       </div>
     </footer>
   );
