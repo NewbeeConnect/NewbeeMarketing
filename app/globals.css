@@ -1,0 +1,1771 @@
+/* ==========================================================================
+   NEWBEE — ARCHITECTURAL AESTHETIC + NEWBEE COLOR PALETTE
+   Warm White/Cream Paper (#faf7f0) · Radial Dot Grid · Crisp Black Ink (#111111)
+   Newbee Yellow (#ffb72a) · Warm Cream Surface (#f2ece0) · Deep Honey (#b87300)
+   ========================================================================== */
+
+:root {
+  --nb-bg: #faf7f0;
+  --nb-surface: #f2ece0;
+  --nb-ink: #111111;
+  --nb-body: #262521;
+  --nb-muted: #57534a;
+  --nb-caption: #736e63;
+  --nb-yellow: #ffb72a;
+  --nb-yellow-hover: #f5a60b;
+  --nb-yellow-soft: #fff2cf;
+  --nb-amber-ink: #b87300;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+[id] {
+  scroll-margin-top: 108px;
+}
+
+body.nk-page {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #faf7f0 radial-gradient(circle, rgba(17, 17, 17, 0.085) 1px, transparent 1.3px) 0 0 / 26px 26px;
+  color: #111111;
+  font-family: var(--font-marketing-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-feature-settings: "ss01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+body.nk-page main {
+  flex: 1;
+}
+
+body.nk-page ::selection {
+  background: #ffb72a;
+  color: #111111;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Animations */
+@keyframes nk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nk-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes nk-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.nk-spin-slow {
+  animation: nk-spin 28s linear infinite;
+  transform-origin: center;
+}
+
+.nk-pulse {
+  animation: nk-pulse 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.nk-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: nk-draw 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Newbee Yellow Accent Treatments */
+.nk-accent {
+  background: linear-gradient(180deg, transparent 58%, rgba(255, 183, 42, 0.55) 58%);
+  padding: 0 4px;
+  border-radius: 3px;
+  color: #111111;
+}
+
+.nk-accent-amber {
+  color: #b87300;
+}
+
+.nk-underline-wrap {
+  position: relative;
+  display: inline-block;
+  color: #111111;
+  white-space: nowrap;
+}
+
+.nk-underline-svg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.1em;
+  width: 100%;
+  height: 0.26em;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+.nk-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: rgba(250, 247, 240, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(17, 17, 17, 0.12);
+}
+
+.nk-header-bar {
+  max-width: 1360px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 40px;
+}
+
+.nk-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #111111;
+  flex-shrink: 0;
+}
+
+.nk-brand-wordmark {
+  font-family: var(--font-marketing-sans), sans-serif;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  color: #111111;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.nk-brand-dot {
+  color: #ffb72a;
+  font-weight: 800;
+  -webkit-text-stroke: 0.8px #111111;
+}
+
+.nk-brand-tag {
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #111111;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 17, 17, 0.2);
+  background: #ffb72a;
+  margin-left: 2px;
+}
+
+.nk-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #3d3a33;
+}
+
+.nk-nav a {
+  color: inherit;
+  padding: 6px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.nk-nav a:hover,
+.nk-nav a.active {
+  color: #111111;
+  background: rgba(255, 183, 42, 0.34);
+}
+
+.nk-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.nk-header-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6.5px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 17, 17, 0.22);
+  background: rgba(255, 255, 255, 0.78);
+  color: #111111;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.nk-header-ghost:hover {
+  background: #ffb72a;
+  border-color: #111111;
+  color: #111111;
+  transform: translateY(-1px);
+}
+
+.nk-header-ghost-primary {
+  background: #111111;
+  border-color: #111111;
+  color: #faf7f0;
+}
+
+.nk-header-ghost-primary:hover {
+  background: #ffb72a;
+  border-color: #111111;
+  color: #111111;
+}
+
+.nk-header-ghost-primary:hover .nk-header-cta-dot {
+  background: #111111;
+}
+
+.nk-header-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #111111;
+  color: #faf7f0;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nk-header-cta:hover {
+  background: #ffb72a;
+  color: #111111;
+}
+
+.nk-header-cta-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffb72a;
+}
+
+.nk-header-cta:hover .nk-header-cta-dot {
+  background: #111111;
+}
+
+/* Mobile Menu Button & Compact App Switcher (hidden on desktop) */
+.nk-menu-toggle {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid #111111;
+  background: #fff;
+  color: #111111;
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.nk-menu-toggle:hover {
+  background: #ffb72a;
+}
+
+.nk-menu-icon {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3.5px;
+  width: 13px;
+  height: 12px;
+}
+
+.nk-menu-icon span {
+  display: block;
+  width: 100%;
+  height: 1.5px;
+  background: #111111;
+  border-radius: 2px;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.nk-menu-icon.open span:first-child {
+  transform: translateY(2.5px) rotate(45deg);
+}
+
+.nk-menu-icon.open span:last-child {
+  transform: translateY(-2.5px) rotate(-45deg);
+}
+
+.nk-mobile-apps-bar {
+  display: none;
+}
+
+.nk-mobile-drawer {
+  display: none;
+}
+
+/* ==========================================================================
+   CONTAINERS & SECTION HEADERS
+   ========================================================================== */
+.nk-container {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.nk-section {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 112px 40px;
+}
+
+.nk-section-header {
+  max-width: 840px;
+  margin-bottom: 56px;
+}
+
+.nk-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #3d3a33;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.nk-eyebrow-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #ffb72a;
+  color: #111111;
+  border: 1px solid #111111;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.nk-eyebrow-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffb72a;
+  border: 1.5px solid #111111;
+  box-shadow: 0 0 0 4px rgba(255, 183, 42, 0.28);
+}
+
+.nk-h1 {
+  margin: 0;
+  font-family: var(--font-marketing-sans), sans-serif;
+  font-weight: 500;
+  font-size: clamp(38px, min(5.8vw, 8.2svh), 82px);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  color: #111111;
+  text-wrap: balance;
+}
+
+.nk-h2 {
+  margin: 0;
+  font-family: var(--font-marketing-sans), sans-serif;
+  font-weight: 500;
+  font-size: clamp(28px, 4vw, 54px);
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+  color: #111111;
+  text-wrap: balance;
+}
+
+.nk-lead {
+  margin: 22px 0 0;
+  max-width: 680px;
+  font-size: clamp(16px, 1.3vw, 19px);
+  line-height: 1.55;
+  color: #262521;
+  text-wrap: pretty;
+}
+
+.nk-lead strong {
+  color: #111111;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   PILL CTA BUTTONS
+   ========================================================================== */
+.nk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.nk-btn-coral {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border-radius: 999px;
+  background: #ffb72a;
+  color: #111111;
+  font-size: 15px;
+  font-weight: 600;
+  border: 1.5px solid #111111;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.nk-btn-coral:hover {
+  background: #111111;
+  color: #faf7f0;
+}
+
+.nk-btn-ink {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border-radius: 999px;
+  background: #111111;
+  color: #faf7f0;
+  font-size: 15px;
+  font-weight: 600;
+  border: 1.5px solid #111111;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+
+.nk-btn-ink:hover {
+  background: #ffb72a;
+  color: #111111;
+}
+
+.nk-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 17, 17, 0.28);
+  background: rgba(255, 255, 255, 0.55);
+  color: #111111;
+  font-size: 15px;
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.nk-btn-outline:hover {
+  background: #fff2cf;
+  border-color: #111111;
+}
+
+.nk-cta-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #111111;
+}
+
+.nk-cta-badge-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffb72a;
+}
+
+/* ==========================================================================
+   HERO SECTION & ARCHITECTURAL METRICS BAR
+   ========================================================================== */
+.nk-hero {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 64px 40px 0;
+}
+
+.nk-hero-top {
+  max-width: 1060px;
+  padding-bottom: 56px;
+}
+
+.nk-blueprint-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 2px solid #111111;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.16);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.nk-blueprint-cell {
+  padding: 26px 28px;
+  border-right: 1px solid rgba(17, 17, 17, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nk-blueprint-cell:last-child {
+  border-right: 0;
+}
+
+.nk-blueprint-meta {
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #57534a;
+}
+
+.nk-blueprint-val {
+  font-family: var(--font-marketing-sans), sans-serif;
+  font-size: clamp(24px, 2.4vw, 34px);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  color: #111111;
+}
+
+.nk-blueprint-sub {
+  font-size: 13.5px;
+  color: #3d3a33;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   PRODUCT ECOSYSTEM — ARCHITECTURAL SPLIT SHOWCASES
+   ========================================================================== */
+.nk-products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+
+.nk-product-frame {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  border-top: 2px solid #111111;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.16);
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.nk-product-copy {
+  padding: 44px 44px 44px 0;
+  border-right: 1px solid rgba(17, 17, 17, 0.12);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.nk-product-topmeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.nk-product-index {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #3d3a33;
+}
+
+.nk-product-pill {
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: #f2ece0;
+  color: #111111;
+  border: 1px solid rgba(17, 17, 17, 0.18);
+}
+
+.nk-product-pill-coral {
+  background: #ffb72a;
+  color: #111111;
+  border-color: #111111;
+}
+
+.nk-product-pill-mint {
+  background: #fff2cf;
+  color: #111111;
+  border-color: rgba(17, 17, 17, 0.25);
+}
+
+.nk-product-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.nk-product-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #111111;
+  background: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.nk-product-name {
+  margin: 0;
+  font-size: clamp(30px, 3.2vw, 44px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  color: #111111;
+}
+
+.nk-product-tagline {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #111111;
+  margin-bottom: 14px;
+}
+
+.nk-product-desc {
+  margin: 0 0 24px;
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: #262521;
+}
+
+.nk-feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+  padding: 20px 0;
+  border-top: 1px solid rgba(17, 17, 17, 0.12);
+  border-bottom: 1px solid rgba(17, 17, 17, 0.12);
+  margin-bottom: 24px;
+}
+
+.nk-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #111111;
+}
+
+.nk-feature-dot {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #ffb72a;
+  border: 1px solid #111111;
+  color: #111111;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.nk-product-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.nk-pill-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(17, 17, 17, 0.28);
+  background: rgba(255, 255, 255, 0.78);
+  color: #111111;
+  transition: all 0.15s ease;
+}
+
+.nk-pill-link:hover {
+  background: #ffb72a;
+  color: #111111;
+  border-color: #111111;
+}
+
+.nk-pill-link-primary {
+  background: #111111;
+  color: #faf7f0;
+  border-color: #111111;
+}
+
+.nk-pill-link-primary:hover {
+  background: #ffb72a;
+  border-color: #111111;
+  color: #111111;
+}
+
+.nk-legal-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 6px;
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11.5px;
+  color: #3d3a33;
+}
+
+.nk-legal-inline a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.nk-legal-inline a:hover {
+  color: #111111;
+  background: #ffb72a;
+}
+
+/* Right-hand architectural stage panel */
+.nk-product-stage {
+  padding: 44px 0 44px 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.nk-stage-window {
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(17, 17, 17, 0.18);
+  border-radius: 18px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 12px 32px -16px rgba(17, 17, 17, 0.1);
+}
+
+.nk-stage-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.1);
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11px;
+  color: #3d3a33;
+  letter-spacing: 0.04em;
+}
+
+.nk-stage-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.nk-stage-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid #111111;
+}
+
+.nk-stage-dots span:first-child {
+  background: #111111;
+}
+
+.nk-stage-dots span:nth-child(2) {
+  background: #ffb72a;
+}
+
+.nk-stage-dots span:nth-child(3) {
+  background: #f2ece0;
+}
+
+.nk-stage-card {
+  background: #faf7f0;
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-left: 3px solid #111111;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.nk-stage-card-coral {
+  border-left-color: #ffb72a;
+  border-left-width: 4px;
+}
+
+.nk-stage-card-mint {
+  border-left-color: #111111;
+}
+
+.nk-stage-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111111;
+  margin-bottom: 6px;
+}
+
+.nk-stage-badge {
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ffb72a;
+  color: #111111;
+  border: 1px solid rgba(17, 17, 17, 0.25);
+}
+
+.nk-stage-card-body {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #262521;
+}
+
+.nk-stage-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid rgba(17, 17, 17, 0.12);
+  padding-top: 16px;
+  gap: 12px;
+}
+
+.nk-stage-metric-val {
+  font-family: var(--font-marketing-sans), sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #111111;
+}
+
+.nk-stage-metric-lbl {
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 10.5px;
+  color: #57534a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   EDITORIAL 3-COLUMN & 2-COLUMN GRIDS
+   ========================================================================== */
+.nk-editorial-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 36px;
+}
+
+.nk-editorial-col {
+  border-top: 2px solid #111111;
+  padding-top: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.nk-editorial-tag {
+  display: inline-flex;
+  align-self: flex-start;
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: #ffb72a;
+  color: #111111;
+  border: 1px solid #111111;
+  padding: 3px 9px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
+
+.nk-editorial-title {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: #111111;
+}
+
+.nk-editorial-body {
+  margin: 0 0 20px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #262521;
+}
+
+.nk-editorial-foot {
+  padding-top: 14px;
+  border-top: 1px solid rgba(17, 17, 17, 0.12);
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11.5px;
+  color: #57534a;
+}
+
+/* Co-Founders Architectural Cards */
+.nk-founders-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 36px;
+}
+
+.nk-founder-card {
+  border-top: 3px solid #111111;
+  background: rgba(255, 255, 255, 0.76);
+  border-right: 1px solid rgba(17, 17, 17, 0.14);
+  border-bottom: 1px solid rgba(17, 17, 17, 0.14);
+  border-left: 1px solid rgba(17, 17, 17, 0.14);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.nk-founder-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.nk-founder-monogram {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #ffb72a;
+  color: #111111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-marketing-sans), sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  flex-shrink: 0;
+  border: 2px solid #111111;
+}
+
+.nk-founder-monogram-mint {
+  background: #111111;
+  color: #ffb72a;
+  border-color: #111111;
+}
+
+.nk-founder-name {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: #111111;
+}
+
+.nk-founder-role {
+  font-size: 14px;
+  font-weight: 600;
+  color: #b87300;
+  margin-top: 3px;
+}
+
+.nk-founder-loc {
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11.5px;
+  color: #57534a;
+  margin-top: 3px;
+}
+
+.nk-founder-bio {
+  margin: 0 0 22px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #262521;
+}
+
+.nk-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nk-tag-chip {
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #fff2cf;
+  color: #111111;
+  border: 1px solid rgba(17, 17, 17, 0.2);
+}
+
+/* ==========================================================================
+   CLOSING CTA SECTION
+   ========================================================================== */
+.nk-closing {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 120px 40px 100px;
+  border-top: 1px solid rgba(17, 17, 17, 0.14);
+}
+
+.nk-closing-inner {
+  max-width: 880px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.nk-closing-h2 {
+  margin: 14px 0 18px;
+  font-family: var(--font-marketing-sans), sans-serif;
+  font-weight: 500;
+  font-size: clamp(34px, 4.8vw, 68px);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  color: #111111;
+}
+
+.nk-closing-sub {
+  margin: 0 auto;
+  max-width: 560px;
+  font-size: 17px;
+  line-height: 1.55;
+  color: #262521;
+}
+
+.nk-closing-actions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   FORMS & CONTACT LAYOUT
+   ========================================================================== */
+.nk-contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 44px;
+  align-items: start;
+}
+
+.nk-form-card {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(17, 17, 17, 0.18);
+  border-top: 3px solid #111111;
+  border-radius: 18px;
+  padding: 32px;
+  box-shadow: 0 16px 36px -20px rgba(17, 17, 17, 0.12);
+}
+
+.nk-form {
+  display: grid;
+  gap: 16px;
+}
+
+.nk-form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.nk-label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3d3a33;
+  transition: color 0.2s;
+}
+
+.nk-label:focus-within {
+  color: #111111;
+}
+
+.nk-input,
+.nk-select,
+.nk-textarea {
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid rgba(17, 17, 17, 0.32);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #111111;
+  outline-offset: 3px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.nk-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.nk-input:focus-visible,
+.nk-select:focus-visible,
+.nk-textarea:focus-visible {
+  outline: 2.5px solid #ffb72a;
+  outline-offset: 2px;
+  border-color: #111111;
+  background: #fff;
+}
+
+.nk-submit-btn {
+  width: 100%;
+  min-height: 46px;
+  border: 1.5px solid #111111;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #ffb72a;
+  color: #111111;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.nk-submit-btn:hover {
+  background: #111111;
+  color: #faf7f0;
+}
+
+.nk-notice {
+  background: #f2ece0;
+  padding: 14px 16px;
+  border-left: 3px solid #111111;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #262521;
+}
+
+.nk-notice-coral {
+  background: #fff2cf;
+  color: #111111;
+  padding: 14px 16px;
+  border-left: 3px solid #ffb72a;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   LEGAL PAGES
+   ========================================================================== */
+.nk-legal-section {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 72px 40px 96px;
+}
+
+.nk-legal-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 56px;
+  margin-top: 44px;
+  padding-top: 36px;
+  border-top: 2px solid #111111;
+}
+
+.nk-legal-aside {
+  position: sticky;
+  top: 96px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.nk-legal-meta-label {
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #57534a;
+  margin-bottom: 4px;
+}
+
+.nk-legal-meta-val {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #111111;
+  line-height: 1.5;
+}
+
+.nk-legal-meta-val a {
+  color: #111111;
+  text-decoration: underline;
+  text-decoration-color: #ffb72a;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.nk-legal-meta-val a:hover {
+  background: #ffb72a;
+}
+
+.nk-legal-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.nk-legal-tab {
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 9px 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 17, 17, 0.24);
+  background: rgba(255, 255, 255, 0.75);
+  color: #262521;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nk-legal-tab:hover {
+  border-color: #111111;
+  background: #fff2cf;
+  color: #111111;
+}
+
+.nk-legal-tab.active {
+  background: #ffb72a;
+  color: #111111;
+  border-color: #111111;
+}
+
+.nk-legal-article {
+  max-width: 780px;
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: #262521;
+}
+
+.nk-legal-article h2 {
+  margin: 32px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.14);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #111111;
+}
+
+.nk-legal-article h2:first-child {
+  margin-top: 0;
+}
+
+.nk-legal-article p {
+  margin: 0 0 14px;
+}
+
+.nk-legal-article ul {
+  margin: 0 0 18px;
+  padding-left: 20px;
+}
+
+.nk-legal-article li {
+  margin-bottom: 8px;
+}
+
+.nk-legal-article strong {
+  color: #111111;
+  font-weight: 600;
+}
+
+.nk-legal-article a {
+  color: #111111;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: #ffb72a;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.nk-legal-article a:hover {
+  background: #ffb72a;
+}
+
+.nk-legal-prose {
+  white-space: pre-line;
+}
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+.nk-footer {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 56px 40px 40px;
+  border-top: 2px solid #111111;
+  color: #3d3a33;
+  font-size: 13px;
+}
+
+.nk-footer-grid {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(3, 1fr);
+  gap: 32px;
+  margin-bottom: 44px;
+}
+
+.nk-footer-col-title {
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #57534a;
+  margin-bottom: 12px;
+}
+
+.nk-footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nk-footer-links a {
+  color: #111111;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.nk-footer-links a:hover {
+  text-decoration: underline;
+  text-decoration-color: #ffb72a;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.nk-footer-wordmark {
+  width: 100%;
+  height: auto;
+  display: block;
+  opacity: 0.92;
+  margin: 12px 0 8px;
+}
+
+.nk-footer-bottom {
+  display: flex;
+  justify-content: between;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(17, 17, 17, 0.12);
+  font-family: var(--font-marketing-mono), monospace;
+  font-size: 11px;
+  color: #57534a;
+}
+
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS
+   ========================================================================== */
+@media (max-width: 1120px) {
+  .nk-brand-tag {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .nk-header-bar {
+    padding: 13px 24px;
+    gap: 10px;
+  }
+
+  .nk-nav {
+    gap: 4px;
+    font-size: 12.5px;
+  }
+
+  .nk-nav a {
+    padding: 5px 8px;
+  }
+
+  .nk-header-ghost {
+    padding: 6px 9px;
+    font-size: 11.5px;
+  }
+
+  .nk-hero,
+  .nk-section,
+  .nk-closing,
+  .nk-legal-section,
+  .nk-footer,
+  .nk-container {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .nk-section {
+    padding-top: 80px;
+    padding-bottom: 80px;
+  }
+
+  .nk-blueprint-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .nk-blueprint-cell:nth-child(2) {
+    border-right: 0;
+  }
+
+  .nk-blueprint-cell:nth-child(1),
+  .nk-blueprint-cell:nth-child(2) {
+    border-bottom: 1px solid rgba(17, 17, 17, 0.12);
+  }
+
+  .nk-product-frame {
+    grid-template-columns: 1fr;
+  }
+
+  .nk-product-copy {
+    padding: 32px 0;
+    border-right: 0;
+    border-bottom: 1px solid rgba(17, 17, 17, 0.12);
+  }
+
+  .nk-product-stage {
+    padding: 32px 0;
+  }
+
+  .nk-editorial-grid-3 {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .nk-founders-grid,
+  .nk-contact-grid,
+  .nk-legal-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .nk-legal-aside {
+    position: static;
+  }
+
+  .nk-footer-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .nk-header-bar {
+    padding: 11px 16px;
+  }
+
+  .nk-nav,
+  .nk-header-actions {
+    display: none;
+  }
+
+  .nk-menu-toggle {
+    display: inline-flex;
+  }
+
+  .nk-mobile-apps-bar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    padding: 0 16px 10px;
+  }
+
+  .nk-mobile-app-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 5.5px 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(17, 17, 17, 0.24);
+    background: rgba(255, 255, 255, 0.85);
+    color: #111111;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nk-mobile-app-pill-primary {
+    background: #111111;
+    border-color: #111111;
+    color: #faf7f0;
+  }
+
+  .nk-mobile-drawer {
+    display: block;
+    border-top: 1px solid rgba(17, 17, 17, 0.12);
+    background: #faf7f0;
+    padding: 16px;
+    box-shadow: 0 18px 36px -16px rgba(17, 17, 17, 0.2);
+  }
+
+  .nk-mobile-drawer-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .nk-mobile-drawer-label {
+    font-family: var(--font-marketing-mono), monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #57534a;
+    margin-bottom: 8px;
+  }
+
+  .nk-mobile-drawer-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .nk-mobile-drawer-links a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(17, 17, 17, 0.16);
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #111111;
+  }
+
+  .nk-mobile-drawer-links a:hover {
+    background: #ffb72a;
+    border-color: #111111;
+  }
+
+  .nk-mobile-drawer-apps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .nk-mobile-drawer-apps a {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(17, 17, 17, 0.2);
+    background: #fff2cf;
+    color: #111111;
+  }
+
+  .nk-mobile-drawer-apps a strong {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .nk-mobile-drawer-apps a span {
+    font-family: var(--font-marketing-mono), monospace;
+    font-size: 10.5px;
+    color: #57534a;
+  }
+}
+
+@media (max-width: 768px) {
+  [id] {
+    scroll-margin-top: 104px;
+  }
+
+  .nk-hero,
+  .nk-section,
+  .nk-closing,
+  .nk-legal-section,
+  .nk-footer,
+  .nk-container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .nk-hero {
+    padding-top: 32px;
+  }
+
+  .nk-hero-top {
+    padding-bottom: 36px;
+  }
+
+  .nk-h1 {
+    font-size: clamp(32px, 9.2vw, 46px);
+    line-height: 1.03;
+  }
+
+  .nk-h2 {
+    font-size: clamp(26px, 7.2vw, 38px);
+    line-height: 1.08;
+  }
+
+  .nk-closing {
+    padding-top: 72px;
+    padding-bottom: 64px;
+  }
+
+  .nk-closing-h2 {
+    font-size: clamp(28px, 8vw, 44px);
+    line-height: 1.06;
+  }
+
+  .nk-section {
+    padding-top: 64px;
+    padding-bottom: 64px;
+  }
+
+  .nk-section-header {
+    margin-bottom: 36px;
+  }
+
+  .nk-blueprint-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .nk-blueprint-cell {
+    padding: 18px 0 !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid rgba(17, 17, 17, 0.12);
+  }
+
+  .nk-blueprint-cell:last-child {
+    border-bottom: 0;
+  }
+
+  .nk-feature-grid,
+  .nk-form-row-2,
+  .nk-footer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nk-founder-card,
+  .nk-form-card {
+    padding: 22px 18px;
+  }
+
+  .nk-stage-metrics {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .nk-mobile-apps-bar {
+    padding: 0 12px 9px;
+    gap: 4px;
+  }
+
+  .nk-mobile-app-pill {
+    font-size: 10.5px;
+    padding: 5px 4px;
+  }
+
+  .nk-mobile-drawer-links,
+  .nk-mobile-drawer-apps {
+    grid-template-columns: 1fr;
+  }
+
+  .nk-btn-coral,
+  .nk-btn-ink,
+  .nk-btn-outline {
+    width: 100%;
+    justify-content: center;
+    padding: 13px 18px;
+    font-size: 14px;
+  }
+}

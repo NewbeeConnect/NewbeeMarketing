@@ -1,9 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-// Every host's root goes to the device-aware redirect. download.newbeeapp.com is
-// printed on story footers and store material, so its root must keep working.
+// download.newbeeapp.com (and legacy marketing.newbeeapp.com) is printed on
+// Instagram story footers and store material, so its bare root (/) must keep
+// rewriting to the device-aware /download redirect.
+// On newbeeapp.com, www.newbeeapp.com, and preview hosts, / serves the website.
 export function proxy(request: NextRequest) {
-  return NextResponse.rewrite(new URL("/download", request.url));
+  const host = (
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    request.nextUrl.hostname
+  )
+    .toLowerCase()
+    .split(":")[0];
+
+  if (host.startsWith("download.") || host.startsWith("marketing.")) {
+    return NextResponse.rewrite(new URL("/download", request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

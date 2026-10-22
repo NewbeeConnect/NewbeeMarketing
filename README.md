@@ -1,12 +1,21 @@
-# Newbee Download Redirect
+# newbee-website
 
-Serves `download.newbeeapp.com`: iPhone/iPad → App Store, Android → Google Play,
-everything else → `app.newbeeapp.com`.
+Official website for **Newbee** (`newbeeapp.com` / `www.newbeeapp.com`) and the device-aware app download redirect (`download.newbeeapp.com` and `/download`).
 
-The Marketing Hub generator that used to live here was retired on 2026-09-24;
-its last state is the tag `retired/marketing-hub-2026-09-24`. See `CLAUDE.md`.
+## Routes
+
+- `/` — Newbee homepage & platform overview
+- `/communities` — City hubs across Germany & Newbee City Lead program
+- `/businesses` — Verified Experts (`expert.newbeeapp.com`) & Event/Brand partnerships
+- `/about` — Story, awards (Frankfurt School €20K 1st Prize, Hessen Ideen, Google for Startups), and Co-Founders
+- `/contact` — Support, partnerships, and GDPR/KVKK account deletion requests
+- `/privacy` — Privacy Policy & KVKK Clarification (EN / TR / DE)
+- `/termsandconditions` — Terms & Conditions (EN / TR / DE)
+- `/download` — Device-aware 302 redirect (iOS → App Store, Android → Google Play, Desktop → `app.newbeeapp.com`)
+
+## Development
 
 ```bash
 npm install
-npm run dev   # http://localhost:3000/download
+npm run dev
 ```

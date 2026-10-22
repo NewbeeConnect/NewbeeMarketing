@@ -1,56 +1,50 @@
-# Newbee Download Redirect (formerly the Marketing Hub)
+# Newbee Website & Download Redirect (`newbee-website`)
 
-> **Last Updated:** September 24, 2026
-> GitHub: `NewbeeConnect/NewbeeMarketing` | Hosting: Vercel project `newbee-marketing` | Language: Turkish
+> **Last Updated:** October 22, 2026
+> GitHub: `NewbeeConnect/newbee-website` | Hosting: Vercel project `newbee-website`
 
-## What this repo is now
+## Overview
 
-One route: `GET /download` (`app/download/route.ts`) sends the visitor to the
-right place by user agent — iPhone/iPad → App Store, Android → Google Play,
-anything else → `https://app.newbeeapp.com`. `proxy.ts` rewrites every host's
-root (`/`) to it, so `download.newbeeapp.com` works as a bare link. That link is
-printed on Instagram story footers and store material, so **it must keep
-working** — test all three user agents after any change.
+This repository serves two roles on the same Next.js 16 application:
 
-## Retired: the Marketing Hub generator
+1. **Official Newbee Website (`newbeeapp.com`, `www.newbeeapp.com`, `newbee-website.vercel.app`)**
+   - Built with the architectural design system shared with `beeyondapps.com` (warm paper background `#faf7f0`, radial dot grid, Newbee Yellow `#ffb72a`, crisp black ink `#111111`, local Geist / Geist Mono fonts).
+   - Routes:
+     - `/` — Platform showcase, App Store / Google Play / Web App CTAs, four core pillars, institutional backing
+     - `/communities` — German city hubs & Newbee City Lead program
+     - `/businesses` — Verified Experts (`expert.newbeeapp.com`), Event Organizers & Brand Partnerships
+     - `/about` — Story ("From 'Help?!' to 'Heeey!'"), awards, and Co-Founders Çağlar Biber & Hande Turan
+     - `/contact` — Support, City Lead / Expert applications, and GDPR/KVKK account & data deletion requests
+     - `/privacy` — Privacy Policy & KVKK Clarification (EN / TR / DE)
+     - `/termsandconditions` — Terms & Conditions (EN / TR / DE)
+   - Permanent 308 redirects in `next.config.ts` map all legacy Wix URLs (`/home`, `/new-about`, `/blog`, `/groups`, `/forum`, `/terms`, etc.) to their modern equivalents.
 
-Until 2026-09-24 this repo was an admin-only AI image/video generator (Gemini,
-Nano Banana, Veo) with its own Supabase project `dwwkcfunctykemwsrkkr`. That
-Supabase project no longer exists (the host returned NXDOMAIN on 2026-09-24 and
-it is not in the Newbee Supabase account), so login was dead. The owner retired
-it the same day. All generator code, migrations and dependencies were removed.
-
-To see or restore it, check out the annotated tag
-`retired/marketing-hub-2026-09-24` — the last commit before removal. A revival
-would also need a new Supabase project (the schema is in that tag's
-`supabase/migrations/`) and fresh `GOOGLE_API_KEY` / Supabase env vars in Vercel.
+2. **Device-Aware App Download Redirect (`/download` and `download.newbeeapp.com`)**
+   - `GET /download` (`app/download/route.ts`) redirects by User-Agent:
+     - iPhone / iPad / iPod → App Store (`https://apps.apple.com/app/newbee/id6474511885`)
+     - Android → Google Play (`https://play.google.com/store/apps/details?id=com.beeyondapps.newbee`)
+     - Desktop / other → `https://app.newbeeapp.com`
+   - `proxy.ts` rewrites the root path (`/`) of `download.newbeeapp.com` and `marketing.newbeeapp.com` to `/download`. This bare link is printed on Instagram story footers and store materials, so **it must always keep working**.
 
 ## Rules
 
-1. **GitHub identity — verify, never switch.** PRs must be authored by
-   **NewbeeConnect**: GitHub's squash merge rewrites the commit author to the PR
-   author, and the Newbee Vercel team's SAML SSO blocks deploys authored by
-   `caglarbiber90`. Never run `gh auth switch`; prefix one-offs with the pinned
-   config (`GH_CONFIG_DIR=<pinned dir> gh pr create …`, see the Newbee app repo's
-   `docs/github-identity.md`). `git config user.email` must print
-   `newbeeconnect@gmail.com`; don't add a repo-local override.
-2. **Vercel deploy canary:** after a merge, if the deployment is
-   `BLOCKED`/`ERROR`, check `meta.githubCommitAuthorLogin`; a wrong author needs
-   a follow-up commit from NewbeeConnect.
+1. **GitHub identity — verify, never switch.** Commits and PRs must be authored by **NewbeeConnect** (`newbeeconnect@gmail.com`). Never run `gh auth switch`; use `GH_CONFIG_DIR=~/.config/gh-newbee`.
+2. **Product domain rules:**
+   - Do not promote a job board or career module (parked in Sep 2026).
+   - Never refer to City Leads as "volunteers" / "gönüllü".
 
-## Build & Deploy
-
-No env vars are needed. Vercel auto-deploys from `main`. GitHub Actions CI
-(`.github/workflows/ci.yml`) runs lint + typecheck + build on PRs to `main` and
-pushes to `main`.
-
-Quick check of a deployment (expect 302 to the App Store, Play, and the web app):
+## Build & Verify
 
 ```bash
-for ua in iPhone Android Macintosh; do curl -s -o /dev/null -w "$ua %{http_code} %{redirect_url}\n" -A "$ua" https://download.newbeeapp.com; done
+npm run lint
+npm run typecheck
+npm run build
 ```
 
-## Domains
+Verify the download redirect across all three device classes:
 
-`download.newbeeapp.com` (keep), `marketing.newbeeapp.com` (the old panel
-address; now lands on the same redirect), `newbee-marketing.vercel.app`.
+```bash
+for ua in iPhone Android Macintosh; do
+  curl -s -o /dev/null -w "$ua %{http_code} %{redirect_url}\n" -A "$ua" https://download.newbeeapp.com
+done
+```
